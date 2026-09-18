@@ -383,35 +383,51 @@ with col1:
     st.subheader("순매수 상위 10")
     if buy_rows:
         st.caption(f"기준 시각: {buy_rows[0]['ts']}")
-        st.dataframe(pd.DataFrame(buy_rows).drop(columns=["ts", "rank_type"]),
-                     use_container_width=True, hide_index=True)
+        buy_df = pd.DataFrame(buy_rows).drop(columns=["ts", "rank_type"])
+        buy_df = buy_df.rename(columns={
+            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
+            "foreign_net": "외국인순매수", "inst_net": "기관순매수", "combined_net": "전체순매수",
+        })
+        st.dataframe(buy_df, use_container_width=True, hide_index=True)
 with col2:
     st.subheader("순매도 상위 10")
     if sell_rows:
         st.caption(f"기준 시각: {sell_rows[0]['ts']}")
-        st.dataframe(pd.DataFrame(sell_rows).drop(columns=["ts", "rank_type"]),
-                     use_container_width=True, hide_index=True)
+        sell_df = pd.DataFrame(sell_rows).drop(columns=["ts", "rank_type"])
+        sell_df = sell_df.rename(columns={
+            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
+            "foreign_net": "외국인순매도", "inst_net": "기관순매도", "combined_net": "전체순매도",
+        })
+        st.dataframe(sell_df, use_container_width=True, hide_index=True)
 
 st.divider()
-st.subheader("순매수 상위 10 — 스윙 후보 스크리닝")
+st.subheader("순매수 상위 10 — 스윙 후보 스크리닝 (점수 높은 순 정렬)")
 
 if not (DART_API_KEY and NAVER_CLIENT_ID and NAVER_CLIENT_SECRET):
     st.warning("DART / 네이버 뉴스 Secrets이 없어 공시·뉴스 정보는 생략됩니다. "
                "기술적 체크리스트만 표시합니다.")
 
+# 먼저 전 종목의 기술적 체크 결과를 계산해서 점수순으로 정렬
+scored_rows = []
 for row in buy_rows:
+    code = row["stock_code"]
+    df = fetch_daily_ohlcv(code)
+    if df.empty:
+        time.sleep(0.5)
+        df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
+    tech = analyze_technicals(df)
+    checks = {k: v for k, v in tech.items() if k != "RSI값"}
+    passed = sum(1 for v in checks.values() if v is True)
+    total = sum(1 for v in checks.values() if v is not None)
+    scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed, "_total": total})
+
+# 통과 개수 내림차순, 동점이면 원래 순매수 순위(오름차순)로 정렬
+scored_rows.sort(key=lambda r: (-r["_passed"], r["rank"]))
+
+for row in scored_rows:
     code, name = row["stock_code"], row["stock_name"]
-    with st.expander(f"{row['rank']}위 · {name} ({code})"):
-        df = fetch_daily_ohlcv(code)
-        if df.empty:
-            time.sleep(0.5)
-            df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
-        tech = analyze_technicals(df)
-
-        checks = {k: v for k, v in tech.items() if k != "RSI값"}
-        passed = sum(1 for v in checks.values() if v is True)
-        total = sum(1 for v in checks.values() if v is not None)
-
+    tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
+    with st.expander(f"점수 {passed}/{total} · 원순위 {row['rank']}위 · {name} ({code})"):
         rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
         st.markdown(f"**기술적 체크: {passed}/{total} 통과**{rsi_note}")
 
