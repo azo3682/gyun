@@ -158,6 +158,7 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         "fid_period_div_code": "D",
         "fid_org_adj_prc": "0",
     }
+    time.sleep(0.15)  # 초당 호출 제한 방지용 간격
     try:
         resp = requests.get(
             f"{BASE_URL}{DAILY_CHART_API_PATH}",
@@ -402,6 +403,9 @@ for row in buy_rows:
     code, name = row["stock_code"], row["stock_name"]
     with st.expander(f"{row['rank']}위 · {name} ({code})"):
         df = fetch_daily_ohlcv(code)
+        if df.empty:
+            time.sleep(0.5)
+            df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
         tech = analyze_technicals(df)
 
         checks = {k: v for k, v in tech.items() if k != "RSI값"}
