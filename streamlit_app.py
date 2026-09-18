@@ -293,9 +293,10 @@ def check_disclosure_risk(stock_code: str) -> list[str]:
 # ============================================================
 
 @st.cache_data(ttl=1800)
-def fetch_news(stock_name: str, count: int = 3) -> list[dict]:
+def fetch_news(stock_name: str, count: int = 3):
+    """반환: (뉴스 리스트, 디버그용 에러 메시지 또는 None)"""
     if not NAVER_CLIENT_ID or not NAVER_CLIENT_SECRET:
-        return []
+        return [], "NAVER_CLIENT_ID/SECRET이 Secrets에 없음"
     try:
         resp = requests.get(
             "https://naverapihub.apigw.ntruss.com/search/v1/news",
@@ -306,15 +307,16 @@ def fetch_news(stock_name: str, count: int = 3) -> list[dict]:
             params={"query": stock_name, "display": count, "sort": "date"},
             timeout=10,
         )
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            return [], f"HTTP {resp.status_code}: {resp.text[:300]}"
         items = resp.json().get("items", [])
         out = []
         for it in items:
             title = re.sub("<[^>]+>", "", it.get("title", ""))
             out.append({"title": title, "link": it.get("link", ""), "pubDate": it.get("pubDate", "")})
-        return out
-    except Exception:
-        return []
+        return out, None
+    except Exception as e:
+        return [], f"예외 발생: {e}"
 
 
 # ============================================================
@@ -423,11 +425,13 @@ for row in buy_rows:
         elif DART_API_KEY:
             st.success("최근 30일 내 주의 공시 없음")
 
-        news = fetch_news(name)
+        news, news_err = fetch_news(name)
         if news:
             st.markdown("**관련 뉴스**")
             for n in news:
                 st.markdown(f"- [{n['title']}]({n['link']})")
+        elif news_err:
+            st.caption(f"(디버그) 뉴스 조회 실패: {news_err}")
 
 st.divider()
 st.subheader("종목별 수급 추이 (이 앱이 켜져 있던 동안만)")
