@@ -430,8 +430,6 @@ for row in buy_rows:
             st.markdown("**관련 뉴스**")
             for n in news:
                 st.markdown(f"- [{n['title']}]({n['link']})")
-        elif news_err:
-            st.caption(f"(디버그) 뉴스 조회 실패: {news_err}")
 
 st.divider()
 st.subheader("종목별 수급 추이 (이 앱이 켜져 있던 동안만)")
