@@ -572,6 +572,20 @@ if lookup_code:
             icon = "✅" if val is True else ("❌" if val is False else "—")
             c.metric(label, icon)
 
+        st.markdown("**가격 추이 (최근 4개월, 이동평균선)**")
+        chart_df = lookup_df.copy()
+        chart_df["MA5"] = chart_df["stck_clpr"].rolling(5).mean()
+        chart_df["MA20"] = chart_df["stck_clpr"].rolling(20).mean()
+        chart_df["MA60"] = chart_df["stck_clpr"].rolling(60).mean()
+        chart_df = chart_df.rename(columns={"stck_clpr": "종가"})
+        chart_df = chart_df.set_index("stck_bsop_date")
+        st.line_chart(chart_df[["종가", "MA5", "MA20", "MA60"]])
+        st.caption("정배열 = MA5(파랑 계열)가 MA20 위에, MA20이 MA60 위에 있는 상태입니다.")
+
+        st.markdown("**거래량 추이**")
+        vol_df = lookup_df.set_index("stck_bsop_date")[["acml_vol"]].rename(columns={"acml_vol": "거래량"})
+        st.bar_chart(vol_df)
+
     if lookup_risky:
         st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
     elif DART_API_KEY:
