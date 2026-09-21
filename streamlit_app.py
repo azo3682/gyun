@@ -208,14 +208,75 @@ def fetch_current_price(stock_code: str):
 
 
 def compute_rsi(closes: pd.Series, period: int = 14):
+    series = compute_rsi_series(closes, period)
+    return float(series.iloc[-1]) if not series.empty and pd.notna(series.iloc[-1]) else None
+
+
+def compute_rsi_series(closes: pd.Series, period: int = 14) -> pd.Series:
     delta = closes.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
     avg_gain = gain.rolling(period).mean()
     avg_loss = loss.rolling(period).mean()
     rs = avg_gain / avg_loss.replace(0, pd.NA)
-    rsi = 100 - (100 / (1 + rs))
-    return float(rsi.iloc[-1]) if not rsi.empty and pd.notna(rsi.iloc[-1]) else None
+    return 100 - (100 / (1 + rs))
+
+
+def classify_trend_state(df: pd.DataFrame):
+    """(상태 라벨, 설명, streamlit 표시함수) 반환."""
+    if df.empty or len(df) < 60:
+        return "데이터 부족", "일봉 데이터가 충분하지 않아 추세를 판단할 수 없습니다.", st.caption
+
+    close = df["stck_clpr"]
+    ma5, ma20, ma60 = close.rolling(5).mean(), close.rolling(20).mean(), close.rolling(60).mean()
+    rsi_series = compute_rsi_series(close)
+
+    ma5_now, ma20_now, ma60_now = ma5.iloc[-1], ma20.iloc[-1], ma60.iloc[-1]
+    ma5_prev = ma5.iloc[-6] if len(ma5) > 6 else ma5.iloc[0]
+    rsi_now = rsi_series.iloc[-1] if pd.notna(rsi_series.iloc[-1]) else None
+    rsi_prev = rsi_series.iloc[-6] if len(rsi_series) > 6 and pd.notna(rsi_series.iloc[-6]) else None
+    close_now, close_5ago = close.iloc[-1], close.iloc[-6] if len(close) > 6 else close.iloc[0]
+
+    ma5_rising = ma5_now > ma5_prev
+    rsi_rising = (rsi_now is not None and rsi_prev is not None and rsi_now > rsi_prev)
+    price_up_5d = close_now > close_5ago
+    uptrend_long = ma20_now > ma60_now
+    downtrend_long = ma20_now < ma60_now
+
+    if ma5_now > ma20_now > ma60_now:
+        if rsi_now is not None and rsi_now >= 70:
+            return ("상승추세 · 단기 과열",
+                    "정배열 상태지만 RSI가 과열 구간에 들어와, 추가 상승보다 단기 조정 가능성도 염두에 둬야 하는 구간입니다.",
+                    st.warning)
+        return ("상승추세 진행중",
+                "단기·중기·장기 이동평균선이 순서대로 위에 있는 정배열 상태로, 추세가 살아있는 구간입니다.",
+                st.success)
+
+    if ma5_now < ma20_now < ma60_now:
+        if price_up_5d and ma5_rising:
+            return ("하락추세 속 기술적 반등",
+                    "중장기 추세는 아직 하락이지만, 최근 며칠 단기적으로 반등이 나오고 있는 구간입니다. 추세 전환인지 일시적 되돌림인지는 며칠 더 지켜봐야 합니다.",
+                    st.info)
+        if rsi_now is not None and rsi_now <= 35 and rsi_rising:
+            return ("하락추세 · 반등 준비 구간",
+                    "과매도 영역에서 RSI가 바닥을 다지는 움직임이 보이지만, 아직 가격이나 이동평균선상 뚜렷한 반등 신호는 아닙니다.",
+                    st.info)
+        return ("추세적 하락 지속",
+                "단기·중기·장기 이동평균선이 모두 역순으로 배열된 뚜렷한 하락추세이며, 반등 조짐도 약한 상태입니다.",
+                st.error)
+
+    if ma5_now > ma20_now and downtrend_long:
+        return ("하락추세 속 단기 반등 시도",
+                "중장기 추세는 아직 하락(20일선<60일선)이지만, 단기 이동평균선이 중기선 위로 올라서며 반등을 시도하는 모습입니다.",
+                st.info)
+    if ma5_now < ma20_now and uptrend_long:
+        return ("상승추세 속 단기 조정",
+                "중장기 추세는 상승(20일선>60일선)이지만, 단기적으로 눌림/조정을 받는 구간입니다.",
+                st.warning)
+
+    return ("방향성 탐색 구간",
+            "이동평균선들이 뚜렷한 배열 없이 얽혀 있어, 추세 전환기이거나 단순 횡보 구간일 가능성이 있습니다.",
+            st.info)
 
 
 def analyze_technicals(df: pd.DataFrame) -> dict:
@@ -443,6 +504,12 @@ def price_status_badge(day_pct):
     return "➖ 보합 (신선한 구간)"
 
 
+def trend_label_for(stock_code: str) -> str:
+    df = fetch_daily_ohlcv(stock_code)
+    label, _, _ = classify_trend_state(df)
+    return label
+
+
 INTRADAY_STATUS_PATH = "data/intraday_status.json"
 if os.path.exists(INTRADAY_STATUS_PATH):
     with open(INTRADAY_STATUS_PATH, "r", encoding="utf-8") as f:
@@ -457,19 +524,22 @@ if os.path.exists(INTRADAY_STATUS_PATH):
         st.markdown("**🔴 제외 후보** (아침엔 후보였으나 조건 이탈)")
         for e in excluded:
             price_str = f" · 현재가 {e['current_price']:,.0f}원 ({e['day_pct']:+.2f}%)" if e.get("current_price") else ""
-            st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str}")
+            trend = trend_label_for(e["stock_code"])
+            st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str} · **국면: {trend}**")
     if new_candidates:
         st.markdown("**🟢 신규 후보** (아침엔 없었으나 지금 조건 충족)")
         for n in new_candidates:
             price_str = f" · 현재가 {n['current_price']:,.0f}원 ({n['day_pct']:+.2f}%)" if n.get("current_price") else ""
             badge = price_status_badge(n.get("day_pct"))
-            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge}")
+            trend = trend_label_for(n["stock_code"])
+            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge} · **국면: {trend}**")
     if kept:
         st.markdown("**⚪ 유지 중** (아침 후보 그대로, 실시간 현재가)")
         kept_rows = [{
             "종목명": k["stock_name"], "종목코드": k["stock_code"],
             "현재가": k.get("current_price"), "당일등락률(%)": k.get("day_pct"),
             "상태": price_status_badge(k.get("day_pct")),
+            "국면": trend_label_for(k["stock_code"]),
         } for k in kept]
         st.dataframe(pd.DataFrame(kept_rows), use_container_width=True, hide_index=True)
     if not excluded and not new_candidates and not kept:
@@ -572,19 +642,10 @@ if lookup_code:
             icon = "✅" if val is True else ("❌" if val is False else "—")
             c.metric(label, icon)
 
-        st.markdown("**가격 추이 (최근 4개월, 이동평균선)**")
-        chart_df = lookup_df.copy()
-        chart_df["MA5"] = chart_df["stck_clpr"].rolling(5).mean()
-        chart_df["MA20"] = chart_df["stck_clpr"].rolling(20).mean()
-        chart_df["MA60"] = chart_df["stck_clpr"].rolling(60).mean()
-        chart_df = chart_df.rename(columns={"stck_clpr": "종가"})
-        chart_df = chart_df.set_index("stck_bsop_date")
-        st.line_chart(chart_df[["종가", "MA5", "MA20", "MA60"]])
-        st.caption("정배열 = MA5(파랑 계열)가 MA20 위에, MA20이 MA60 위에 있는 상태입니다.")
-
-        st.markdown("**거래량 추이**")
-        vol_df = lookup_df.set_index("stck_bsop_date")[["acml_vol"]].rename(columns={"acml_vol": "거래량"})
-        st.bar_chart(vol_df)
+        st.markdown("**추세 판단 (규칙 기반 참고 의견)**")
+        state_label, state_desc, state_fn = classify_trend_state(lookup_df)
+        state_fn(f"**{state_label}** — {state_desc}")
+        st.caption("이동평균선(5/20/60일) 배열과 RSI 흐름만으로 판단한 규칙 기반 해석이며, 매수/매도 신호가 아닙니다.")
 
     if lookup_risky:
         st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
