@@ -815,6 +815,32 @@ with tab_screen:
     else:
         st.info("오늘은 전환신호(검증된 신호)가 뜬 종목이 없습니다. 아래는 전부 참고용입니다.")
 
+    # 재진입 후보 / 관찰 목록 (전일 마감 배치가 생성한 데이터, GitHub Actions가 커밋)
+    EOD_SNAPSHOT_PATH = "data/eod_snapshot.json"
+    WATCHLIST_PATH = "data/watchlist.json"
+    if os.path.exists(EOD_SNAPSHOT_PATH):
+        with open(EOD_SNAPSHOT_PATH, "r", encoding="utf-8") as f:
+            eod_snapshot = json.load(f)
+        reentry = eod_snapshot.get("reentry_candidates", [])
+        if reentry:
+            st.markdown("**🎯 재진입 후보** (급등 후 관찰 중이던 종목이 눌림 상태로 복귀)")
+            for r in reentry:
+                st.markdown(f"- {r['stock_name']}({r['stock_code']}) — {r['days_watched']}거래일 관찰 후 눌림 확인 "
+                            f"(최초 급등 +{r['initial_pct']*100:.2f}%)")
+
+    if os.path.exists(WATCHLIST_PATH):
+        with open(WATCHLIST_PATH, "r", encoding="utf-8") as f:
+            watchlist = json.load(f)
+        if watchlist:
+            with st.expander(f"👀 관찰 목록 ({len(watchlist)}개 — 급등 후 눌림 대기 중)"):
+                watch_rows = [{"종목명": v["stock_name"], "종목코드": k,
+                               "최초급등률(%)": v["initial_pct"] * 100,
+                               "관찰경과(거래일)": v["days_watched"]}
+                              for k, v in watchlist.items()]
+                st.dataframe(pd.DataFrame(watch_rows), use_container_width=True, hide_index=True)
+                st.caption("이 종목들은 당일 +7% 이상 급등해서 추격 대신 눌림을 기다리는 중입니다. "
+                           "눌림이 오면 위 '재진입 후보'로 자동 승격됩니다 (최대 15거래일 대기).")
+
     for row in scored_rows:
         code, name = row["stock_code"], row["stock_name"]
         tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
