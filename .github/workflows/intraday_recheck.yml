@@ -1,0 +1,40 @@
+name: Intraday Recheck
+
+on:
+  schedule:
+    - cron: "40 0 * * 1-5"   # 09:40 KST
+    - cron: "10 1 * * 1-5"   # 10:10 KST
+    - cron: "30 2 * * 1-5"   # 11:30 KST
+    - cron: "30 4 * * 1-5"   # 13:30 KST
+    - cron: "40 5 * * 1-5"   # 14:40 KST
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  recheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-actions.txt
+      - name: Run intraday recheck
+        env:
+          KIS_APP_KEY: ${{ secrets.KIS_APP_KEY }}
+          KIS_APP_SECRET: ${{ secrets.KIS_APP_SECRET }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: |
+          cd scripts
+          python intraday_recheck.py
+      - name: Commit status
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/intraday_status.json
+          git commit -m "Update intraday status [skip ci]" || echo "no changes"
+          git push
