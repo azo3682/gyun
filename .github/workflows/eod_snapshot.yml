@@ -1,0 +1,36 @@
+name: EOD Snapshot
+
+on:
+  schedule:
+    - cron: "40 6 * * 1-5"   # 매일 15:40 KST (= 06:40 UTC), 월~금
+  workflow_dispatch: {}       # 수동 실행 버튼도 제공
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-actions.txt
+      - name: Run EOD snapshot
+        env:
+          KIS_APP_KEY: ${{ secrets.KIS_APP_KEY }}
+          KIS_APP_SECRET: ${{ secrets.KIS_APP_SECRET }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: |
+          cd scripts
+          python eod_snapshot.py
+      - name: Commit snapshot
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/eod_snapshot.json
+          git commit -m "Update EOD snapshot [skip ci]" || echo "no changes"
+          git push
