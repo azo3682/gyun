@@ -519,123 +519,17 @@ if not APP_KEY or not APP_SECRET:
     st.error("Secrets에 KIS_APP_KEY / KIS_APP_SECRET이 설정되지 않았습니다.")
     st.stop()
 
-init_db()
-
 try:
     buy_rows = fetch_investor_ranking("buy")
-    sell_rows = fetch_investor_ranking("sell")
-    save_rows(buy_rows)
-    save_rows(sell_rows)
 except Exception as e:
     st.error(f"데이터 조회 실패: {e}")
     st.stop()
 
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("순매수 상위 10")
-    if buy_rows:
-        st.caption(f"기준 시각: {buy_rows[0]['ts']}")
-        buy_df = pd.DataFrame(buy_rows).drop(columns=["ts", "rank_type"])
-        buy_df = buy_df.rename(columns={
-            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
-            "foreign_net": "외국인순매수", "inst_net": "기관순매수", "combined_net": "전체순매수",
-        })
-        st.dataframe(buy_df, use_container_width=True, hide_index=True)
-with col2:
-    st.subheader("순매도 상위 10")
-    if sell_rows:
-        st.caption(f"기준 시각: {sell_rows[0]['ts']}")
-        sell_df = pd.DataFrame(sell_rows).drop(columns=["ts", "rank_type"])
-        sell_df = sell_df.rename(columns={
-            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
-            "foreign_net": "외국인순매도", "inst_net": "기관순매도", "combined_net": "전체순매도",
-        })
-        st.dataframe(sell_df, use_container_width=True, hide_index=True)
-
-st.divider()
-st.subheader("거래량 상위 10")
 try:
     volume_rows, volume_raw_sample = fetch_volume_rank()
+    volume_error = None
 except Exception as e:
-    volume_rows, volume_raw_sample = [], {}
-    st.warning(f"거래량 상위 조회 실패: {e}")
-
-if volume_rows:
-    vol_df = pd.DataFrame(volume_rows).rename(columns={
-        "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
-        "volume": "거래량", "day_pct": "등락률(%)",
-    })
-    st.dataframe(vol_df, use_container_width=True, hide_index=True)
-    with st.expander("원본 응답 확인 (필드명 검증용)"):
-        st.json(volume_raw_sample)
-
-    st.markdown("**거래량 상위 종목 기술적 스크리닝**")
-    st.caption("순매수 상위와 달리 개인 투기 수급이 섞일 수 있는 목록입니다 — 아래 체크와 함께 반드시 같이 보세요.")
-    for row in volume_rows:
-        code, name = row["stock_code"], row["stock_name"]
-        if not code:
-            continue
-        with st.expander(f"{row['rank']}위 · {name} ({code}) · 거래량 {row['volume']}"):
-            vdf = fetch_daily_ohlcv(code)
-            vtech = analyze_technicals(vdf)
-            vchecks = {k: v for k, v in vtech.items() if k != "RSI값"}
-            vpassed = sum(1 for v in vchecks.values() if v is True)
-            vtotal = sum(1 for v in vchecks.values() if v is not None)
-            if vtotal == 0:
-                st.caption("일봉 데이터를 가져오지 못했습니다.")
-            else:
-                vrsi_note = f" (RSI: {vtech['RSI값']})" if vtech["RSI값"] is not None else ""
-                st.markdown(f"**기술적 체크: {vpassed}/{vtotal} 통과**{vrsi_note}")
-                vcols = st.columns(len(vchecks))
-                for c, (label, val) in zip(vcols, vchecks.items()):
-                    icon = "✅" if val is True else ("❌" if val is False else "—")
-                    c.metric(label, icon)
-                vstate_label, vstate_desc, vstate_fn = classify_trend_state(vdf)
-                vstate_fn(f"**{vstate_label}** — {vstate_desc}")
-            vrisky = check_disclosure_risk(code)
-            if vrisky:
-                st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in vrisky))
-            elif DART_API_KEY:
-                st.success("최근 30일 내 주의 공시 없음")
-
-st.divider()
-st.subheader("🔥 동시 등장 종목 (순매수 상위 + 거래량 상위)")
-st.caption("두 리스트는 성격이 달라 합산 점수를 매기지 않습니다. 대신 둘 다에 오른 종목만 따로 골라 보여드립니다 — 큰손 매수와 시장 관심이 동시에 쏠린 종목입니다.")
-
-buy_codes_map = {r["stock_code"]: r for r in buy_rows}
-volume_codes_map = {r["stock_code"]: r for r in volume_rows} if volume_rows else {}
-overlap_codes = set(buy_codes_map) & set(volume_codes_map)
-
-if not overlap_codes:
-    st.info("현재 두 리스트에 동시에 오른 종목이 없습니다.")
-else:
-    for code in overlap_codes:
-        b, v = buy_codes_map[code], volume_codes_map[code]
-        with st.expander(f"{b['stock_name']}({code}) · 순매수 {b['rank']}위 · 거래량 {v['rank']}위"):
-            st.markdown(f"- 외국인순매수: {b['foreign_net']:,.0f} / 기관순매수: {b['inst_net']:,.0f}")
-            st.markdown(f"- 거래량: {v['volume']} / 등락률: {v['day_pct']}%")
-            odf = fetch_daily_ohlcv(code)
-            otech = analyze_technicals(odf)
-            ochecks = {k: val for k, val in otech.items() if k != "RSI값"}
-            opassed = sum(1 for val in ochecks.values() if val is True)
-            ototal = sum(1 for val in ochecks.values() if val is not None)
-            if ototal > 0:
-                orsi_note = f" (RSI: {otech['RSI값']})" if otech["RSI값"] is not None else ""
-                st.markdown(f"**기술적 체크: {opassed}/{ototal} 통과**{orsi_note}")
-                ocols = st.columns(len(ochecks))
-                for c, (label, val) in zip(ocols, ochecks.items()):
-                    icon = "✅" if val is True else ("❌" if val is False else "—")
-                    c.metric(label, icon)
-                ostate_label, ostate_desc, ostate_fn = classify_trend_state(odf)
-                ostate_fn(f"**{ostate_label}** — {ostate_desc}")
-            orisky = check_disclosure_risk(code)
-            if orisky:
-                st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in orisky))
-            elif DART_API_KEY:
-                st.success("최근 30일 내 주의 공시 없음")
-
-st.divider()
-st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
+    volume_rows, volume_raw_sample, volume_error = [], {}, str(e)
 
 
 def price_status_badge(day_pct):
@@ -656,162 +550,250 @@ def trend_label_for(stock_code: str) -> str:
     return label
 
 
-INTRADAY_STATUS_PATH = "data/intraday_status.json"
-if os.path.exists(INTRADAY_STATUS_PATH):
-    with open(INTRADAY_STATUS_PATH, "r", encoding="utf-8") as f:
-        intraday = json.load(f)
-    st.caption(f"마지막 재점검: {intraday.get('checked_at', '?')}")
+tab_supply, tab_volume, tab_overlap, tab_intraday, tab_screen, tab_lookup = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "🔥 동시 등장", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔍 종목 조회",
+])
 
-    excluded = intraday.get("excluded", [])
-    new_candidates = intraday.get("new_candidates", [])
-    kept = intraday.get("kept", [])
+# ---------------- 📊 순매수 상위 ----------------
+with tab_supply:
+    st.subheader("순매수 상위 10")
+    if buy_rows:
+        st.caption(f"기준 시각: {buy_rows[0]['ts']}")
+        buy_df = pd.DataFrame(buy_rows).drop(columns=["ts", "rank_type"])
+        buy_df = buy_df.rename(columns={
+            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
+            "foreign_net": "외국인순매수", "inst_net": "기관순매수", "combined_net": "전체순매수",
+        })
+        st.dataframe(buy_df, use_container_width=True, hide_index=True)
 
-    if excluded:
-        st.markdown("**🔴 제외 후보** (아침엔 후보였으나 조건 이탈)")
-        for e in excluded:
-            price_str = f" · 현재가 {e['current_price']:,.0f}원 ({e['day_pct']:+.2f}%)" if e.get("current_price") else ""
-            trend = trend_label_for(e["stock_code"])
-            st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str} · **국면: {trend}**")
-    if new_candidates:
-        st.markdown("**🟢 신규 후보** (아침엔 없었으나 지금 조건 충족)")
-        for n in new_candidates:
-            price_str = f" · 현재가 {n['current_price']:,.0f}원 ({n['day_pct']:+.2f}%)" if n.get("current_price") else ""
-            badge = price_status_badge(n.get("day_pct"))
-            trend = trend_label_for(n["stock_code"])
-            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge} · **국면: {trend}**")
-    if kept:
-        st.markdown("**⚪ 유지 중** (아침 후보 그대로, 실시간 현재가)")
-        kept_rows = [{
-            "종목명": k["stock_name"], "종목코드": k["stock_code"],
-            "현재가": k.get("current_price"), "당일등락률(%)": k.get("day_pct"),
-            "상태": price_status_badge(k.get("day_pct")),
-            "국면": trend_label_for(k["stock_code"]),
-        } for k in kept]
-        st.dataframe(pd.DataFrame(kept_rows), use_container_width=True, hide_index=True)
-    if not excluded and not new_candidates and not kept:
-        st.info("아침 후보 대비 변동 없음")
-else:
-    st.caption("아직 장중 재점검 데이터가 없습니다 (첫 재점검은 09:40경 실행됩니다).")
+# ---------------- 📈 거래량 상위 ----------------
+with tab_volume:
+    st.subheader("거래량 상위 10")
+    if volume_error:
+        st.warning(f"거래량 상위 조회 실패: {volume_error}")
 
-st.divider()
-st.subheader("순매수 상위 10 — 스윙 후보 스크리닝 (점수 높은 순 정렬)")
+    if volume_rows:
+        vol_df = pd.DataFrame(volume_rows).rename(columns={
+            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
+            "volume": "거래량", "day_pct": "등락률(%)",
+        })
+        st.dataframe(vol_df, use_container_width=True, hide_index=True)
+        with st.expander("원본 응답 확인 (필드명 검증용)"):
+            st.json(volume_raw_sample)
 
-if not (DART_API_KEY and NAVER_CLIENT_ID and NAVER_CLIENT_SECRET):
-    st.warning("DART / 네이버 뉴스 Secrets이 없어 공시·뉴스 정보는 생략됩니다. "
-               "기술적 체크리스트만 표시합니다.")
+        st.markdown("**거래량 상위 종목 기술적 스크리닝**")
+        st.caption("순매수 상위와 달리 개인 투기 수급이 섞일 수 있는 목록입니다 — 아래 체크와 함께 반드시 같이 보세요.")
+        for row in volume_rows:
+            code, name = row["stock_code"], row["stock_name"]
+            if not code:
+                continue
+            with st.expander(f"{row['rank']}위 · {name} ({code}) · 거래량 {row['volume']}"):
+                vdf = fetch_daily_ohlcv(code)
+                vtech = analyze_technicals(vdf)
+                vchecks = {k: v for k, v in vtech.items() if k != "RSI값"}
+                vpassed = sum(1 for v in vchecks.values() if v is True)
+                vtotal = sum(1 for v in vchecks.values() if v is not None)
+                if vtotal == 0:
+                    st.caption("일봉 데이터를 가져오지 못했습니다.")
+                else:
+                    vrsi_note = f" (RSI: {vtech['RSI값']})" if vtech["RSI값"] is not None else ""
+                    st.markdown(f"**기술적 체크: {vpassed}/{vtotal} 통과**{vrsi_note}")
+                    vcols = st.columns(len(vchecks))
+                    for c, (label, val) in zip(vcols, vchecks.items()):
+                        icon = "✅" if val is True else ("❌" if val is False else "—")
+                        c.metric(label, icon)
+                    vstate_label, vstate_desc, vstate_fn = classify_trend_state(vdf)
+                    vstate_fn(f"**{vstate_label}** — {vstate_desc}")
+                vrisky = check_disclosure_risk(code)
+                if vrisky:
+                    st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in vrisky))
+                elif DART_API_KEY:
+                    st.success("최근 30일 내 주의 공시 없음")
 
-# 먼저 전 종목의 기술적 체크 결과를 계산해서 점수순으로 정렬
-scored_rows = []
-for row in buy_rows:
-    code = row["stock_code"]
-    df = fetch_daily_ohlcv(code)
-    if df.empty:
-        time.sleep(0.5)
-        df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
-    tech = analyze_technicals(df)
-    checks = {k: v for k, v in tech.items() if k != "RSI값"}
-    passed = sum(1 for v in checks.values() if v is True)
-    total = sum(1 for v in checks.values() if v is not None)
-    scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed, "_total": total})
+# ---------------- 🔥 동시 등장 ----------------
+with tab_overlap:
+    st.subheader("동시 등장 종목 (순매수 상위 + 거래량 상위)")
+    st.caption("두 리스트는 성격이 달라 합산 점수를 매기지 않습니다. 대신 둘 다에 오른 종목만 따로 골라 보여드립니다 — 큰손 매수와 시장 관심이 동시에 쏠린 종목입니다.")
 
-# 통과 개수 내림차순, 동점이면 원래 순매수 순위(오름차순)로 정렬
-scored_rows.sort(key=lambda r: (-r["_passed"], r["rank"]))
+    buy_codes_map = {r["stock_code"]: r for r in buy_rows}
+    volume_codes_map = {r["stock_code"]: r for r in volume_rows} if volume_rows else {}
+    overlap_codes = set(buy_codes_map) & set(volume_codes_map)
 
-for row in scored_rows:
-    code, name = row["stock_code"], row["stock_name"]
-    tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
-    with st.expander(f"점수 {passed}/{total} · 원순위 {row['rank']}위 · {name} ({code})"):
-        rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
-        st.markdown(f"**기술적 체크: {passed}/{total} 통과**{rsi_note}")
+    if not overlap_codes:
+        st.info("현재 두 리스트에 동시에 오른 종목이 없습니다.")
+    else:
+        for code in overlap_codes:
+            b, v = buy_codes_map[code], volume_codes_map[code]
+            with st.expander(f"{b['stock_name']}({code}) · 순매수 {b['rank']}위 · 거래량 {v['rank']}위"):
+                st.markdown(f"- 외국인순매수: {b['foreign_net']:,.0f} / 기관순매수: {b['inst_net']:,.0f}")
+                st.markdown(f"- 거래량: {v['volume']} / 등락률: {v['day_pct']}%")
+                odf = fetch_daily_ohlcv(code)
+                otech = analyze_technicals(odf)
+                ochecks = {k: val for k, val in otech.items() if k != "RSI값"}
+                opassed = sum(1 for val in ochecks.values() if val is True)
+                ototal = sum(1 for val in ochecks.values() if val is not None)
+                if ototal > 0:
+                    orsi_note = f" (RSI: {otech['RSI값']})" if otech["RSI값"] is not None else ""
+                    st.markdown(f"**기술적 체크: {opassed}/{ototal} 통과**{orsi_note}")
+                    ocols = st.columns(len(ochecks))
+                    for c, (label, val) in zip(ocols, ochecks.items()):
+                        icon = "✅" if val is True else ("❌" if val is False else "—")
+                        c.metric(label, icon)
+                    ostate_label, ostate_desc, ostate_fn = classify_trend_state(odf)
+                    ostate_fn(f"**{ostate_label}** — {ostate_desc}")
+                orisky = check_disclosure_risk(code)
+                if orisky:
+                    st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in orisky))
+                elif DART_API_KEY:
+                    st.success("최근 30일 내 주의 공시 없음")
 
-        if total == 0:
-            st.caption("일봉 데이터를 가져오지 못했습니다.")
+# ---------------- ⏱ 장중 변동 ----------------
+with tab_intraday:
+    st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
+
+    INTRADAY_STATUS_PATH = "data/intraday_status.json"
+    if os.path.exists(INTRADAY_STATUS_PATH):
+        with open(INTRADAY_STATUS_PATH, "r", encoding="utf-8") as f:
+            intraday = json.load(f)
+        st.caption(f"마지막 재점검: {intraday.get('checked_at', '?')}")
+
+        excluded = intraday.get("excluded", [])
+        new_candidates = intraday.get("new_candidates", [])
+        kept = intraday.get("kept", [])
+
+        if excluded:
+            st.markdown("**🔴 제외 후보** (아침엔 후보였으나 조건 이탈)")
+            for e in excluded:
+                price_str = f" · 현재가 {e['current_price']:,.0f}원 ({e['day_pct']:+.2f}%)" if e.get("current_price") else ""
+                trend = trend_label_for(e["stock_code"])
+                st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str} · **국면: {trend}**")
+        if new_candidates:
+            st.markdown("**🟢 신규 후보** (아침엔 없었으나 지금 조건 충족)")
+            for n in new_candidates:
+                price_str = f" · 현재가 {n['current_price']:,.0f}원 ({n['day_pct']:+.2f}%)" if n.get("current_price") else ""
+                badge = price_status_badge(n.get("day_pct"))
+                trend = trend_label_for(n["stock_code"])
+                st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge} · **국면: {trend}**")
+        if kept:
+            st.markdown("**⚪ 유지 중** (아침 후보 그대로, 실시간 현재가)")
+            kept_rows = [{
+                "종목명": k["stock_name"], "종목코드": k["stock_code"],
+                "현재가": k.get("current_price"), "당일등락률(%)": k.get("day_pct"),
+                "상태": price_status_badge(k.get("day_pct")),
+                "국면": trend_label_for(k["stock_code"]),
+            } for k in kept]
+            st.dataframe(pd.DataFrame(kept_rows), use_container_width=True, hide_index=True)
+        if not excluded and not new_candidates and not kept:
+            st.info("아침 후보 대비 변동 없음")
+    else:
+        st.caption("아직 장중 재점검 데이터가 없습니다 (첫 재점검은 09:40경 실행됩니다).")
+
+# ---------------- ✅ 스윙 후보 스크리닝 ----------------
+with tab_screen:
+    st.subheader("순매수 상위 10 — 스윙 후보 스크리닝 (점수 높은 순 정렬)")
+
+    if not (DART_API_KEY and NAVER_CLIENT_ID and NAVER_CLIENT_SECRET):
+        st.warning("DART / 네이버 뉴스 Secrets이 없어 공시·뉴스 정보는 생략됩니다. "
+                   "기술적 체크리스트만 표시합니다.")
+
+    scored_rows = []
+    for row in buy_rows:
+        code = row["stock_code"]
+        df = fetch_daily_ohlcv(code)
+        if df.empty:
+            time.sleep(0.5)
+            df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
+        tech = analyze_technicals(df)
+        checks = {k: v for k, v in tech.items() if k != "RSI값"}
+        passed = sum(1 for v in checks.values() if v is True)
+        total = sum(1 for v in checks.values() if v is not None)
+        scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed, "_total": total})
+
+    scored_rows.sort(key=lambda r: (-r["_passed"], r["rank"]))
+
+    for row in scored_rows:
+        code, name = row["stock_code"], row["stock_name"]
+        tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
+        with st.expander(f"점수 {passed}/{total} · 원순위 {row['rank']}위 · {name} ({code})"):
+            rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
+            st.markdown(f"**기술적 체크: {passed}/{total} 통과**{rsi_note}")
+
+            if total == 0:
+                st.caption("일봉 데이터를 가져오지 못했습니다.")
+            else:
+                cols = st.columns(len(checks))
+                for c, (label, val) in zip(cols, checks.items()):
+                    icon = "✅" if val is True else ("❌" if val is False else "—")
+                    c.metric(label, icon)
+
+            risky = check_disclosure_risk(code)
+            if risky:
+                st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in risky))
+            elif DART_API_KEY:
+                st.success("최근 30일 내 주의 공시 없음")
+
+            news, news_err = fetch_news(name)
+            if news:
+                st.markdown("**관련 뉴스**")
+                for n in news:
+                    st.markdown(f"- [{n['title']}]({n['link']})")
+
+# ---------------- 🔍 종목 조회 ----------------
+with tab_lookup:
+    st.subheader("보유·관심 종목 직접 조회")
+    st.caption("순매수 상위 10에 없는 종목도 조회 가능합니다 (예: 보유 중인 종목 점검용). 매수/매도 신호가 아니라 참고용 체크리스트입니다.")
+    lookup_code = st.text_input("종목코드 입력 (예: 009150)", key="lookup_code")
+    if lookup_code:
+        with st.spinner("조회 중..."):
+            lookup_df = fetch_daily_ohlcv(lookup_code)
+            lookup_tech = analyze_technicals(lookup_df)
+            lookup_price, lookup_pct = fetch_current_price(lookup_code)
+            lookup_risky = check_disclosure_risk(lookup_code)
+
+        if lookup_price is not None:
+            st.metric("현재가", f"{lookup_price:,.0f}원", f"{lookup_pct:+.2f}%")
+            st.markdown(f"**상태: {price_status_badge(lookup_pct)}**")
         else:
-            cols = st.columns(len(checks))
-            for c, (label, val) in zip(cols, checks.items()):
+            st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
+
+        lookup_checks = {k: v for k, v in lookup_tech.items() if k != "RSI값"}
+        lookup_passed = sum(1 for v in lookup_checks.values() if v is True)
+        lookup_total = sum(1 for v in lookup_checks.values() if v is not None)
+        if lookup_total == 0:
+            st.caption("일봉 데이터를 가져오지 못했습니다 (상장 60거래일 미만이거나 코드 오류일 수 있습니다).")
+        else:
+            rsi_note = f" (RSI: {lookup_tech['RSI값']})" if lookup_tech["RSI값"] is not None else ""
+            st.markdown(f"**기술적 체크: {lookup_passed}/{lookup_total} 통과**{rsi_note}")
+            cols = st.columns(len(lookup_checks))
+            for c, (label, val) in zip(cols, lookup_checks.items()):
                 icon = "✅" if val is True else ("❌" if val is False else "—")
                 c.metric(label, icon)
 
-        risky = check_disclosure_risk(code)
-        if risky:
-            st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in risky))
+            st.markdown("**추세 판단 (규칙 기반 참고 의견)**")
+            state_label, state_desc, state_fn = classify_trend_state(lookup_df)
+            state_fn(f"**{state_label}** — {state_desc}")
+            st.caption("이동평균선(5/20/60일) 배열과 RSI 흐름만으로 판단한 규칙 기반 해석이며, 매수/매도 신호가 아닙니다.")
+
+            st.markdown("**볼린저밴드 (20일, ±2표준편차)**")
+            bb_upper, bb_mid, bb_lower, bb_position = compute_bollinger(lookup_df)
+            if bb_mid is not None:
+                bb_cols = st.columns(3)
+                bb_cols[0].metric("상단", f"{bb_upper:,.0f}원")
+                bb_cols[1].metric("중심선", f"{bb_mid:,.0f}원")
+                bb_cols[2].metric("하단", f"{bb_lower:,.0f}원")
+                dist_to_mid = (lookup_price / bb_mid - 1) * 100 if lookup_price else None
+                dist_str = f" (중심선 대비 {dist_to_mid:+.1f}%)" if dist_to_mid is not None else ""
+                st.markdown(f"현재가 위치: **{bb_position}**{dist_str}")
+                st.caption("일반적으로 중심선 지지 후 반등하면 상승 재개, 중심선을 하향 이탈하면 추가 조정 가능성으로 해석하는 경우가 많습니다 (참고용 해석입니다).")
+            else:
+                st.caption("데이터가 부족해 볼린저밴드를 계산할 수 없습니다.")
+
+        if lookup_risky:
+            st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
         elif DART_API_KEY:
             st.success("최근 30일 내 주의 공시 없음")
 
-        news, news_err = fetch_news(name)
-        if news:
-            st.markdown("**관련 뉴스**")
-            for n in news:
-                st.markdown(f"- [{n['title']}]({n['link']})")
-
 st.divider()
-st.subheader("종목별 수급 추이 (이 앱이 켜져 있던 동안만)")
-code_input = st.text_input("종목코드 (예: 005930)")
-if code_input:
-    conn = sqlite3.connect(DB_PATH)
-    hist = pd.read_sql_query(
-        "SELECT ts, foreign_net, inst_net, combined_net FROM investor_ranking WHERE stock_code = ? ORDER BY ts ASC",
-        conn, params=(code_input,))
-    conn.close()
-    if hist.empty:
-        st.info("아직 이 종목의 이력이 없습니다.")
-    else:
-        st.line_chart(hist.set_index("ts")[["foreign_net", "inst_net", "combined_net"]])
-
-st.divider()
-st.subheader("보유·관심 종목 직접 조회")
-st.caption("순매수 상위 10에 없는 종목도 조회 가능합니다 (예: 보유 중인 종목 점검용). 매수/매도 신호가 아니라 참고용 체크리스트입니다.")
-lookup_code = st.text_input("종목코드 입력 (예: 009150)", key="lookup_code")
-if lookup_code:
-    with st.spinner("조회 중..."):
-        lookup_df = fetch_daily_ohlcv(lookup_code)
-        lookup_tech = analyze_technicals(lookup_df)
-        lookup_price, lookup_pct = fetch_current_price(lookup_code)
-        lookup_risky = check_disclosure_risk(lookup_code)
-
-    if lookup_price is not None:
-        st.metric("현재가", f"{lookup_price:,.0f}원", f"{lookup_pct:+.2f}%")
-        st.markdown(f"**상태: {price_status_badge(lookup_pct)}**")
-    else:
-        st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
-
-    lookup_checks = {k: v for k, v in lookup_tech.items() if k != "RSI값"}
-    lookup_passed = sum(1 for v in lookup_checks.values() if v is True)
-    lookup_total = sum(1 for v in lookup_checks.values() if v is not None)
-    if lookup_total == 0:
-        st.caption("일봉 데이터를 가져오지 못했습니다 (상장 60거래일 미만이거나 코드 오류일 수 있습니다).")
-    else:
-        rsi_note = f" (RSI: {lookup_tech['RSI값']})" if lookup_tech["RSI값"] is not None else ""
-        st.markdown(f"**기술적 체크: {lookup_passed}/{lookup_total} 통과**{rsi_note}")
-        cols = st.columns(len(lookup_checks))
-        for c, (label, val) in zip(cols, lookup_checks.items()):
-            icon = "✅" if val is True else ("❌" if val is False else "—")
-            c.metric(label, icon)
-
-        st.markdown("**추세 판단 (규칙 기반 참고 의견)**")
-        state_label, state_desc, state_fn = classify_trend_state(lookup_df)
-        state_fn(f"**{state_label}** — {state_desc}")
-        st.caption("이동평균선(5/20/60일) 배열과 RSI 흐름만으로 판단한 규칙 기반 해석이며, 매수/매도 신호가 아닙니다.")
-
-        st.markdown("**볼린저밴드 (20일, ±2표준편차)**")
-        bb_upper, bb_mid, bb_lower, bb_position = compute_bollinger(lookup_df)
-        if bb_mid is not None:
-            bb_cols = st.columns(3)
-            bb_cols[0].metric("상단", f"{bb_upper:,.0f}원")
-            bb_cols[1].metric("중심선", f"{bb_mid:,.0f}원")
-            bb_cols[2].metric("하단", f"{bb_lower:,.0f}원")
-            dist_to_mid = (lookup_price / bb_mid - 1) * 100 if lookup_price else None
-            dist_str = f" (중심선 대비 {dist_to_mid:+.1f}%)" if dist_to_mid is not None else ""
-            st.markdown(f"현재가 위치: **{bb_position}**{dist_str}")
-            st.caption("일반적으로 중심선 지지 후 반등하면 상승 재개, 중심선을 하향 이탈하면 추가 조정 가능성으로 해석하는 경우가 많습니다 (참고용 해석입니다).")
-        else:
-            st.caption("데이터가 부족해 볼린저밴드를 계산할 수 없습니다.")
-
-    if lookup_risky:
-        st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
-    elif DART_API_KEY:
-        st.success("최근 30일 내 주의 공시 없음")
-
 if st.button("지금 새로고침"):
     st.cache_data.clear()
     st.rerun()
