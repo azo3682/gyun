@@ -378,6 +378,31 @@ def analyze_technicals(df: pd.DataFrame) -> dict:
     return result
 
 
+def compute_transition_signal(df: pd.DataFrame) -> bool:
+    """VCP(눌림) 상태였다가 거래량급증이 뜬 경우만 True.
+
+    2026-09-21 백테스트(코스닥 성장주 38종목, 5년)에서 근사t값 2.3~2.5로
+    반복 확인된, 유일하게 통계적 근거가 있는 신호. 정배열/20일모멘텀/RSI/
+    VCP단독/볼린저밴드 4종은 전부 효과가 확인되지 않아 참고용으로만 남김.
+    """
+    if df.empty or len(df) < 60:
+        return False
+    close, vol = df["stck_clpr"], df["acml_vol"]
+    high, low = df["stck_hgpr"], df["stck_lwpr"]
+
+    vol_avg20 = vol.rolling(20).mean().shift(1)
+    vol_surge = vol >= vol_avg20 * 1.5
+
+    daily_range = (high - low) / close
+    recent5 = daily_range.rolling(5).std()
+    prior15 = daily_range.rolling(15).std().shift(5)
+    vcp = recent5 < prior15 * 0.8
+
+    recent_vcp = vcp.shift(1).rolling(3, min_periods=1).max().fillna(0).astype(bool)
+    transition = vol_surge.fillna(False).astype(bool) & recent_vcp
+    return bool(transition.iloc[-1]) if not transition.empty else False
+
+
 # ============================================================
 # DART 공시 리스크
 # ============================================================
@@ -714,6 +739,7 @@ with tab_overlap:
 # ---------------- ⏱ 장중 변동 ----------------
 with tab_intraday:
     st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
+    st.caption("후보 기준: 전환신호(VCP 눌림 후 거래량급증) — 백테스트로 검증된 신호입니다.")
 
     INTRADAY_STATUS_PATH = "data/intraday_status.json"
     if os.path.exists(INTRADAY_STATUS_PATH):
@@ -757,11 +783,13 @@ with tab_intraday:
 
 # ---------------- ✅ 스윙 후보 스크리닝 ----------------
 with tab_screen:
-    st.subheader("순매수 상위 10 — 스윙 후보 스크리닝 (점수 높은 순 정렬)")
+    st.subheader("순매수 상위 10 — 스윙 후보 스크리닝")
+    st.caption("2026-09-21 백테스트(코스닥 성장주 38종목, 5년) 결과, 검증된 신호는 "
+               "**전환신호(눌림 후 거래량급증) 하나뿐**입니다. 정배열·20일모멘텀·RSI·VCP단독·"
+               "볼린저밴드는 효과가 확인되지 않아 참고 정보로만 표시합니다.")
 
     if not (DART_API_KEY and NAVER_CLIENT_ID and NAVER_CLIENT_SECRET):
-        st.warning("DART / 네이버 뉴스 Secrets이 없어 공시·뉴스 정보는 생략됩니다. "
-                   "기술적 체크리스트만 표시합니다.")
+        st.warning("DART / 네이버 뉴스 Secrets이 없어 공시·뉴스 정보는 생략됩니다.")
 
     scored_rows = []
     for row in buy_rows:
@@ -771,19 +799,36 @@ with tab_screen:
             time.sleep(0.5)
             df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
         tech = analyze_technicals(df)
+        transition = compute_transition_signal(df)
         checks = {k: v for k, v in tech.items() if k != "RSI값"}
         passed = sum(1 for v in checks.values() if v is True)
         total = sum(1 for v in checks.values() if v is not None)
-        scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed, "_total": total})
+        scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed,
+                             "_total": total, "_transition": transition})
 
-    scored_rows.sort(key=lambda r: (-r["_passed"], r["rank"]))
+    # 전환신호 있는 종목을 최상단으로, 그다음은 참고점수순
+    scored_rows.sort(key=lambda r: (not r["_transition"], -r["_passed"], r["rank"]))
+
+    n_transition = sum(1 for r in scored_rows if r["_transition"])
+    if n_transition:
+        st.success(f"🎯 전환신호 종목 {n_transition}개 발견")
+    else:
+        st.info("오늘은 전환신호(검증된 신호)가 뜬 종목이 없습니다. 아래는 전부 참고용입니다.")
 
     for row in scored_rows:
         code, name = row["stock_code"], row["stock_name"]
         tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
-        with st.expander(f"점수 {passed}/{total} · 원순위 {row['rank']}위 · {name} ({code})"):
+        transition = row["_transition"]
+        title_prefix = "🎯 전환신호 " if transition else "참고 "
+        with st.expander(f"{title_prefix}· 원순위 {row['rank']}위 · {name} ({code})"):
+            if transition:
+                st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증. 검증된 신호입니다.")
+            else:
+                st.caption("전환신호 없음 (검증된 신호 기준 미충족)")
+
             rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
-            st.markdown(f"**기술적 체크: {passed}/{total} 통과**{rsi_note}")
+            st.markdown(f"**참고지표: {passed}/{total} 통과**{rsi_note} — 아래는 효과가 "
+                        "확인되지 않은 지표들이라 판단 근거로 쓰지 마세요.")
 
             if total == 0:
                 st.caption("일봉 데이터를 가져오지 못했습니다.")
@@ -823,6 +868,12 @@ with tab_lookup:
         else:
             st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
 
+        lookup_transition = compute_transition_signal(lookup_df)
+        if lookup_transition:
+            st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증. 백테스트로 검증된 신호입니다.")
+        else:
+            st.info("전환신호 없음 (검증된 신호 기준 미충족 — 아래 지표는 참고용입니다)")
+
         lookup_checks = {k: v for k, v in lookup_tech.items() if k != "RSI값"}
         lookup_passed = sum(1 for v in lookup_checks.values() if v is True)
         lookup_total = sum(1 for v in lookup_checks.values() if v is not None)
@@ -830,7 +881,8 @@ with tab_lookup:
             st.caption("일봉 데이터를 가져오지 못했습니다 (상장 60거래일 미만이거나 코드 오류일 수 있습니다).")
         else:
             rsi_note = f" (RSI: {lookup_tech['RSI값']})" if lookup_tech["RSI값"] is not None else ""
-            st.markdown(f"**기술적 체크: {lookup_passed}/{lookup_total} 통과**{rsi_note}")
+            st.markdown(f"**참고지표: {lookup_passed}/{lookup_total} 통과**{rsi_note} "
+                        "— 효과가 확인되지 않은 지표들이라 판단 근거로 쓰지 마세요.")
             cols = st.columns(len(lookup_checks))
             for c, (label, val) in zip(cols, lookup_checks.items()):
                 icon = "✅" if val is True else ("❌" if val is False else "—")
