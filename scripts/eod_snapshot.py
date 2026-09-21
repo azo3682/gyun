@@ -2,8 +2,13 @@
 """
 scripts/eod_snapshot.py
 평일 15:40 KST에 GitHub Actions로 실행.
-오늘의 최종 순매수/순매도 상위10 + 기술적 점수 + 공시 + 뉴스를 계산해서
-data/eod_snapshot.json 에 저장한다. (다음날 아침 리포트가 이 파일을 읽음)
+오늘의 최종 순매수/순매도 상위10 + 전환신호(검증된 유일한 신호) + 참고
+기술지표 + 공시 + 뉴스를 계산해서 data/eod_snapshot.json 에 저장한다.
+(다음날 아침 리포트가 이 파일을 읽음)
+
+2026-09-21 백테스트 결과 반영: "전환신호"(VCP 후 거래량급증)만 근거가
+확인됐고, 정배열/20일모멘텀/RSI/VCP단독/볼린저밴드는 효과가 없거나
+반대 방향으로 나와 후보 선정 기준에서 제외. 나머지는 참고 정보로만 유지.
 """
 
 import json
@@ -12,7 +17,7 @@ from datetime import datetime
 
 from common import (
     fetch_investor_ranking, fetch_daily_ohlcv, analyze_technicals,
-    check_disclosure_risk, fetch_news, KST,
+    compute_transition_signal, check_disclosure_risk, fetch_news, KST,
 )
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "eod_snapshot.json")
@@ -27,17 +32,20 @@ def build_snapshot():
         code, name = row["stock_code"], row["stock_name"]
         df = fetch_daily_ohlcv(code)
         tech = analyze_technicals(df)
+        transition = compute_transition_signal(df)
         checks = {k: v for k, v in tech.items() if k != "RSI값"}
         passed = sum(1 for v in checks.values() if v is True)
         total = sum(1 for v in checks.values() if v is not None)
         risky = check_disclosure_risk(code)
         news = fetch_news(name)
         enriched.append({
-            **row, "tech": tech, "passed": passed, "total": total,
+            **row, "tech": tech, "transition": transition,
+            "passed": passed, "total": total,
             "risky_disclosures": risky, "news": news,
         })
 
-    enriched.sort(key=lambda r: (-r["passed"], r["rank"]))
+    # 전환신호 있는 종목 우선, 그다음 참고점수, 그다음 원래 순위
+    enriched.sort(key=lambda r: (not r["transition"], -r["passed"], r["rank"]))
 
     snapshot = {
         "date": datetime.now(KST).strftime("%Y-%m-%d"),
@@ -53,4 +61,5 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
-    print(f"저장 완료: {OUT_PATH}")
+    n_transition = sum(1 for r in snapshot["buy_top10"] if r["transition"])
+    print(f"저장 완료: {OUT_PATH} (전환신호 종목 {n_transition}개)")
