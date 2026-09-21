@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-21T10:52:29+09:00",
+  "checked_at": "2026-09-21T11:42:46+09:00",
   "kept": [
     {
       "stock_code": "005935",
@@ -10,30 +10,13 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 61.1
+        "RSI값": 61.4
       },
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
       "current_price": 207500.0,
       "day_pct": 5.81
-    },
-    {
-      "stock_code": "067290",
-      "stock_name": "JW신약",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 56.4
-      },
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 3315.0,
-      "day_pct": -2.21
     },
     {
       "stock_code": "005930",
@@ -44,13 +27,13 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 56.9
+        "RSI값": 57.3
       },
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 271500.0,
-      "day_pct": 4.02
+      "current_price": 272500.0,
+      "day_pct": 4.41
     },
     {
       "stock_code": "462860",
@@ -61,13 +44,13 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 47.8
+        "RSI값": 48.2
       },
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3160.0,
-      "day_pct": 20.61
+      "current_price": 3175.0,
+      "day_pct": 21.18
     },
     {
       "stock_code": "232140",
@@ -78,13 +61,13 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.2
+        "RSI값": 72.6
       },
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14130.0,
-      "day_pct": 18.64
+      "current_price": 13780.0,
+      "day_pct": 15.7
     },
     {
       "stock_code": "036540",
@@ -95,13 +78,13 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 90.6
+        "RSI값": 90.3
       },
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 10950.0,
-      "day_pct": 21.4
+      "current_price": 10750.0,
+      "day_pct": 19.18
     },
     {
       "stock_code": "003160",
@@ -112,15 +95,52 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 79.4
+        "RSI값": 78.8
       },
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 36000.0,
-      "day_pct": 14.65
+      "current_price": 35450.0,
+      "day_pct": 12.9
     }
   ],
-  "excluded": [],
-  "new_candidates": []
+  "excluded": [
+    {
+      "stock_code": "067290",
+      "stock_name": "JW신약",
+      "tech": {
+        "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 55.8
+      },
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 3280.0,
+      "day_pct": -3.24,
+      "reason": "당일 가격 -3.24% 하락"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "007660",
+      "stock_name": "이수페타시스",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 47.2
+      },
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 109000.0,
+      "day_pct": 5.11
+    }
+  ]
 }
