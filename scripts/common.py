@@ -46,6 +46,7 @@ def get_access_token() -> str:
         json={"grant_type": "client_credentials", "appkey": APP_KEY, "appsecret": APP_SECRET},
         timeout=10,
     )
+    print(f"DEBUG status={resp.status_code} body={resp.text}")
     resp.raise_for_status()
     data = resp.json()
     _token_cache["token"] = data["access_token"]
