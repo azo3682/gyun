@@ -86,4 +86,18 @@ def run():
             new_candidates.append(eval_result)
 
     status = {
-        "checked_at":
+        "checked_at": datetime.now(KST).isoformat(timespec="seconds"),
+        "kept": kept,
+        "excluded": excluded,
+        "new_candidates": new_candidates,
+    }
+    return status
+
+
+if __name__ == "__main__":
+    status = run()
+    os.makedirs(os.path.dirname(STATUS_PATH), exist_ok=True)
+    with open(STATUS_PATH, "w", encoding="utf-8") as f:
+        json.dump(status, f, ensure_ascii=False, indent=2)
+    print(f"저장 완료: {STATUS_PATH}")
+    print(f"유지 {len(status['kept'])} / 제외 {len(status['excluded'])} / 신규 {len(status['new_candidates'])}")
