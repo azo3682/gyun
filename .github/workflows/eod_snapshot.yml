@@ -31,6 +31,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data/eod_snapshot.json
+          git add data/eod_snapshot.json data/watchlist.json
           git commit -m "Update EOD snapshot [skip ci]" || echo "no changes"
           git push
