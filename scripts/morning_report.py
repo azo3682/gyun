@@ -16,6 +16,7 @@ import yfinance as yf
 from common import KST
 
 SNAPSHOT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "eod_snapshot.json")
+CHASE_PCT_DISPLAY = 7  # eod_snapshot.py의 CHASE_THRESHOLD(0.07)와 맞춰 표시용
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS", "")
 EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD", "")
@@ -101,12 +102,14 @@ def build_report_body() -> str:
     lines.append("")
 
     lines.append("=== 오늘의 스윙 후보 (전환신호: VCP 눌림 후 거래량급증 — 백테스트로 검증된 유일한 신호) ===")
-    candidates = [r for r in snapshot.get("buy_top10", []) if r.get("transition") is True]
+    candidates = [r for r in snapshot.get("buy_top10", [])
+                  if r.get("transition") is True and not r.get("deferred_to_watchlist")]
     if not candidates:
         lines.append("(전환신호가 뜬 후보가 없습니다)")
     for c in candidates:
         checks_str = ", ".join(f"{k}:{'O' if v else 'X'}" for k, v in c["tech"].items() if k != "RSI값")
-        lines.append(f"\n· {c['stock_name']}({c['stock_code']}) — 전환신호 ✅ (참고점수 {c['passed']}/{c['total']})")
+        day_pct_str = f" (당일 {c['day_pct']*100:+.2f}%)" if c.get("day_pct") is not None else ""
+        lines.append(f"\n· {c['stock_name']}({c['stock_code']}) — 전환신호 ✅{day_pct_str} (참고점수 {c['passed']}/{c['total']})")
         lines.append(f"  참고지표: {checks_str}")
         if c.get("risky_disclosures"):
             lines.append(f"  ⚠ 주의 공시: {'; '.join(c['risky_disclosures'])}")
@@ -114,6 +117,23 @@ def build_report_body() -> str:
             lines.append("  관련 뉴스:")
             for n in c["news"][:2]:
                 lines.append(f"    - {n['title']} ({n['link']})")
+
+    deferred = [r for r in snapshot.get("buy_top10", []) if r.get("deferred_to_watchlist")]
+    if deferred:
+        lines.append(f"\n=== 관찰 후보로 전환됨 (당일 이미 +{CHASE_PCT_DISPLAY}% 이상 급등 — 추격 대신 눌림 대기) ===")
+        for d in deferred:
+            lines.append(f"· {d['stock_name']}({d['stock_code']}) — 당일 {d['day_pct']*100:+.2f}%")
+
+    reentry = snapshot.get("reentry_candidates", [])
+    if reentry:
+        lines.append("\n=== 🎯 재진입 후보 (관찰 중이던 종목이 눌림 상태로 복귀) ===")
+        for r in reentry:
+            lines.append(f"· {r['stock_name']}({r['stock_code']}) — {r['days_watched']}거래일 관찰 후 눌림 확인 "
+                         f"(최초 급등 +{r['initial_pct']*100:.2f}%)")
+
+    watch_size = snapshot.get("watchlist_size", 0)
+    if watch_size:
+        lines.append(f"\n(현재 관찰 목록 {watch_size}개 종목 눌림 대기 중 — 대시보드에서 확인 가능)")
 
     lines.append("\n\n※ 이 리포트는 투자 자문이 아니며, 참고용 스크리닝 결과입니다.")
     lines.append("※ 장중 조건 변화(제외/신규 후보)는 대시보드에서 실시간으로 확인하세요.")
