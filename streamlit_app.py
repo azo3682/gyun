@@ -544,6 +544,33 @@ def price_status_badge(day_pct):
     return "➖ 보합 (신선한 구간)"
 
 
+def colored_pct_html(value, suffix: str = "%") -> str:
+    """국내 증권사 관행: 양수 빨강, 음수 파랑, 0/None은 회색."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    color = "#e03131" if v > 0 else ("#1971c2" if v < 0 else "#868e96")
+    sign = "+" if v > 0 else ""
+    return f"<span style='color:{color}; font-weight:700;'>{sign}{v:,.2f}{suffix}</span>"
+
+
+def style_signed(df: pd.DataFrame, cols: list[str]):
+    """지정 컬럼을 양수 빨강/음수 파랑으로 칠한 Styler 반환."""
+    def _color(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return ""
+        if v > 0:
+            return "color: #e03131; font-weight: 600;"
+        if v < 0:
+            return "color: #1971c2; font-weight: 600;"
+        return ""
+    existing = [c for c in cols if c in df.columns]
+    return df.style.map(_color, subset=existing) if existing else df
+
+
 def trend_label_for(stock_code: str) -> str:
     df = fetch_daily_ohlcv(stock_code)
     label, _, _ = classify_trend_state(df)
@@ -564,7 +591,8 @@ with tab_supply:
             "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
             "foreign_net": "외국인순매수", "inst_net": "기관순매수", "combined_net": "전체순매수",
         })
-        st.dataframe(buy_df, use_container_width=True, hide_index=True)
+        st.dataframe(style_signed(buy_df, ["외국인순매수", "기관순매수", "전체순매수"]),
+                     use_container_width=True, hide_index=True)
 
 # ---------------- 📈 거래량 상위 ----------------
 with tab_volume:
@@ -577,7 +605,7 @@ with tab_volume:
             "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
             "volume": "거래량", "day_pct": "등락률(%)",
         })
-        st.dataframe(vol_df, use_container_width=True, hide_index=True)
+        st.dataframe(style_signed(vol_df, ["등락률(%)"]), use_container_width=True, hide_index=True)
         with st.expander("원본 응답 확인 (필드명 검증용)"):
             st.json(volume_raw_sample)
 
@@ -625,8 +653,9 @@ with tab_overlap:
         for code in overlap_codes:
             b, v = buy_codes_map[code], volume_codes_map[code]
             with st.expander(f"{b['stock_name']}({code}) · 순매수 {b['rank']}위 · 거래량 {v['rank']}위"):
-                st.markdown(f"- 외국인순매수: {b['foreign_net']:,.0f} / 기관순매수: {b['inst_net']:,.0f}")
-                st.markdown(f"- 거래량: {v['volume']} / 등락률: {v['day_pct']}%")
+                st.markdown(f"- 외국인순매수: {colored_pct_html(b['foreign_net'], '')} / "
+                            f"기관순매수: {colored_pct_html(b['inst_net'], '')}", unsafe_allow_html=True)
+                st.markdown(f"- 거래량: {v['volume']} / 등락률: {colored_pct_html(v['day_pct'])}", unsafe_allow_html=True)
                 odf = fetch_daily_ohlcv(code)
                 otech = analyze_technicals(odf)
                 ochecks = {k: val for k, val in otech.items() if k != "RSI값"}
@@ -664,16 +693,16 @@ with tab_intraday:
         if excluded:
             st.markdown("**🔴 제외 후보** (아침엔 후보였으나 조건 이탈)")
             for e in excluded:
-                price_str = f" · 현재가 {e['current_price']:,.0f}원 ({e['day_pct']:+.2f}%)" if e.get("current_price") else ""
+                price_str = f" · 현재가 {e['current_price']:,.0f}원 ({colored_pct_html(e['day_pct'])})" if e.get("current_price") else ""
                 trend = trend_label_for(e["stock_code"])
-                st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str} · **국면: {trend}**")
+                st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str} · **국면: {trend}**", unsafe_allow_html=True)
         if new_candidates:
             st.markdown("**🟢 신규 후보** (아침엔 없었으나 지금 조건 충족)")
             for n in new_candidates:
-                price_str = f" · 현재가 {n['current_price']:,.0f}원 ({n['day_pct']:+.2f}%)" if n.get("current_price") else ""
+                price_str = f" · 현재가 {n['current_price']:,.0f}원 ({colored_pct_html(n['day_pct'])})" if n.get("current_price") else ""
                 badge = price_status_badge(n.get("day_pct"))
                 trend = trend_label_for(n["stock_code"])
-                st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge} · **국면: {trend}**")
+                st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge} · **국면: {trend}**", unsafe_allow_html=True)
         if kept:
             st.markdown("**⚪ 유지 중** (아침 후보 그대로, 실시간 현재가)")
             kept_rows = [{
@@ -682,7 +711,8 @@ with tab_intraday:
                 "상태": price_status_badge(k.get("day_pct")),
                 "국면": trend_label_for(k["stock_code"]),
             } for k in kept]
-            st.dataframe(pd.DataFrame(kept_rows), use_container_width=True, hide_index=True)
+            st.dataframe(style_signed(pd.DataFrame(kept_rows), ["당일등락률(%)"]),
+                         use_container_width=True, hide_index=True)
         if not excluded and not new_candidates and not kept:
             st.info("아침 후보 대비 변동 없음")
     else:
@@ -751,7 +781,7 @@ with tab_lookup:
             lookup_risky = check_disclosure_risk(lookup_code)
 
         if lookup_price is not None:
-            st.metric("현재가", f"{lookup_price:,.0f}원", f"{lookup_pct:+.2f}%")
+            st.markdown(f"### {lookup_price:,.0f}원 &nbsp; {colored_pct_html(lookup_pct)}", unsafe_allow_html=True)
             st.markdown(f"**상태: {price_status_badge(lookup_pct)}**")
         else:
             st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
