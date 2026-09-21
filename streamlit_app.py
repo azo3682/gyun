@@ -58,6 +58,9 @@ RANKING_TR_ID = "FHPTJ04400000"
 DAILY_CHART_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 DAILY_CHART_TR_ID = "FHKST03010100"
 
+CURRENT_PRICE_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"
+CURRENT_PRICE_TR_ID = "FHKST01010100"
+
 TOP_N = 10
 DB_PATH = "investor_flow.db"
 
@@ -180,6 +183,28 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         return df
     except Exception:
         return pd.DataFrame()
+
+
+@st.cache_data(ttl=30)
+def fetch_current_price(stock_code: str):
+    """(현재가, 전일대비 등락률%) 반환. 실패하면 (None, None)."""
+    try:
+        resp = requests.get(
+            f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
+            headers=kis_headers(CURRENT_PRICE_TR_ID),
+            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("rt_cd") != "0":
+            return None, None
+        output = data.get("output", {})
+        price = float(output.get("stck_prpr", 0) or 0)
+        pct = float(output.get("prdy_ctrt", 0) or 0)
+        return price, pct
+    except Exception:
+        return None, None
 
 
 def compute_rsi(closes: pd.Series, period: int = 14):
@@ -516,6 +541,41 @@ if code_input:
         st.info("아직 이 종목의 이력이 없습니다.")
     else:
         st.line_chart(hist.set_index("ts")[["foreign_net", "inst_net", "combined_net"]])
+
+st.divider()
+st.subheader("보유·관심 종목 직접 조회")
+st.caption("순매수 상위 10에 없는 종목도 조회 가능합니다 (예: 보유 중인 종목 점검용). 매수/매도 신호가 아니라 참고용 체크리스트입니다.")
+lookup_code = st.text_input("종목코드 입력 (예: 009150)", key="lookup_code")
+if lookup_code:
+    with st.spinner("조회 중..."):
+        lookup_df = fetch_daily_ohlcv(lookup_code)
+        lookup_tech = analyze_technicals(lookup_df)
+        lookup_price, lookup_pct = fetch_current_price(lookup_code)
+        lookup_risky = check_disclosure_risk(lookup_code)
+
+    if lookup_price is not None:
+        st.metric("현재가", f"{lookup_price:,.0f}원", f"{lookup_pct:+.2f}%")
+        st.markdown(f"**상태: {price_status_badge(lookup_pct)}**")
+    else:
+        st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
+
+    lookup_checks = {k: v for k, v in lookup_tech.items() if k != "RSI값"}
+    lookup_passed = sum(1 for v in lookup_checks.values() if v is True)
+    lookup_total = sum(1 for v in lookup_checks.values() if v is not None)
+    if lookup_total == 0:
+        st.caption("일봉 데이터를 가져오지 못했습니다 (상장 60거래일 미만이거나 코드 오류일 수 있습니다).")
+    else:
+        rsi_note = f" (RSI: {lookup_tech['RSI값']})" if lookup_tech["RSI값"] is not None else ""
+        st.markdown(f"**기술적 체크: {lookup_passed}/{lookup_total} 통과**{rsi_note}")
+        cols = st.columns(len(lookup_checks))
+        for c, (label, val) in zip(cols, lookup_checks.items()):
+            icon = "✅" if val is True else ("❌" if val is False else "—")
+            c.metric(label, icon)
+
+    if lookup_risky:
+        st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
+    elif DART_API_KEY:
+        st.success("최근 30일 내 주의 공시 없음")
 
 if st.button("지금 새로고침"):
     st.cache_data.clear()
