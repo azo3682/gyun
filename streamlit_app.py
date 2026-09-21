@@ -403,7 +403,7 @@ with col2:
         st.dataframe(sell_df, use_container_width=True, hide_index=True)
 
 st.divider()
-st.subheader("장중 후보 변동 (제외 / 신규)")
+st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
 
 INTRADAY_STATUS_PATH = "data/intraday_status.json"
 if os.path.exists(INTRADAY_STATUS_PATH):
@@ -413,16 +413,26 @@ if os.path.exists(INTRADAY_STATUS_PATH):
 
     excluded = intraday.get("excluded", [])
     new_candidates = intraday.get("new_candidates", [])
+    kept = intraday.get("kept", [])
 
     if excluded:
         st.markdown("**🔴 제외 후보** (아침엔 후보였으나 조건 이탈)")
         for e in excluded:
-            st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}")
+            price_str = f" · 현재가 {e['current_price']:,.0f}원 ({e['day_pct']:+.2f}%)" if e.get("current_price") else ""
+            st.markdown(f"- {e['stock_name']}({e['stock_code']}) — {e['reason']}{price_str}")
     if new_candidates:
         st.markdown("**🟢 신규 후보** (아침엔 없었으나 지금 조건 충족)")
         for n in new_candidates:
-            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점")
-    if not excluded and not new_candidates:
+            price_str = f" · 현재가 {n['current_price']:,.0f}원 ({n['day_pct']:+.2f}%)" if n.get("current_price") else ""
+            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str}")
+    if kept:
+        st.markdown("**⚪ 유지 중** (아침 후보 그대로, 실시간 현재가)")
+        kept_rows = [{
+            "종목명": k["stock_name"], "종목코드": k["stock_code"],
+            "현재가": k.get("current_price"), "당일등락률(%)": k.get("day_pct"),
+        } for k in kept]
+        st.dataframe(pd.DataFrame(kept_rows), use_container_width=True, hide_index=True)
+    if not excluded and not new_candidates and not kept:
         st.info("아침 후보 대비 변동 없음")
 else:
     st.caption("아직 장중 재점검 데이터가 없습니다 (첫 재점검은 09:40경 실행됩니다).")
