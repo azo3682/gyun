@@ -115,6 +115,14 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def compute_day_return(df: pd.DataFrame):
+    """오늘(마지막 행) 하루 등락률. 데이터 부족 시 None."""
+    if df.empty or len(df) < 2:
+        return None
+    close = df["stck_clpr"]
+    return float(close.iloc[-1] / close.iloc[-2] - 1)
+
+
 def compute_rsi(closes: pd.Series, period: int = 14):
     delta = closes.diff()
     gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
