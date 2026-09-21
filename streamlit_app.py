@@ -279,6 +279,30 @@ def classify_trend_state(df: pd.DataFrame):
             st.info)
 
 
+def compute_bollinger(df: pd.DataFrame, period: int = 20, num_std: float = 2.0):
+    """(상단, 중심선, 하단, 현재가 위치 설명) 반환. 데이터 부족 시 전부 None."""
+    if df.empty or len(df) < period:
+        return None, None, None, None
+    close = df["stck_clpr"]
+    mid = close.rolling(period).mean().iloc[-1]
+    std = close.rolling(period).std().iloc[-1]
+    upper = mid + num_std * std
+    lower = mid - num_std * std
+    price = close.iloc[-1]
+
+    if upper == lower:
+        position = "데이터 부족"
+    elif price >= upper:
+        position = "상단 돌파/근접 — 단기 과매수 구간일 수 있음"
+    elif price <= lower:
+        position = "하단 돌파/근접 — 단기 과매도 구간일 수 있음"
+    elif price >= mid:
+        position = "중심선~상단 사이 (중심선 위)"
+    else:
+        position = "중심선~하단 사이 (중심선 아래)"
+    return upper, mid, lower, position
+
+
 def analyze_technicals(df: pd.DataFrame) -> dict:
     """체크리스트 결과를 딕셔너리로 반환. 데이터 부족하면 각 항목 None."""
     result = {"정배열": None, "거래량급증": None, "20일모멘텀": None,
@@ -646,6 +670,20 @@ if lookup_code:
         state_label, state_desc, state_fn = classify_trend_state(lookup_df)
         state_fn(f"**{state_label}** — {state_desc}")
         st.caption("이동평균선(5/20/60일) 배열과 RSI 흐름만으로 판단한 규칙 기반 해석이며, 매수/매도 신호가 아닙니다.")
+
+        st.markdown("**볼린저밴드 (20일, ±2표준편차)**")
+        bb_upper, bb_mid, bb_lower, bb_position = compute_bollinger(lookup_df)
+        if bb_mid is not None:
+            bb_cols = st.columns(3)
+            bb_cols[0].metric("상단", f"{bb_upper:,.0f}원")
+            bb_cols[1].metric("중심선", f"{bb_mid:,.0f}원")
+            bb_cols[2].metric("하단", f"{bb_lower:,.0f}원")
+            dist_to_mid = (lookup_price / bb_mid - 1) * 100 if lookup_price else None
+            dist_str = f" (중심선 대비 {dist_to_mid:+.1f}%)" if dist_to_mid is not None else ""
+            st.markdown(f"현재가 위치: **{bb_position}**{dist_str}")
+            st.caption("일반적으로 중심선 지지 후 반등하면 상승 재개, 중심선을 하향 이탈하면 추가 조정 가능성으로 해석하는 경우가 많습니다 (참고용 해석입니다).")
+        else:
+            st.caption("데이터가 부족해 볼린저밴드를 계산할 수 없습니다.")
 
     if lookup_risky:
         st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
