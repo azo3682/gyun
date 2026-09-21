@@ -599,6 +599,42 @@ if volume_rows:
                 st.success("최근 30일 내 주의 공시 없음")
 
 st.divider()
+st.subheader("🔥 동시 등장 종목 (순매수 상위 + 거래량 상위)")
+st.caption("두 리스트는 성격이 달라 합산 점수를 매기지 않습니다. 대신 둘 다에 오른 종목만 따로 골라 보여드립니다 — 큰손 매수와 시장 관심이 동시에 쏠린 종목입니다.")
+
+buy_codes_map = {r["stock_code"]: r for r in buy_rows}
+volume_codes_map = {r["stock_code"]: r for r in volume_rows} if volume_rows else {}
+overlap_codes = set(buy_codes_map) & set(volume_codes_map)
+
+if not overlap_codes:
+    st.info("현재 두 리스트에 동시에 오른 종목이 없습니다.")
+else:
+    for code in overlap_codes:
+        b, v = buy_codes_map[code], volume_codes_map[code]
+        with st.expander(f"{b['stock_name']}({code}) · 순매수 {b['rank']}위 · 거래량 {v['rank']}위"):
+            st.markdown(f"- 외국인순매수: {b['foreign_net']:,.0f} / 기관순매수: {b['inst_net']:,.0f}")
+            st.markdown(f"- 거래량: {v['volume']} / 등락률: {v['day_pct']}%")
+            odf = fetch_daily_ohlcv(code)
+            otech = analyze_technicals(odf)
+            ochecks = {k: val for k, val in otech.items() if k != "RSI값"}
+            opassed = sum(1 for val in ochecks.values() if val is True)
+            ototal = sum(1 for val in ochecks.values() if val is not None)
+            if ototal > 0:
+                orsi_note = f" (RSI: {otech['RSI값']})" if otech["RSI값"] is not None else ""
+                st.markdown(f"**기술적 체크: {opassed}/{ototal} 통과**{orsi_note}")
+                ocols = st.columns(len(ochecks))
+                for c, (label, val) in zip(ocols, ochecks.items()):
+                    icon = "✅" if val is True else ("❌" if val is False else "—")
+                    c.metric(label, icon)
+                ostate_label, ostate_desc, ostate_fn = classify_trend_state(odf)
+                ostate_fn(f"**{ostate_label}** — {ostate_desc}")
+            orisky = check_disclosure_risk(code)
+            if orisky:
+                st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in orisky))
+            elif DART_API_KEY:
+                st.success("최근 30일 내 주의 공시 없음")
+
+st.divider()
 st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
 
 
