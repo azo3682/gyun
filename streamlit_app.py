@@ -544,6 +544,29 @@ def price_status_badge(day_pct):
     return "➖ 보합 (신선한 구간)"
 
 
+def fmt_shares(value) -> str:
+    """1만주 이상이면 '만주' 단위로, 부호 포함 표시."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    sign = "+" if v > 0 else ""
+    if abs(v) >= 10000:
+        return f"{sign}{v/10000:,.1f}만주"
+    return f"{sign}{v:,.0f}주"
+
+
+def fmt_shares_plain(value) -> str:
+    """부호 없이, 1만주 이상이면 '만주' 단위로 표시."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if abs(v) >= 10000:
+        return f"{v/10000:,.1f}만주"
+    return f"{v:,.0f}주"
+
+
 def colored_pct_html(value, suffix: str = "%") -> str:
     """국내 증권사 관행: 양수 빨강, 음수 파랑, 0/None은 회색."""
     try:
@@ -552,11 +575,15 @@ def colored_pct_html(value, suffix: str = "%") -> str:
         return str(value)
     color = "#e03131" if v > 0 else ("#1971c2" if v < 0 else "#868e96")
     sign = "+" if v > 0 else ""
-    return f"<span style='color:{color}; font-weight:700;'>{sign}{v:,.2f}{suffix}</span>"
+    if suffix == "%":
+        text = f"{sign}{v:,.2f}%"
+    else:
+        text = fmt_shares(v)
+    return f"<span style='color:{color}; font-weight:700;'>{text}</span>"
 
 
-def style_signed(df: pd.DataFrame, cols: list[str]):
-    """지정 컬럼을 양수 빨강/음수 파랑으로 칠한 Styler 반환."""
+def style_signed(df: pd.DataFrame, cols: list[str], plain_cols: dict | None = None):
+    """signed cols: 양수 빨강/음수 파랑 + '만주'/부호 단위 표시. plain_cols: {컬럼명: 포맷함수}로 단위만 적용."""
     def _color(v):
         try:
             v = float(v)
@@ -568,7 +595,14 @@ def style_signed(df: pd.DataFrame, cols: list[str]):
             return "color: #1971c2; font-weight: 600;"
         return ""
     existing = [c for c in cols if c in df.columns]
-    return df.style.map(_color, subset=existing) if existing else df
+    styler = df.style
+    if existing:
+        styler = styler.map(_color, subset=existing)
+        fmt_map = {c: (fmt_shares if c != "등락률(%)" and c != "당일등락률(%)" else (lambda v: f"{'+' if v>0 else ''}{v:,.2f}%")) for c in existing}
+        styler = styler.format(fmt_map)
+    if plain_cols:
+        styler = styler.format({c: f for c, f in plain_cols.items() if c in df.columns})
+    return styler
 
 
 def trend_label_for(stock_code: str) -> str:
@@ -605,7 +639,8 @@ with tab_volume:
             "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
             "volume": "거래량", "day_pct": "등락률(%)",
         })
-        st.dataframe(style_signed(vol_df, ["등락률(%)"]), use_container_width=True, hide_index=True)
+        st.dataframe(style_signed(vol_df, ["등락률(%)"], plain_cols={"거래량": fmt_shares_plain}),
+                     use_container_width=True, hide_index=True)
         with st.expander("원본 응답 확인 (필드명 검증용)"):
             st.json(volume_raw_sample)
 
@@ -615,7 +650,7 @@ with tab_volume:
             code, name = row["stock_code"], row["stock_name"]
             if not code:
                 continue
-            with st.expander(f"{row['rank']}위 · {name} ({code}) · 거래량 {row['volume']}"):
+            with st.expander(f"{row['rank']}위 · {name} ({code}) · 거래량 {fmt_shares_plain(row['volume'])}"):
                 vdf = fetch_daily_ohlcv(code)
                 vtech = analyze_technicals(vdf)
                 vchecks = {k: v for k, v in vtech.items() if k != "RSI값"}
@@ -655,7 +690,7 @@ with tab_overlap:
             with st.expander(f"{b['stock_name']}({code}) · 순매수 {b['rank']}위 · 거래량 {v['rank']}위"):
                 st.markdown(f"- 외국인순매수: {colored_pct_html(b['foreign_net'], '')} / "
                             f"기관순매수: {colored_pct_html(b['inst_net'], '')}", unsafe_allow_html=True)
-                st.markdown(f"- 거래량: {v['volume']} / 등락률: {colored_pct_html(v['day_pct'])}", unsafe_allow_html=True)
+                st.markdown(f"- 거래량: {fmt_shares_plain(v['volume'])} / 등락률: {colored_pct_html(v['day_pct'])}", unsafe_allow_html=True)
                 odf = fetch_daily_ohlcv(code)
                 otech = analyze_technicals(odf)
                 ochecks = {k: val for k, val in otech.items() if k != "RSI값"}
@@ -711,8 +746,10 @@ with tab_intraday:
                 "상태": price_status_badge(k.get("day_pct")),
                 "국면": trend_label_for(k["stock_code"]),
             } for k in kept]
-            st.dataframe(style_signed(pd.DataFrame(kept_rows), ["당일등락률(%)"]),
-                         use_container_width=True, hide_index=True)
+            st.dataframe(
+                style_signed(pd.DataFrame(kept_rows), ["당일등락률(%)"],
+                             plain_cols={"현재가": lambda v: f"{v:,.0f}원" if pd.notna(v) else "—"}),
+                use_container_width=True, hide_index=True)
         if not excluded and not new_candidates and not kept:
             st.info("아침 후보 대비 변동 없음")
     else:
