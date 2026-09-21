@@ -55,6 +55,9 @@ NAVER_CLIENT_SECRET = st.secrets.get("NAVER_CLIENT_SECRET", "")
 RANKING_API_PATH = "/uapi/domestic-stock/v1/quotations/foreign-institution-total"
 RANKING_TR_ID = "FHPTJ04400000"
 
+VOLUME_RANK_API_PATH = "/uapi/domestic-stock/v1/quotations/volume-rank"
+VOLUME_RANK_TR_ID = "FHPST01710000"
+
 DAILY_CHART_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 DAILY_CHART_TR_ID = "FHKST03010100"
 
@@ -138,6 +141,43 @@ def fetch_investor_ranking(rank_type: str) -> list[dict]:
             "combined_net": float(item.get("ntby_qty", 0) or 0),
         })
     return rows
+
+
+@st.cache_data(ttl=60)
+def fetch_volume_rank() -> tuple[list[dict], dict]:
+    """(순위 리스트, 원본 응답 첫 항목) 반환. 필드명 검증용으로 원본도 같이 반환."""
+    params = {
+        "FID_COND_MRKT_DIV_CODE": "J",
+        "FID_COND_SCR_DIV_CODE": "20171",
+        "FID_INPUT_ISCD": "0000",
+        "FID_DIV_CLS_CODE": "0",
+        "FID_BLNG_CLS_CODE": "0",
+        "FID_TRGT_CLS_CODE": "111111111",
+        "FID_TRGT_EXLS_CLS_CODE": "0000000000",
+        "FID_INPUT_PRICE_1": "0",
+        "FID_INPUT_PRICE_2": "0",
+        "FID_VOL_CNT": "0",
+        "FID_INPUT_DATE_1": "",
+    }
+    resp = requests.get(f"{BASE_URL}{VOLUME_RANK_API_PATH}", headers=kis_headers(VOLUME_RANK_TR_ID),
+                         params=params, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
+
+    output = data.get("output", [])
+    raw_sample = output[0] if output else {}
+    rows = []
+    for i, item in enumerate(output[:TOP_N], start=1):
+        rows.append({
+            "rank": i,
+            "stock_code": item.get("mksc_shrn_iscd", ""),
+            "stock_name": item.get("hts_kor_isnm", ""),
+            "volume": item.get("acml_vol", ""),
+            "day_pct": item.get("prdy_ctrt", ""),
+        })
+    return rows, raw_sample
 
 
 # ============================================================
@@ -511,6 +551,52 @@ with col2:
             "foreign_net": "외국인순매도", "inst_net": "기관순매도", "combined_net": "전체순매도",
         })
         st.dataframe(sell_df, use_container_width=True, hide_index=True)
+
+st.divider()
+st.subheader("거래량 상위 10")
+try:
+    volume_rows, volume_raw_sample = fetch_volume_rank()
+except Exception as e:
+    volume_rows, volume_raw_sample = [], {}
+    st.warning(f"거래량 상위 조회 실패: {e}")
+
+if volume_rows:
+    vol_df = pd.DataFrame(volume_rows).rename(columns={
+        "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
+        "volume": "거래량", "day_pct": "등락률(%)",
+    })
+    st.dataframe(vol_df, use_container_width=True, hide_index=True)
+    with st.expander("원본 응답 확인 (필드명 검증용)"):
+        st.json(volume_raw_sample)
+
+    st.markdown("**거래량 상위 종목 기술적 스크리닝**")
+    st.caption("순매수 상위와 달리 개인 투기 수급이 섞일 수 있는 목록입니다 — 아래 체크와 함께 반드시 같이 보세요.")
+    for row in volume_rows:
+        code, name = row["stock_code"], row["stock_name"]
+        if not code:
+            continue
+        with st.expander(f"{row['rank']}위 · {name} ({code}) · 거래량 {row['volume']}"):
+            vdf = fetch_daily_ohlcv(code)
+            vtech = analyze_technicals(vdf)
+            vchecks = {k: v for k, v in vtech.items() if k != "RSI값"}
+            vpassed = sum(1 for v in vchecks.values() if v is True)
+            vtotal = sum(1 for v in vchecks.values() if v is not None)
+            if vtotal == 0:
+                st.caption("일봉 데이터를 가져오지 못했습니다.")
+            else:
+                vrsi_note = f" (RSI: {vtech['RSI값']})" if vtech["RSI값"] is not None else ""
+                st.markdown(f"**기술적 체크: {vpassed}/{vtotal} 통과**{vrsi_note}")
+                vcols = st.columns(len(vchecks))
+                for c, (label, val) in zip(vcols, vchecks.items()):
+                    icon = "✅" if val is True else ("❌" if val is False else "—")
+                    c.metric(label, icon)
+                vstate_label, vstate_desc, vstate_fn = classify_trend_state(vdf)
+                vstate_fn(f"**{vstate_label}** — {vstate_desc}")
+            vrisky = check_disclosure_risk(code)
+            if vrisky:
+                st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in vrisky))
+            elif DART_API_KEY:
+                st.success("최근 30일 내 주의 공시 없음")
 
 st.divider()
 st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
