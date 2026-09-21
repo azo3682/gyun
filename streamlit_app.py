@@ -405,6 +405,19 @@ with col2:
 st.divider()
 st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
 
+
+def price_status_badge(day_pct):
+    if day_pct is None:
+        return "—"
+    if day_pct >= 15:
+        return "🔥🔥 급등 마감권 (추격 매우 위험)"
+    if day_pct >= 7:
+        return "🔥 이미 상승 (추격 주의)"
+    if day_pct <= -3:
+        return "🔻 하락 중"
+    return "➖ 보합 (신선한 구간)"
+
+
 INTRADAY_STATUS_PATH = "data/intraday_status.json"
 if os.path.exists(INTRADAY_STATUS_PATH):
     with open(INTRADAY_STATUS_PATH, "r", encoding="utf-8") as f:
@@ -424,12 +437,14 @@ if os.path.exists(INTRADAY_STATUS_PATH):
         st.markdown("**🟢 신규 후보** (아침엔 없었으나 지금 조건 충족)")
         for n in new_candidates:
             price_str = f" · 현재가 {n['current_price']:,.0f}원 ({n['day_pct']:+.2f}%)" if n.get("current_price") else ""
-            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str}")
+            badge = price_status_badge(n.get("day_pct"))
+            st.markdown(f"- {n['stock_name']}({n['stock_code']}) — {n['passed']}/{n['total']}점{price_str} · {badge}")
     if kept:
         st.markdown("**⚪ 유지 중** (아침 후보 그대로, 실시간 현재가)")
         kept_rows = [{
             "종목명": k["stock_name"], "종목코드": k["stock_code"],
             "현재가": k.get("current_price"), "당일등락률(%)": k.get("day_pct"),
+            "상태": price_status_badge(k.get("day_pct")),
         } for k in kept]
         st.dataframe(pd.DataFrame(kept_rows), use_container_width=True, hide_index=True)
     if not excluded and not new_candidates and not kept:
