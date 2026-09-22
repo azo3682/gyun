@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-22T09:53:14+09:00",
+  "checked_at": "2026-09-22T10:23:08+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,14 +11,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 67.6
+        "RSI값": 69.7
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 34750.0,
-      "day_pct": -1.84,
+      "current_price": 35150.0,
+      "day_pct": -0.71,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -30,14 +30,14 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 72.2
+        "RSI값": 74.5
       },
       "transition": false,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14570.0,
-      "day_pct": 2.25,
+      "current_price": 15060.0,
+      "day_pct": 5.68,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -49,35 +49,53 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 77.7
+        "RSI값": 78.4
       },
       "transition": false,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 45550.0,
-      "day_pct": 1.67,
+      "current_price": 46050.0,
+      "day_pct": 2.79,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
     {
-      "stock_code": "024840",
-      "stock_name": "KBI메탈",
+      "stock_code": "001440",
+      "stock_name": "대한전선",
       "tech": {
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 71.9
+        "RSI값": 64.4
       },
       "transition": true,
-      "passed": 3,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 6670.0,
-      "day_pct": 5.71
+      "current_price": 32000.0,
+      "day_pct": 7.74
+    },
+    {
+      "stock_code": "006340",
+      "stock_name": "대원전선",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 64.0
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 14040.0,
+      "day_pct": 3.69
     },
     {
       "stock_code": "353200",
@@ -88,14 +106,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 56.9
+        "RSI값": 54.9
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 116900.0,
-      "day_pct": 14.72
+      "current_price": 114300.0,
+      "day_pct": 12.17
     }
   ]
 }
