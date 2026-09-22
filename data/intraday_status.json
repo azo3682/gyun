@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-22T10:23:08+09:00",
+  "checked_at": "2026-09-22T11:41:39+09:00",
   "kept": [],
   "excluded": [
     {
@@ -9,16 +9,16 @@
         "정배열": true,
         "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 69.7
+        "RSI값": 70.9
       },
       "transition": false,
-      "passed": 3,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 35150.0,
-      "day_pct": -0.71,
+      "current_price": 35400.0,
+      "day_pct": 0.0,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -26,18 +26,18 @@
       "stock_name": "와이씨",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.5
+        "RSI값": 73.6
       },
-      "transition": false,
-      "passed": 2,
+      "transition": true,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15060.0,
-      "day_pct": 5.68,
+      "current_price": 14870.0,
+      "day_pct": 4.35,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -45,58 +45,22 @@
       "stock_name": "하나마이크론",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 78.4
+        "RSI값": 79.4
       },
-      "transition": false,
-      "passed": 2,
+      "transition": true,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 46050.0,
-      "day_pct": 2.79,
+      "current_price": 47100.0,
+      "day_pct": 5.13,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
-    {
-      "stock_code": "001440",
-      "stock_name": "대한전선",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 64.4
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 32000.0,
-      "day_pct": 7.74
-    },
-    {
-      "stock_code": "006340",
-      "stock_name": "대원전선",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 64.0
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 14040.0,
-      "day_pct": 3.69
-    },
     {
       "stock_code": "353200",
       "stock_name": "대덕전자",
@@ -106,14 +70,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 54.9
+        "RSI값": 55.3
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 114300.0,
-      "day_pct": 12.17
+      "current_price": 114800.0,
+      "day_pct": 12.66
     }
   ]
 }
