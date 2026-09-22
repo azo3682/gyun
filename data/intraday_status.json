@@ -1,61 +1,101 @@
 {
-  "checked_at": "2026-09-21T14:54:47+09:00",
-  "kept": [
+  "checked_at": "2026-09-22T09:53:14+09:00",
+  "kept": [],
+  "excluded": [
     {
       "stock_code": "003160",
       "stock_name": "디아이",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 78.8
+        "RSI값": 67.6
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 35500.0,
-      "day_pct": 13.06
+      "current_price": 34750.0,
+      "day_pct": -1.84,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "232140",
       "stock_name": "와이씨",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.2
+        "RSI값": 72.2
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14130.0,
-      "day_pct": 18.64
+      "current_price": 14570.0,
+      "day_pct": 2.25,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "067310",
       "stock_name": "하나마이크론",
       "tech": {
-        "정배열": false,
+        "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 77.7
+      },
+      "transition": false,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 45550.0,
+      "day_pct": 1.67,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "024840",
+      "stock_name": "KBI메탈",
+      "tech": {
+        "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 76.6
+        "RSI값": 71.9
       },
       "transition": true,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 44300.0,
-      "day_pct": 14.62
+      "current_price": 6670.0,
+      "day_pct": 5.71
+    },
+    {
+      "stock_code": "353200",
+      "stock_name": "대덕전자",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 56.9
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 116900.0,
+      "day_pct": 14.72
     }
-  ],
-  "excluded": [],
-  "new_candidates": []
+  ]
 }
