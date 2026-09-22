@@ -64,6 +64,19 @@ def kis_headers(tr_id: str) -> dict:
     }
 
 
+ETF_NAME_KEYWORDS = [
+    "KODEX", "TIGER", "ACE", "KINDEX", "RISE", "KBSTAR", "SOL", "ARIRANG",
+    "HANARO", "KOSEF", "TIMEFOLIO", "PLUS", "마이다스", "히어로즈", "WOORI",
+    "레버리지", "인버스", "ETN",
+]
+
+
+def is_fund_product(name: str) -> bool:
+    """ETF/ETN/레버리지/인버스 상품인지 이름으로 판별 (종목코드로는 구분 불가)."""
+    name_upper = name.upper()
+    return any(kw.upper() in name_upper for kw in ETF_NAME_KEYWORDS)
+
+
 def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
     params = {
         "FID_COND_MRKT_DIV_CODE": "V", "FID_COND_SCR_DIV_CODE": "16449",
@@ -79,14 +92,19 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
         raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
     now = datetime.now(KST).isoformat(timespec="seconds")
     rows = []
-    for i, item in enumerate(data.get("output", [])[:top_n], start=1):
+    for item in data.get("output", []):
+        name = item.get("hts_kor_isnm", "")
+        if is_fund_product(name):
+            continue
         rows.append({
-            "ts": now, "rank_type": rank_type, "rank": i,
-            "stock_code": item.get("mksc_shrn_iscd", ""), "stock_name": item.get("hts_kor_isnm", ""),
+            "ts": now, "rank_type": rank_type, "rank": len(rows) + 1,
+            "stock_code": item.get("mksc_shrn_iscd", ""), "stock_name": name,
             "foreign_net": float(item.get("frgn_ntby_qty", 0) or 0),
             "inst_net": float(item.get("orgn_ntby_qty", 0) or 0),
             "combined_net": float(item.get("ntby_qty", 0) or 0),
         })
+        if len(rows) >= top_n:
+            break
     return rows
 
 
