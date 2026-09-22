@@ -659,8 +659,8 @@ def trend_label_for(stock_code: str) -> str:
     return label
 
 
-tab_supply, tab_volume, tab_overlap, tab_intraday, tab_screen, tab_lookup = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "🔥 동시 등장", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔍 종목 조회",
+tab_supply, tab_volume, tab_overlap, tab_intraday, tab_screen, tab_reversal, tab_lookup = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "🔥 동시 등장", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회",
 ])
 
 # ---------------- 📊 순매수 상위 ----------------
@@ -898,6 +898,54 @@ with tab_screen:
                 st.markdown("**관련 뉴스**")
                 for n in news:
                     st.markdown(f"- [{n['title']}]({n['link']})")
+
+# ---------------- 🔄 반등 후보 ----------------
+REVERSAL_LABELS = {"하락추세 속 기술적 반등", "하락추세 · 반등 준비 구간", "하락추세 속 단기 반등 시도"}
+
+with tab_reversal:
+    st.subheader("하락추세 반등 후보")
+    st.caption("순매수 상위·거래량 상위 후보군 안에서, 국면 판단이 '하락추세 속 반등'류로 나온 종목만 골라 보여드립니다. "
+               "전환신호와 달리 이 분류 자체는 아직 검증된 신호가 아니라 참고용입니다 (코스피/코스닥 전체를 매번 스캔할 수는 없어, "
+               "이미 화면에 있는 후보군 안에서만 찾습니다).")
+
+    candidate_pool = {}
+    for r in buy_rows:
+        candidate_pool[r["stock_code"]] = r["stock_name"]
+    if volume_rows:
+        for r in volume_rows:
+            candidate_pool[r["stock_code"]] = r["stock_name"]
+
+    reversal_found = []
+    for code, name in candidate_pool.items():
+        if not code:
+            continue
+        rdf = fetch_daily_ohlcv(code)
+        rlabel, rdesc, rfn = classify_trend_state(rdf)
+        if rlabel in REVERSAL_LABELS:
+            rprice, rpct = fetch_current_price(code)
+            reversal_found.append({"code": code, "name": name, "label": rlabel, "desc": rdesc,
+                                     "fn": rfn, "price": rprice, "pct": rpct})
+
+    if not reversal_found:
+        st.info("현재 후보군(순매수·거래량 상위) 안에는 하락추세 반등 패턴이 없습니다.")
+    else:
+        for item in reversal_found:
+            with st.expander(f"{item['name']}({item['code']}) — {item['label']}"):
+                if item["price"] is not None:
+                    st.markdown(f"현재가 {item['price']:,.0f}원 &nbsp; {colored_pct_html(item['pct'])}", unsafe_allow_html=True)
+                item["fn"](f"**{item['label']}** — {item['desc']}")
+
+                rrisky = check_disclosure_risk(item["code"])
+                if rrisky:
+                    st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in rrisky))
+                elif DART_API_KEY:
+                    st.success("최근 30일 내 주의 공시 없음")
+
+                rnews, _ = fetch_news(item["name"])
+                if rnews:
+                    st.markdown("**관련 뉴스**")
+                    for n in rnews:
+                        st.markdown(f"- [{n['title']}]({n['link']})")
 
 # ---------------- 🔍 종목 조회 ----------------
 with tab_lookup:
