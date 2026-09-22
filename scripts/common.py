@@ -67,7 +67,7 @@ def kis_headers(tr_id: str) -> dict:
 ETF_NAME_KEYWORDS = [
     "KODEX", "TIGER", "ACE", "KINDEX", "RISE", "KBSTAR", "SOL", "ARIRANG",
     "HANARO", "KOSEF", "TIMEFOLIO", "PLUS", "마이다스", "히어로즈", "WOORI",
-    "레버리지", "인버스", "ETN",
+    "레버리지", "인버스", "ETN", "스팩",
 ]
 
 
