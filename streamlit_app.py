@@ -200,7 +200,7 @@ def fetch_volume_rank() -> tuple[list[dict], dict]:
             "stock_code": item.get("mksc_shrn_iscd", ""),
             "stock_name": name,
             "volume": item.get("acml_vol", ""),
-            "day_pct": item.get("prdy_ctrt", ""),
+            "day_pct": float(item.get("prdy_ctrt", 0) or 0),
         })
         if len(rows) >= TOP_N:
             break
@@ -252,7 +252,7 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30):
             "stock_code": item.get("mksc_shrn_iscd", ""),
             "stock_name": name,
             "price": item.get("stck_prpr", ""),
-            "day_pct": item.get("prdy_ctrt", ""),
+            "day_pct": float(item.get("prdy_ctrt", 0) or 0),
             "per": per,
             "pbr": pbr,
         })
@@ -734,11 +734,19 @@ def style_signed(df: pd.DataFrame, cols: list[str], plain_cols: dict | None = No
         if v < 0:
             return "color: #1971c2; font-weight: 600;"
         return ""
+
+    def _fmt_pct(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return str(v)
+        return f"{'+' if v > 0 else ''}{v:,.2f}%"
+
     existing = [c for c in cols if c in df.columns]
     styler = df.style
     if existing:
         styler = styler.map(_color, subset=existing)
-        fmt_map = {c: (fmt_shares if c != "등락률(%)" and c != "당일등락률(%)" else (lambda v: f"{'+' if v>0 else ''}{v:,.2f}%")) for c in existing}
+        fmt_map = {c: (fmt_shares if c != "등락률(%)" and c != "당일등락률(%)" else _fmt_pct) for c in existing}
         styler = styler.format(fmt_map)
     if plain_cols:
         styler = styler.format({c: f for c, f in plain_cols.items() if c in df.columns})
