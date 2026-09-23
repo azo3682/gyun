@@ -135,6 +135,12 @@ def build_report_body() -> str:
     if watch_size:
         lines.append(f"\n(현재 관찰 목록 {watch_size}개 종목 눌림 대기 중 — 대시보드에서 확인 가능)")
 
+    value_overlap = snapshot.get("value_overlap", [])
+    if value_overlap:
+        lines.append("\n=== 🎯💰 전환신호 + 저PER 동시 충족 (가장 근거가 탄탄한 조합) ===")
+        for v in value_overlap:
+            lines.append(f"· {v['stock_name']}({v['stock_code']}) — PER {v['per']:.1f}배 · PBR {v['pbr']:.1f}배")
+
     lines.append("\n\n※ 이 리포트는 투자 자문이 아니며, 참고용 스크리닝 결과입니다.")
     lines.append("※ 장중 조건 변화(제외/신규 후보)는 대시보드에서 실시간으로 확인하세요.")
     return "\n".join(lines)
