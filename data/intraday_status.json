@@ -1,155 +1,149 @@
 {
-  "checked_at": "2026-09-22T14:54:07+09:00",
+  "checked_at": "2026-09-23T09:50:31+09:00",
   "kept": [],
   "excluded": [
     {
-      "stock_code": "003160",
-      "stock_name": "디아이",
+      "stock_code": "001440",
+      "stock_name": "대한전선",
       "tech": {
         "정배열": true,
         "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 66.3
+        "RSI값": 65.5
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 34550.0,
-      "day_pct": -2.4,
+      "current_price": 31450.0,
+      "day_pct": -0.47,
       "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "232140",
-      "stock_name": "와이씨",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 71.3
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 14400.0,
-      "day_pct": 1.05,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "067310",
-      "stock_name": "하나마이크론",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 78.0
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 45750.0,
-      "day_pct": 2.12,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
-    {
-      "stock_code": "003490",
-      "stock_name": "대한항공",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 64.7
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 31150.0,
-      "day_pct": 7.97
-    },
-    {
-      "stock_code": "001440",
-      "stock_name": "대한전선",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 64.0
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 31850.0,
-      "day_pct": 7.24
     },
     {
       "stock_code": "066570",
       "stock_name": "LG전자",
       "tech": {
-        "정배열": false,
-        "거래량급증": true,
+        "정배열": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 62.7
+        "RSI값": 58.3
       },
-      "transition": true,
+      "transition": false,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 216500.0,
-      "day_pct": 6.91
+      "current_price": 210500.0,
+      "day_pct": -2.77,
+      "reason": "순매수 상위 10에서 이탈"
+    },
+    {
+      "stock_code": "291810",
+      "stock_name": "핀텔",
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 42.6
+      },
+      "transition": false,
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [
+        "20260921 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
+        "20260917 [기재정정]주요사항보고서(유상증자결정)",
+        "20260914 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
+        "20260910 증권발행결과(자율공시)              (일반공모 유상증자)",
+        "20260909 유상증자또는주식관련사채등의청약결과(자율공시)              ",
+        "20260903 유상증자최종발행가액확정              (일반공모증자-소액공모)",
+        "20260903 [기재정정]주요사항보고서(유상증자결정)",
+        "20260901 주요사항보고서(유상증자결정)"
+      ],
+      "current_price": 1112.0,
+      "day_pct": -6.79,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "006800",
       "stock_name": "미래에셋증권",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 48.9
+        "RSI값": 45.6
       },
-      "transition": true,
-      "passed": 2,
+      "transition": false,
+      "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 32850.0,
-      "day_pct": 2.82
+      "current_price": 32600.0,
+      "day_pct": -0.76,
+      "reason": "순매수 상위 10에서 이탈"
+    },
+    {
+      "stock_code": "003490",
+      "stock_name": "대한항공",
+      "tech": {
+        "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 63.7
+      },
+      "transition": false,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 31300.0,
+      "day_pct": -0.32,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "059090",
       "stock_name": "미코",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 70.0
+        "RSI값": 76.2
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 22100.0,
-      "day_pct": 10.61
+      "current_price": 22550.0,
+      "day_pct": -0.22,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "093370",
+      "stock_name": "후성",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 68.0
+      },
+      "transition": true,
+      "passed": 5,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 14010.0,
+      "day_pct": 3.01
     }
   ]
 }
