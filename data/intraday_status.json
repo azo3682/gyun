@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-23T10:24:26+09:00",
+  "checked_at": "2026-09-23T11:47:12+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,14 +11,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 66.1
+        "RSI값": 61.9
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 31650.0,
-      "day_pct": 0.16,
+      "current_price": 30700.0,
+      "day_pct": -2.85,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -30,14 +30,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 58.5
+        "RSI값": 57.2
       },
       "transition": false,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 211000.0,
-      "day_pct": -2.54,
+      "current_price": 209500.0,
+      "day_pct": -3.23,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -49,23 +49,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 42.6
+        "RSI값": 43.4
       },
       "transition": false,
       "passed": 1,
       "total": 5,
-      "risky_disclosures": [
-        "20260921 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
-        "20260917 [기재정정]주요사항보고서(유상증자결정)",
-        "20260914 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
-        "20260910 증권발행결과(자율공시)              (일반공모 유상증자)",
-        "20260909 유상증자또는주식관련사채등의청약결과(자율공시)              ",
-        "20260903 유상증자최종발행가액확정              (일반공모증자-소액공모)",
-        "20260903 [기재정정]주요사항보고서(유상증자결정)",
-        "20260901 주요사항보고서(유상증자결정)"
-      ],
-      "current_price": 1111.0,
-      "day_pct": -6.87,
+      "risky_disclosures": [],
+      "current_price": 1145.0,
+      "day_pct": -4.02,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -77,14 +68,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 44.4
+        "RSI값": 42.2
       },
       "transition": false,
       "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 32400.0,
-      "day_pct": -1.37,
+      "current_price": 32100.0,
+      "day_pct": -2.28,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -96,14 +87,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 63.1
+        "RSI값": 64.1
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 31200.0,
-      "day_pct": -0.64,
+      "current_price": 31350.0,
+      "day_pct": -0.16,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -115,35 +106,71 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 76.2
+        "RSI값": 75.0
       },
       "transition": false,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 22550.0,
-      "day_pct": -0.22,
+      "current_price": 22450.0,
+      "day_pct": -0.66,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
     {
-      "stock_code": "093370",
-      "stock_name": "후성",
+      "stock_code": "255220",
+      "stock_name": "SG",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 50.2
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 1142.0,
+      "day_pct": 1.51
+    },
+    {
+      "stock_code": "203650",
+      "stock_name": "드림시큐리티",
       "tech": {
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 68.0
+        "RSI값": 79.4
       },
       "transition": true,
-      "passed": 5,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14020.0,
-      "day_pct": 3.09
+      "current_price": 2830.0,
+      "day_pct": 5.2
+    },
+    {
+      "stock_code": "092870",
+      "stock_name": "엑시콘",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 74.7
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 43100.0,
+      "day_pct": 13.42
     }
   ]
 }
