@@ -29,6 +29,10 @@ NAVER_CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "")
 BASE_URL = "https://openapi.koreainvestment.com:9443"
 RANKING_API_PATH = "/uapi/domestic-stock/v1/quotations/foreign-institution-total"
 RANKING_TR_ID = "FHPTJ04400000"
+
+VALUATION_RANK_API_PATH = "/uapi/domestic-stock/v1/ranking/market-value"
+VALUATION_RANK_TR_ID = "FHPST01790000"
+VALUATION_FISCAL_YEAR = "2025"  # 회계연도(결산 기준) — 매년 갱신 필요
 DAILY_CHART_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 DAILY_CHART_TR_ID = "FHKST03010100"
 CURRENT_PRICE_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"
@@ -102,6 +106,55 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
             "foreign_net": float(item.get("frgn_ntby_qty", 0) or 0),
             "inst_net": float(item.get("orgn_ntby_qty", 0) or 0),
             "combined_net": float(item.get("ntby_qty", 0) or 0),
+        })
+        if len(rows) >= top_n:
+            break
+    return rows
+
+
+def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30) -> list[dict]:
+    """전체 시장 PER/PBR 순위. sort_code: 23=PER, 24=PBR (오름차순, 낮은 값부터)."""
+    params = {
+        "fid_trgt_cls_code": "0",
+        "fid_cond_mrkt_div_code": "J",
+        "fid_cond_scr_div_code": "20179",
+        "fid_input_iscd": "0000",
+        "fid_div_cls_code": "6",  # 보통주만 (우선주 제외)
+        "fid_input_price_1": "0",
+        "fid_input_price_2": "0",
+        "fid_vol_cnt": "0",
+        "fid_input_option_1": VALUATION_FISCAL_YEAR,
+        "fid_input_option_2": "3",  # 결산(연간)
+        "fid_rank_sort_cls_code": sort_code,
+        "fid_blng_cls_code": "0",
+        "fid_trgt_excl_cls_code": "0",
+    }
+    resp = requests.get(f"{BASE_URL}{VALUATION_RANK_API_PATH}", headers=kis_headers(VALUATION_RANK_TR_ID),
+                         params=params, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
+    rows = []
+    for item in data.get("output", []):
+        name = item.get("hts_kor_isnm", "")
+        if is_fund_product(name):
+            continue
+        try:
+            per = float(item.get("per", "") or 0)
+            pbr = float(item.get("pbr", "") or 0)
+        except (TypeError, ValueError):
+            continue
+        if per <= 0:
+            continue
+        rows.append({
+            "rank": len(rows) + 1,
+            "stock_code": item.get("mksc_shrn_iscd", ""),
+            "stock_name": name,
+            "price": item.get("stck_prpr", ""),
+            "day_pct": item.get("prdy_ctrt", ""),
+            "per": per,
+            "pbr": pbr,
         })
         if len(rows) >= top_n:
             break
