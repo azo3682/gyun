@@ -112,8 +112,9 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
     return rows
 
 
-def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30) -> list[dict]:
-    """전체 시장 PER/PBR 순위. sort_code: 23=PER, 24=PBR (오름차순, 낮은 값부터)."""
+def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30, per_max: float = 50.0) -> list[dict]:
+    """전체 시장 PER/PBR 순위. API 원본 순서는 신뢰하지 않고 PER 오름차순으로 직접
+    재정렬하며, 0 < PER <= per_max 범위만 남긴다 (EPS 0에 가까운 이상치 제외)."""
     params = {
         "fid_trgt_cls_code": "0",
         "fid_cond_mrkt_div_code": "J",
@@ -135,7 +136,7 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30) -> list[dict]:
     data = resp.json()
     if data.get("rt_cd") != "0":
         raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
-    rows = []
+    candidates = []
     for item in data.get("output", []):
         name = item.get("hts_kor_isnm", "")
         if is_fund_product(name):
@@ -145,20 +146,18 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30) -> list[dict]:
             pbr = float(item.get("pbr", "") or 0)
         except (TypeError, ValueError):
             continue
-        if per <= 0:
+        if not (0 < per <= per_max):
             continue
-        rows.append({
-            "rank": len(rows) + 1,
+        candidates.append({
             "stock_code": item.get("mksc_shrn_iscd", ""),
             "stock_name": name,
             "price": item.get("stck_prpr", ""),
-            "day_pct": item.get("prdy_ctrt", ""),
+            "day_pct": float(item.get("prdy_ctrt", 0) or 0),
             "per": per,
             "pbr": pbr,
         })
-        if len(rows) >= top_n:
-            break
-    return rows
+    candidates.sort(key=lambda r: r["per"])
+    return [{"rank": i, **c} for i, c in enumerate(candidates[:top_n], start=1)]
 
 
 def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
