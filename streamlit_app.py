@@ -208,9 +208,12 @@ def fetch_volume_rank() -> tuple[list[dict], dict]:
 
 
 @st.cache_data(ttl=1800)
-def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30):
-    """전체 시장 PER/PBR 순위. sort_code: 23=PER, 24=PBR (오름차순, 낮은 값부터).
-    (순위 리스트, 원본 응답 첫 항목) 반환. 재무비율은 하루에도 거의 안 바뀌어 캐시를 길게 둠."""
+def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30, per_max: float = 50.0):
+    """전체 시장 PER/PBR 순위. (순위 리스트, 원본 응답 첫 항목) 반환.
+    API가 반환한 순서(오름/내림 여부 미확인)를 신뢰하지 않고, 받은 데이터를
+    직접 PER 오름차순으로 재정렬하고 상식적인 범위(0 < PER <= per_max)만 남긴다
+    — EPS가 0에 가까운 종목은 PER이 수천 배로 튀는 경우가 있어 그런 값은 제외.
+    재무비율은 하루에도 거의 안 바뀌어 캐시를 길게 둠."""
     params = {
         "fid_trgt_cls_code": "0",
         "fid_cond_mrkt_div_code": "J",
@@ -235,7 +238,7 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30):
 
     output = data.get("output", [])
     raw_sample = output[0] if output else {}
-    rows = []
+    candidates = []
     for item in output:
         name = item.get("hts_kor_isnm", "")
         if is_fund_product(name):
@@ -245,10 +248,9 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30):
             pbr = float(item.get("pbr", "") or 0)
         except (TypeError, ValueError):
             continue
-        if per <= 0:  # 적자 등으로 PER이 의미없는 경우 제외
+        if not (0 < per <= per_max):  # 적자·EPS 0에 가까운 이상치 제외
             continue
-        rows.append({
-            "rank": len(rows) + 1,
+        candidates.append({
             "stock_code": item.get("mksc_shrn_iscd", ""),
             "stock_name": name,
             "price": item.get("stck_prpr", ""),
@@ -256,8 +258,11 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30):
             "per": per,
             "pbr": pbr,
         })
-        if len(rows) >= top_n:
-            break
+
+    candidates.sort(key=lambda r: r["per"])  # 낮은 PER부터 — API 원본 순서는 신뢰 안 함
+    rows = []
+    for i, c in enumerate(candidates[:top_n], start=1):
+        rows.append({"rank": i, **c})
     return rows, raw_sample
 
 
@@ -824,8 +829,10 @@ with tab_volume:
 # ---------------- 💰 저평가 후보 ----------------
 with tab_value:
     st.subheader("저평가 후보 (전체 시장 PER 낮은 순)")
-    st.caption(f"회계연도 {VALUATION_FISCAL_YEAR} 결산 기준, 코스피/코스닥 보통주 전체에서 PER이 낮은 순(적자 기업 제외)으로 정렬합니다. "
-               "PER이 낮다고 매수 신호는 아닙니다 — 관리종목·투자위험 등 문제가 있어서 싼 경우도 섞여 있으니, "
+    st.caption(f"회계연도 {VALUATION_FISCAL_YEAR} 결산 기준, 코스피/코스닥 보통주 중 PER이 0~50배 범위인 종목만 낮은 순으로 정렬합니다 "
+               "(EPS가 0에 가까워 PER이 수천 배로 튀는 이상치는 제외). API가 반환한 원래 순서는 신뢰할 수 없어 직접 재정렬한 것이라, "
+               "이 목록이 '전체 시장에서 진짜 가장 싼 30개'라는 보장은 아직 없습니다 — 참고용으로만 봐주세요. "
+               "PER이 낮다고 매수 신호도 아닙니다. 관리종목·투자위험 등 문제가 있어서 싼 경우도 섞여 있으니, "
                "아래 공시 확인을 꼭 같이 보세요.")
 
     try:
