@@ -224,7 +224,7 @@ def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30):
         "fid_input_option_2": "3",  # 결산(연간)
         "fid_rank_sort_cls_code": sort_code,
         "fid_blng_cls_code": "0",
-        "fid_trgt_excl_cls_code": "0",
+        "fid_trgt_exls_cls_code": "0",
     }
     resp = requests.get(f"{BASE_URL}{VALUATION_RANK_API_PATH}", headers=kis_headers(VALUATION_RANK_TR_ID),
                          params=params, timeout=10)
