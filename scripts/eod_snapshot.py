@@ -22,7 +22,7 @@ from datetime import datetime
 
 from common import (
     fetch_investor_ranking, fetch_daily_ohlcv, analyze_technicals,
-    compute_transition_signal, compute_day_return,
+    compute_transition_signal, compute_day_return, fetch_valuation_rank,
     check_disclosure_risk, fetch_news, KST,
 )
 
@@ -117,6 +117,17 @@ def build_snapshot():
 
     save_watchlist(watchlist)
 
+    # 저평가(PER 낮은 순) + 오늘 전환신호가 겹치는 종목 — 가장 근거가 탄탄한 조합
+    value_overlap = []
+    try:
+        value_rows = fetch_valuation_rank(sort_code="23", top_n=30)
+        transition_codes = {r["stock_code"]: r for r in enriched if r["transition"] and not r["deferred_to_watchlist"]}
+        for v in value_rows:
+            if v["stock_code"] in transition_codes:
+                value_overlap.append({**v, "matched_via": "전환신호"})
+    except Exception as e:
+        print(f"저평가 순위 조회 실패(건너뜀): {e}")
+
     snapshot = {
         "date": datetime.now(KST).strftime("%Y-%m-%d"),
         "generated_at": datetime.now(KST).isoformat(timespec="seconds"),
@@ -124,6 +135,7 @@ def build_snapshot():
         "sell_top10": sell_rows,
         "reentry_candidates": reentry_candidates,
         "watchlist_size": len(watchlist),
+        "value_overlap": value_overlap,
     }
     return snapshot
 
@@ -137,4 +149,5 @@ if __name__ == "__main__":
     n_deferred = sum(1 for r in snapshot["buy_top10"] if r["deferred_to_watchlist"])
     print(f"저장 완료: {OUT_PATH}")
     print(f"전환신호(즉시후보) {n_transition}개 / 관찰목록 신규편입 {n_deferred}개 / "
-          f"재진입후보 {len(snapshot['reentry_candidates'])}개 / 관찰목록 총 {snapshot['watchlist_size']}개")
+          f"재진입후보 {len(snapshot['reentry_candidates'])}개 / 관찰목록 총 {snapshot['watchlist_size']}개 / "
+          f"저평가+전환신호 겹침 {len(value_overlap)}개")
