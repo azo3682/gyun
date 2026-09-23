@@ -150,4 +150,4 @@ if __name__ == "__main__":
     print(f"저장 완료: {OUT_PATH}")
     print(f"전환신호(즉시후보) {n_transition}개 / 관찰목록 신규편입 {n_deferred}개 / "
           f"재진입후보 {len(snapshot['reentry_candidates'])}개 / 관찰목록 총 {snapshot['watchlist_size']}개 / "
-          f"저평가+전환신호 겹침 {len(value_overlap)}개")
+          f"저평가+전환신호 겹침 {len(snapshot['value_overlap'])}개")
