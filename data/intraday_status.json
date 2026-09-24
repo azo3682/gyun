@@ -1,149 +1,23 @@
 {
-  "checked_at": "2026-09-23T14:54:16+09:00",
-  "kept": [],
-  "excluded": [
+  "checked_at": "2026-09-24T09:51:04+09:00",
+  "kept": [
     {
-      "stock_code": "001440",
-      "stock_name": "대한전선",
+      "stock_code": "005935",
+      "stock_name": "삼성전자우",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 62.7
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 30900.0,
-      "day_pct": -2.22,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "066570",
-      "stock_name": "LG전자",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 56.0
+        "RSI값": 72.6
       },
-      "transition": false,
+      "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 209000.0,
-      "day_pct": -3.46,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "291810",
-      "stock_name": "핀텔",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 45.4
-      },
-      "transition": true,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [
-        "20260921 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
-        "20260917 [기재정정]주요사항보고서(유상증자결정)",
-        "20260914 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
-        "20260910 증권발행결과(자율공시)              (일반공모 유상증자)",
-        "20260909 유상증자또는주식관련사채등의청약결과(자율공시)              ",
-        "20260903 유상증자최종발행가액확정              (일반공모증자-소액공모)",
-        "20260903 [기재정정]주요사항보고서(유상증자결정)",
-        "20260901 주요사항보고서(유상증자결정)"
-      ],
-      "current_price": 1219.0,
-      "day_pct": 2.18,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "006800",
-      "stock_name": "미래에셋증권",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 43.1
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 32200.0,
-      "day_pct": -1.98,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "003490",
-      "stock_name": "대한항공",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 65.2
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 31550.0,
-      "day_pct": 0.48,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "059090",
-      "stock_name": "미코",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 75.8
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 22450.0,
-      "day_pct": -0.66,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
-    {
-      "stock_code": "024110",
-      "stock_name": "기업은행",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 36.4
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 20400.0,
-      "day_pct": 2.0
+      "current_price": 222000.0,
+      "day_pct": 4.96
     },
     {
       "stock_code": "203650",
@@ -154,14 +28,32 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 78.9
+        "RSI값": 79.4
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 2795.0,
-      "day_pct": 3.9
+      "current_price": 2830.0,
+      "day_pct": 5.2
+    },
+    {
+      "stock_code": "024110",
+      "stock_name": "기업은행",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 37.5
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 20450.0,
+      "day_pct": 2.25
     },
     {
       "stock_code": "092870",
@@ -172,14 +64,41 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.5
+        "RSI값": 74.9
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 42900.0,
-      "day_pct": 12.89
+      "current_price": 43300.0,
+      "day_pct": 13.95
     }
-  ]
+  ],
+  "excluded": [
+    {
+      "stock_code": "255220",
+      "stock_name": "SG",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 57.4
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [
+        "20260910 유상증자또는주식관련사채등의청약결과(자율공시)              ",
+        "20260907 유상증자또는주식관련사채등의청약결과(자율공시)              ",
+        "20260901 [기재정정]주요사항보고서(유상증자결정)",
+        "20260901 유상증자최종발행가액확정              "
+      ],
+      "current_price": 1210.0,
+      "day_pct": 7.56,
+      "reason": "장중 주의 공시 발생"
+    }
+  ],
+  "new_candidates": []
 }
