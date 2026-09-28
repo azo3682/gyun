@@ -1,97 +1,162 @@
 {
-  "checked_at": "2026-09-25T14:55:46+09:00",
-  "kept": [
+  "checked_at": "2026-09-28T09:57:23+09:00",
+  "kept": [],
+  "excluded": [
     {
       "stock_code": "005935",
       "stock_name": "삼성전자우",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 72.6
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 61.6
       },
-      "transition": true,
-      "passed": 4,
+      "transition": false,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 222000.0,
-      "day_pct": 4.96
+      "current_price": 210000.0,
+      "day_pct": -4.55,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "203650",
       "stock_name": "드림시큐리티",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 79.4
+        "RSI값": 79.8
       },
-      "transition": true,
-      "passed": 4,
+      "transition": false,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 2830.0,
-      "day_pct": 5.2
+      "current_price": 2905.0,
+      "day_pct": 4.12,
+      "reason": "전환신호 소멸"
     },
     {
       "stock_code": "024110",
       "stock_name": "기업은행",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 37.5
+        "RSI값": 50.0
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 20450.0,
-      "day_pct": 2.25
+      "current_price": 20700.0,
+      "day_pct": 1.47,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "092870",
       "stock_name": "엑시콘",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.9
+        "RSI값": 74.8
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 43300.0,
-      "day_pct": 13.95
+      "current_price": 45550.0,
+      "day_pct": 6.05,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "255220",
       "stock_name": "SG",
       "tech": {
         "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 54.9
+      },
+      "transition": false,
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [
+        "20260910 유상증자또는주식관련사채등의청약결과(자율공시)              ",
+        "20260907 유상증자또는주식관련사채등의청약결과(자율공시)              ",
+        "20260901 [기재정정]주요사항보고서(유상증자결정)",
+        "20260901 유상증자최종발행가액확정              "
+      ],
+      "current_price": 1178.0,
+      "day_pct": -1.51,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "178320",
+      "stock_name": "서진시스템",
+      "tech": {
+        "정배열": false,
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 57.4
+        "RSI값": 58.5
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1210.0,
-      "day_pct": 7.56
+      "current_price": 36850.0,
+      "day_pct": 14.62
+    },
+    {
+      "stock_code": "009830",
+      "stock_name": "한화솔루션",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 63.4
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 33150.0,
+      "day_pct": 13.53
+    },
+    {
+      "stock_code": "299170",
+      "stock_name": "더블유에스아이",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 62.3
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 1420.0,
+      "day_pct": 4.34
     }
-  ],
-  "excluded": [],
-  "new_candidates": []
+  ]
 }
