@@ -98,11 +98,15 @@ def fmt_valuation(v) -> str:
 
 def fmt_value_row(r: dict) -> str:
     parts = [f"PER {r['per']:.1f}", f"PBR {r['pbr']:.2f}"]
+    if r.get("roe_pct") is not None:
+        parts.append(f"ROE(추정) {r['roe_pct']:.0f}%")
     if r.get("mktcap_eok") is not None:
         parts.append(f"시총 {r['mktcap_eok']:,.0f}억")
     if r.get("drawdown_pct") is not None:
         parts.append(f"52주고점대비 {r['drawdown_pct']:+.0f}%")
     line = f"· {r['name']}({r['code']}) — " + " · ".join(parts)
+    if r.get("oneoff_suspect"):
+        line += "  ⚠ 일회성 이익 의심"
     if r.get("risky_disclosures"):
         line += f"  ⚠ 공시: {'; '.join(r['risky_disclosures'])}"
     return line
