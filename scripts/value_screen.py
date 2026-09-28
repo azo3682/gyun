@@ -26,9 +26,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
+import common
 from common import (
     KST, fetch_price_detail, get_access_token, load_dart_name_map,
-    check_disclosure_risk, is_fund_product, _to_float,
+    check_disclosure_risk, is_fund_product, record_fail, _to_float,
 )
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "value_screen.json")
@@ -41,6 +42,7 @@ LOW_PER_PBR_MAX = 1.5
 LOW_PBR_MAX = 0.6
 TOP_N = 50                  # 각 목록에 저장할 최대 종목 수
 RISK_CHECK_N = 20           # 상위 몇 개까지 DART 공시 리스크를 확인할지
+ROE_SUSPECT_PCT = 40.0      # PBR÷PER로 역산한 ROE가 이 값을 넘으면 '일회성 이익 의심' — 목록 뒤로 밀고 표시
 
 # ---- 호출 설정 ----
 CALLS_PER_SEC = 9.0         # KIS 실전 계좌 제한(초당 20건)보다 넉넉히 낮게
@@ -85,6 +87,9 @@ def parse_row(code: str, name: str, out: dict):
         mktcap = price * shares / 1e8 if shares else None
     tr_value = _to_float(out.get("acml_tr_pbmn"))          # 원
     w52_high = _to_float(out.get("w52_hgpr"))
+    per, pbr = _to_float(out.get("per")), _to_float(out.get("pbr"))
+    # ROE = EPS/BPS = PBR/PER. 40%를 넘으면 지속 가능한 수익성이라기보다 일회성 이익(자산 매각 등)일 가능성이 높다
+    roe_pct = round(100 * pbr / per, 1) if per and pbr and per > 0 and pbr > 0 else None
 
     return {
         "code": code,
@@ -93,8 +98,10 @@ def parse_row(code: str, name: str, out: dict):
         "sector": out.get("bstp_kor_isnm") or "",
         "price": price,
         "day_pct": _to_float(out.get("prdy_ctrt")),
-        "per": _to_float(out.get("per")),
-        "pbr": _to_float(out.get("pbr")),
+        "per": per,
+        "pbr": pbr,
+        "roe_pct": roe_pct,
+        "oneoff_suspect": bool(roe_pct is not None and roe_pct > ROE_SUSPECT_PCT),
         "eps": _to_float(out.get("eps")),
         "bps": _to_float(out.get("bps")),
         "mktcap_eok": round(mktcap, 1) if mktcap is not None else None,
@@ -137,11 +144,11 @@ def build_output(rows: list, meta: dict) -> dict:
     low_per = sorted(
         [r for r in eligible if r["per"] is not None and r["pbr"] is not None
          and 0 < r["per"] <= LOW_PER_MAX and 0 < r["pbr"] <= LOW_PER_PBR_MAX],
-        key=lambda r: r["per"])[:TOP_N]
+        key=lambda r: (r["oneoff_suspect"], r["per"]))[:TOP_N]
     low_pbr = sorted(
         [r for r in eligible if r["per"] is not None and r["pbr"] is not None
          and 0 < r["pbr"] <= LOW_PBR_MAX and r["per"] > 0],
-        key=lambda r: r["pbr"])[:TOP_N]
+        key=lambda r: (r["oneoff_suspect"], r["pbr"]))[:TOP_N]
 
     positive_per = [r["per"] for r in eligible if r["per"] is not None and r["per"] > 0]
     pbr_values = [r["pbr"] for r in eligible if r["pbr"] is not None and r["pbr"] > 0]
@@ -199,6 +206,7 @@ def scan(codes_names: list, fetcher=fetch_price_detail, calls_per_sec=CALLS_PER_
                 continue
             row = parse_row(code, name, out)
             if row is None:
+                record_fail("NO_PRICE", "응답에 현재가가 없음")
                 failed += 1
                 continue
             if not raw_sample:
@@ -209,6 +217,7 @@ def scan(codes_names: list, fetcher=fetch_price_detail, calls_per_sec=CALLS_PER_
 
 def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str = OUT_PATH, **scan_kwargs):
     started = time.monotonic()
+    common.FAIL_REASONS.clear()
     universe = universe if universe is not None else load_dart_name_map()
     if not universe:
         raise SystemExit("DART 상장사 목록을 불러오지 못했습니다 (DART_API_KEY / 네트워크 확인)")
@@ -232,6 +241,7 @@ def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str 
         "scanned_ok": len(rows),
         "scanned_failed": failed,
         "partial": timed_out,
+        "fail_reasons": dict(common.FAIL_REASONS),
         "elapsed_sec": round(time.monotonic() - started),
         "raw_sample": raw_sample,
     }
@@ -258,3 +268,6 @@ if __name__ == "__main__":
     print(f"저PER 우량 {len(result['low_per'])}개 / 저PBR 자산가치 {len(result['low_pbr'])}개")
     print(f"적용된 필터: {result['criteria']}")
     print(f"종목상태코드 분포: {result['stat_code_counts']}")
+    print(f"실패 사유: {result['fail_reasons']}")
+    n_sus = sum(1 for r in result['low_per'] if r['oneoff_suspect'])
+    print(f"저PER 목록 중 일회성 이익 의심(ROE>{ROE_SUSPECT_PCT:.0f}%) {n_sus}개")
