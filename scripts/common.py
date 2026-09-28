@@ -6,9 +6,12 @@ streamlit_app.py와 로직은 동일하나, st.cache 데코레이터 없이 순�
 환경변수(GitHub Actions Secrets)에서 키를 읽는다.
 """
 
+import hashlib
 import io
+import json
 import os
 import re
+import threading
 import time
 import zipfile
 import xml.etree.ElementTree as ET
@@ -40,9 +43,49 @@ RISK_KEYWORDS = ["유상증자", "무상감자", "감자", "관리종목", "상�
 
 _token_cache = {"token": None, "expires_at": 0}
 
+# 워크플로가 KIS_TOKEN_CACHE(파일 경로)를 지정하면, 잡끼리 토큰을 파일로 공유해 재발급을 줄인다.
+# (KIS API는 토큰만으로는 호출이 안 되고 앱키/시크릿 헤더가 같이 필요하다.)
+TOKEN_CACHE_PATH = os.environ.get("KIS_TOKEN_CACHE", "")
+
+
+def _app_fingerprint() -> str:
+    return hashlib.sha256(APP_KEY.encode("utf-8")).hexdigest()[:16]
+
+
+def _read_token_file():
+    """캐시 파일에 아직 유효한 토큰이 있으면 (token, expires_at), 없으면 None."""
+    if not TOKEN_CACHE_PATH or not os.path.exists(TOKEN_CACHE_PATH):
+        return None
+    try:
+        with open(TOKEN_CACHE_PATH, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        if d.get("fp") != _app_fingerprint():
+            return None                      # 다른 앱키로 발급된 토큰
+        if d["expires_at"] > time.time() + 300:
+            return d["token"], d["expires_at"]
+    except Exception:
+        pass
+    return None
+
+
+def _write_token_file(token: str, expires_at: float):
+    if not TOKEN_CACHE_PATH:
+        return
+    try:
+        os.makedirs(os.path.dirname(TOKEN_CACHE_PATH), exist_ok=True)
+        with open(TOKEN_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump({"token": token, "expires_at": expires_at, "fp": _app_fingerprint()}, f)
+        os.chmod(TOKEN_CACHE_PATH, 0o600)
+    except Exception:
+        pass
+
 
 def get_access_token() -> str:
     if _token_cache["token"] and _token_cache["expires_at"] > time.time() + 300:
+        return _token_cache["token"]
+    cached = _read_token_file()
+    if cached:
+        _token_cache["token"], _token_cache["expires_at"] = cached
         return _token_cache["token"]
     resp = requests.post(
         f"{BASE_URL}/oauth2/tokenP",
@@ -53,6 +96,7 @@ def get_access_token() -> str:
     data = resp.json()
     _token_cache["token"] = data["access_token"]
     _token_cache["expires_at"] = time.time() + int(data.get("expires_in", 86400))
+    _write_token_file(_token_cache["token"], _token_cache["expires_at"])
     return _token_cache["token"]
 
 
@@ -109,10 +153,21 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
     return rows
 
 
+FAIL_REASONS = {}          # {사유코드: {"count": n, "msg": 예시 메시지}} — 어떤 이유로 실패했는지 진단용
+_fail_lock = threading.Lock()
+
+
+def record_fail(reason: str, msg: str = ""):
+    with _fail_lock:
+        entry = FAIL_REASONS.setdefault(reason, {"count": 0, "msg": msg})
+        entry["count"] += 1
+
+
 def fetch_price_detail(stock_code: str, retries: int = 3):
     """현재가 조회 API(inquire-price)의 output 전체를 dict로 반환. 실패하면 None.
     PER/PBR/EPS/BPS, 시가총액, 52주 고저 등이 이 응답 하나에 들어있다.
-    초당 호출 제한(EGW00201)에 걸리면 잠깐 쉬고 재시도한다."""
+    초당 호출 제한(EGW00201)에 걸리면 잠깐 쉬고 재시도한다. 실패 사유는 FAIL_REASONS에 기록."""
+    last_reason, last_msg = "EXCEPTION", ""
     for attempt in range(retries + 1):
         try:
             resp = requests.get(
@@ -122,15 +177,20 @@ def fetch_price_detail(stock_code: str, retries: int = 3):
                 timeout=10,
             )
             data = resp.json()
-        except Exception:
+        except Exception as e:
+            last_reason, last_msg = "EXCEPTION", str(e)[:80]
             time.sleep(0.5 * (attempt + 1))
             continue
         if data.get("rt_cd") == "0":
             return data.get("output", {}) or {}
-        if data.get("msg_cd") == "EGW00201":  # 초당 거래건수 초과
+        msg_cd, msg1 = data.get("msg_cd", "UNKNOWN"), (data.get("msg1") or "")[:80]
+        if msg_cd == "EGW00201":  # 초당 거래건수 초과
+            last_reason, last_msg = "RATE_LIMIT_EXHAUSTED", msg1
             time.sleep(1.0 * (attempt + 1))
             continue
-        return None  # 종목 없음 등 재시도해도 소용없는 오류
+        record_fail(msg_cd, msg1)   # 종목 없음 등 재시도해도 소용없는 오류
+        return None
+    record_fail(last_reason, last_msg)
     return None
 
 
