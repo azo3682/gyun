@@ -784,9 +784,10 @@ def render_value_table(rows: list):
         table.append({
             "순위": i, "종목코드": r["code"], "종목명": r["name"], "업종": r.get("sector", ""),
             "현재가": r.get("price"), "당일등락률(%)": r.get("day_pct"),
-            "PER": r.get("per"), "PBR": r.get("pbr"),
+            "PER": r.get("per"), "PBR": r.get("pbr"), "ROE(추정,%)": r.get("roe_pct"),
             "시총(억)": r.get("mktcap_eok"), "52주고점대비(%)": r.get("drawdown_pct"),
             "공시": ("⚠ " + "; ".join(risky)) if risky else ("이상 없음" if risky == [] else "미확인"),
+            "비고": "⚠ 일회성 이익 의심" if r.get("oneoff_suspect") else "",
         })
     df = pd.DataFrame(table)
     nan_dash = lambda f: (lambda v: f(v) if pd.notna(v) else "—")
@@ -795,6 +796,7 @@ def render_value_table(rows: list):
             "현재가": nan_dash(lambda v: f"{v:,.0f}"),
             "PER": nan_dash(lambda v: f"{v:.1f}"),
             "PBR": nan_dash(lambda v: f"{v:.2f}"),
+            "ROE(추정,%)": nan_dash(lambda v: f"{v:.1f}"),
             "시총(억)": nan_dash(lambda v: f"{v:,.0f}"),
             "52주고점대비(%)": nan_dash(lambda v: f"{v:+.1f}%"),
         }),
@@ -827,6 +829,8 @@ with tab_value:
             filt.insert(2, f"전일 거래대금 {vs_crit.get('min_tr_value_eok')}억 이상")
         st.caption("적용 기준: " + ", ".join(filt) + ". PER은 KIS가 제공하는 '최근 확정 연간 EPS' 기준이라 "
                    "실적이 막 좋아지는 회사는 아직 비싸 보이고, 막 나빠지는 회사는 싸 보일 수 있습니다. "
+                   "ROE(추정)는 PBR÷PER로 역산한 값이며, 40%를 넘으면 자산 매각 같은 일회성 이익으로 PER이 낮게 나온 것일 "
+                   "가능성이 높아 '일회성 이익 의심'으로 표시하고 목록 뒤로 보냅니다. "
                    "이 목록은 관심 종목 후보 풀일 뿐 매수 신호로 검증된 게 아니며, 싼 데에는 이유(실적 악화, "
                    "지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 같이 확인하세요.")
 
@@ -860,6 +864,7 @@ with tab_value:
             st.caption("PER/PBR·시총 필드가 실제 응답에서 기대한 이름으로 오는지, 종목상태코드 해석이 맞는지 확인하는 용도입니다.")
             st.json(value_screen.get("raw_sample", {}))
             st.write("종목상태코드 분포:", value_screen.get("stat_code_counts", {}))
+            st.write("조회 실패 사유(코드별 건수·예시 메시지):", value_screen.get("fail_reasons", {}))
 
 # ---------------- 🔥 동시 등장 ----------------
 with tab_overlap:
