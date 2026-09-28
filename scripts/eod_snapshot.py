@@ -22,7 +22,7 @@ from datetime import datetime
 
 from common import (
     fetch_investor_ranking, fetch_daily_ohlcv, analyze_technicals,
-    compute_transition_signal, compute_day_return, fetch_valuation_rank,
+    compute_transition_signal, compute_day_return, fetch_valuation, is_cheap,
     check_disclosure_risk, fetch_news, KST,
 )
 
@@ -97,6 +97,7 @@ def build_snapshot():
         total = sum(1 for v in checks.values() if v is not None)
         risky = check_disclosure_risk(code)
         news = fetch_news(name)
+        valuation = fetch_valuation(code)   # {'per','pbr','eps','bps'} 또는 None
 
         deferred = False
         if transition and day_pct is not None and day_pct >= CHASE_THRESHOLD and code not in watchlist:
@@ -106,7 +107,7 @@ def build_snapshot():
 
         enriched.append({
             **row, "tech": tech, "transition": transition, "day_pct": day_pct,
-            "deferred_to_watchlist": deferred,
+            "deferred_to_watchlist": deferred, "valuation": valuation,
             "passed": passed, "total": total,
             "risky_disclosures": risky, "news": news,
         })
@@ -117,16 +118,15 @@ def build_snapshot():
 
     save_watchlist(watchlist)
 
-    # 저평가(PER 낮은 순) + 오늘 전환신호가 겹치는 종목 — 가장 근거가 탄탄한 조합
+    # 오늘 전환신호(관찰 목록으로 안 미뤄진 것)이면서 저평가 조건(0<PER<=15, PBR<=1.5)도 충족하는 종목
     value_overlap = []
-    try:
-        value_rows = fetch_valuation_rank(sort_code="23", top_n=30)
-        transition_codes = {r["stock_code"]: r for r in enriched if r["transition"] and not r["deferred_to_watchlist"]}
-        for v in value_rows:
-            if v["stock_code"] in transition_codes:
-                value_overlap.append({**v, "matched_via": "전환신호"})
-    except Exception as e:
-        print(f"저평가 순위 조회 실패(건너뜀): {e}")
+    for r in enriched:
+        if r["transition"] and not r["deferred_to_watchlist"] and is_cheap(r.get("valuation")):
+            v = r["valuation"]
+            value_overlap.append({
+                "stock_code": r["stock_code"], "stock_name": r["stock_name"],
+                "per": v["per"], "pbr": v["pbr"], "matched_via": "전환신호",
+            })
 
     snapshot = {
         "date": datetime.now(KST).strftime("%Y-%m-%d"),
