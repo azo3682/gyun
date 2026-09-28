@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-28T11:41:18+09:00",
+  "checked_at": "2026-09-28T13:44:32+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,14 +11,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 59.5
+        "RSI값": 60.2
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 208500.0,
-      "day_pct": -5.23,
+      "current_price": 208250.0,
+      "day_pct": -5.34,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -49,33 +49,33 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 53.6
+        "RSI값": 50.9
       },
       "transition": false,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 20900.0,
-      "day_pct": 2.45,
-      "reason": "순매수 상위 10에서 이탈"
+      "current_price": 20750.0,
+      "day_pct": 1.72,
+      "reason": "전환신호 소멸"
     },
     {
       "stock_code": "092870",
       "stock_name": "엑시콘",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.4
+        "RSI값": 76.4
       },
-      "transition": false,
-      "passed": 2,
+      "transition": true,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 45150.0,
-      "day_pct": 5.12,
+      "current_price": 47250.0,
+      "day_pct": 10.01,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -87,7 +87,7 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 50.7
+        "RSI값": 51.9
       },
       "transition": false,
       "passed": 1,
@@ -98,8 +98,8 @@
         "20260901 [기재정정]주요사항보고서(유상증자결정)",
         "20260901 유상증자최종발행가액확정              "
       ],
-      "current_price": 1139.0,
-      "day_pct": -4.77,
+      "current_price": 1151.0,
+      "day_pct": -3.76,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
@@ -113,14 +113,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 59.7
+        "RSI값": 63.4
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 32150.0,
-      "day_pct": 10.1
+      "current_price": 33200.0,
+      "day_pct": 13.7
     },
     {
       "stock_code": "178320",
@@ -131,14 +131,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 56.4
+        "RSI값": 57.3
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 35950.0,
-      "day_pct": 11.82
+      "current_price": 36350.0,
+      "day_pct": 13.06
     }
   ]
 }
