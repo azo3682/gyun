@@ -16,6 +16,7 @@ import yfinance as yf
 from common import KST
 
 SNAPSHOT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "eod_snapshot.json")
+VALUE_SCREEN_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "value_screen.json")
 CHASE_PCT_DISPLAY = 7  # eod_snapshot.py의 CHASE_THRESHOLD(0.07)와 맞춰 표시용
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS", "")
@@ -87,6 +88,60 @@ def build_market_briefing() -> str:
     return "\n".join(lines)
 
 
+def fmt_valuation(v) -> str:
+    """{'per','pbr'} -> ' · PER 8.0 · PBR 0.90' (없으면 빈 문자열)"""
+    if not v or v.get("per") is None or v.get("pbr") is None:
+        return ""
+    per = f"{v['per']:.1f}" if v["per"] > 0 else "적자"
+    return f" · PER {per} · PBR {v['pbr']:.2f}"
+
+
+def fmt_value_row(r: dict) -> str:
+    parts = [f"PER {r['per']:.1f}", f"PBR {r['pbr']:.2f}"]
+    if r.get("mktcap_eok") is not None:
+        parts.append(f"시총 {r['mktcap_eok']:,.0f}억")
+    if r.get("drawdown_pct") is not None:
+        parts.append(f"52주고점대비 {r['drawdown_pct']:+.0f}%")
+    line = f"· {r['name']}({r['code']}) — " + " · ".join(parts)
+    if r.get("risky_disclosures"):
+        line += f"  ⚠ 공시: {'; '.join(r['risky_disclosures'])}"
+    return line
+
+
+def build_value_screen_section() -> list:
+    """전체 시장 저평가 스캔(value_screen.py) 결과를 이메일용 텍스트로. 없거나 오래됐으면 안내만."""
+    if not os.path.exists(VALUE_SCREEN_PATH):
+        return ["(저평가 스캔 결과 파일이 아직 없습니다 — Value Screen 워크플로가 한 번도 안 돌았을 수 있습니다)"]
+    try:
+        with open(VALUE_SCREEN_PATH, "r", encoding="utf-8") as f:
+            vs = json.load(f)
+        age_days = (datetime.now(KST).date() - datetime.fromisoformat(vs["generated_at"]).date()).days
+    except Exception as e:
+        return [f"(저평가 스캔 결과를 읽지 못했습니다: {e})"]
+    if age_days > 4:
+        return [f"(저평가 스캔 결과가 {age_days}일 전 것이라 생략합니다 — 워크플로 상태를 확인하세요)"]
+
+    ms, cr = vs.get("market_stats", {}), vs.get("criteria", {})
+    lines = [f"스캔 {vs.get('scanned_ok')}종목 성공 / 필터 통과 {ms.get('eligible_count')}종목 · "
+             f"시장 PER 중앙값 {ms.get('median_per')} · PBR 1 미만 비중 {ms.get('pbr_below_1_pct')}%"]
+    if vs.get("partial"):
+        lines.append("⚠ 시간 초과로 일부 종목만 스캔된 결과입니다.")
+    filt = []
+    if cr.get("mktcap_filter_applied"):
+        filt.append(f"시총 {cr.get('min_mktcap_eok'):.0f}억↑")
+    if cr.get("liquidity_filter_applied"):
+        filt.append(f"전일 거래대금 {cr.get('min_tr_value_eok')}억↑")
+    lines.append(f"(기준: 흑자 종목, {', '.join(filt) if filt else '시총·거래대금 필터 미적용'}, 관리/경고/정지 종목 제외)")
+
+    lines.append(f"\n[저PER 우량 — PER ≤ {cr.get('low_per_max')} & PBR ≤ {cr.get('low_per_pbr_max')}, 상위 10]")
+    lines += [fmt_value_row(r) for r in vs.get("low_per", [])[:10]] or ["(해당 종목 없음)"]
+    lines.append(f"\n[저PBR 자산가치 — PBR ≤ {cr.get('low_pbr_max')} & 흑자, 상위 10]")
+    lines += [fmt_value_row(r) for r in vs.get("low_pbr", [])[:10]] or ["(해당 종목 없음)"]
+    lines.append("\n※ PER은 최근 확정된 연간 EPS 기준이고, 이 스크린은 매수 신호로 검증된 게 아니라 관심 종목 후보 풀입니다. "
+                 "싸 보이는 데는 이유(실적 악화, 지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 확인하세요.")
+    return lines
+
+
 def build_report_body() -> str:
     if not os.path.exists(SNAPSHOT_PATH):
         return "전일 마감 스냅샷 파일이 없습니다. eod_snapshot.py가 정상 실행됐는지 확인이 필요합니다."
@@ -109,7 +164,7 @@ def build_report_body() -> str:
     for c in candidates:
         checks_str = ", ".join(f"{k}:{'O' if v else 'X'}" for k, v in c["tech"].items() if k != "RSI값")
         day_pct_str = f" (당일 {c['day_pct']*100:+.2f}%)" if c.get("day_pct") is not None else ""
-        lines.append(f"\n· {c['stock_name']}({c['stock_code']}) — 전환신호 ✅{day_pct_str} (참고점수 {c['passed']}/{c['total']})")
+        lines.append(f"\n· {c['stock_name']}({c['stock_code']}) — 전환신호 ✅{day_pct_str} (참고점수 {c['passed']}/{c['total']}){fmt_valuation(c.get('valuation'))}")
         lines.append(f"  참고지표: {checks_str}")
         if c.get("risky_disclosures"):
             lines.append(f"  ⚠ 주의 공시: {'; '.join(c['risky_disclosures'])}")
@@ -137,9 +192,12 @@ def build_report_body() -> str:
 
     value_overlap = snapshot.get("value_overlap", [])
     if value_overlap:
-        lines.append("\n=== 🎯💰 전환신호 + 저PER 동시 충족 (가장 근거가 탄탄한 조합) ===")
+        lines.append("\n=== 🎯💰 전환신호 + 저평가(PER ≤ 15 & PBR ≤ 1.5) 동시 충족 ===")
         for v in value_overlap:
-            lines.append(f"· {v['stock_name']}({v['stock_code']}) — PER {v['per']:.1f}배 · PBR {v['pbr']:.1f}배")
+            lines.append(f"· {v['stock_name']}({v['stock_code']}) — PER {v['per']:.1f}배 · PBR {v['pbr']:.2f}배")
+
+    lines.append("\n=== 💰 전체 시장 저평가 스캔 (전 종목 PER/PBR 자동 조회) ===")
+    lines += build_value_screen_section()
 
     lines.append("\n\n※ 이 리포트는 투자 자문이 아니며, 참고용 스크리닝 결과입니다.")
     lines.append("※ 장중 조건 변화(제외/신규 후보)는 대시보드에서 실시간으로 확인하세요.")
