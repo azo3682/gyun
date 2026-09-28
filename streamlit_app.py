@@ -834,10 +834,21 @@ with tab_value:
                    "이 목록은 관심 종목 후보 풀일 뿐 매수 신호로 검증된 게 아니며, 싼 데에는 이유(실적 악화, "
                    "지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 같이 확인하세요.")
 
-        sub_per, sub_pbr = st.tabs([
+        sub_bal, sub_per, sub_pbr = st.tabs([
+            f"⭐ 균형형 (PER ≤ {vs_crit.get('bal_per_max', 10):g} & PBR ≤ {vs_crit.get('bal_pbr_max', 1):g} & "
+            f"ROE {vs_crit.get('bal_roe_min', 10):g}~{vs_crit.get('bal_roe_max', 25):g}%)",
             f"저PER 우량 (PER ≤ {vs_crit.get('low_per_max')} & PBR ≤ {vs_crit.get('low_per_pbr_max')})",
             f"저PBR 자산가치 (PBR ≤ {vs_crit.get('low_pbr_max')} & 흑자)",
         ])
+        with sub_bal:
+            if "balanced" not in value_screen:
+                st.info("균형형 목록은 다음 스캔부터 표시됩니다. GitHub Actions의 'Value Screen'을 한 번 실행해주세요.")
+            else:
+                st.caption("처음 볼 때 권하는 목록입니다. PER·PBR이 둘 다 낮고 ROE(추정)가 적당한 종목만 남겨서, "
+                           "한쪽만 싼 종목·수익성이 낮아서 싼 종목·일회성 이익 종목을 함께 걸러냅니다. "
+                           "순서는 PER과 PBR을 각 상한으로 나눈 값의 합이 작은 순입니다(둘을 똑같이 중요하게 봄). "
+                           "업종 특성(금융·건설·해운은 원래 PBR이 낮음)과 최근 분기 실적은 직접 확인하세요.")
+                render_value_table(value_screen.get("balanced", []))
         with sub_per:
             render_value_table(value_screen.get("low_per", []))
         with sub_pbr:
@@ -848,14 +859,15 @@ with tab_value:
         today_codes = {r["stock_code"] for r in buy_rows}
         if volume_rows:
             today_codes |= {r["stock_code"] for r in volume_rows}
+        balanced_codes = {r["code"] for r in value_screen.get("balanced", [])}
         seen, overlap = set(), []
-        for r in value_screen.get("low_per", []) + value_screen.get("low_pbr", []):
+        for r in (value_screen.get("balanced", []) + value_screen.get("low_per", []) + value_screen.get("low_pbr", [])):
             if r["code"] in today_codes and r["code"] not in seen:
                 seen.add(r["code"])
                 overlap.append(r)
         if overlap:
             for r in overlap:
-                st.success(f"{r['name']}({r['code']}) — PER {r['per']:.1f} · PBR {r['pbr']:.2f}"
+                st.success(f"{'⭐ ' if r['code'] in balanced_codes else ''}{r['name']}({r['code']}) — PER {r['per']:.1f} · PBR {r['pbr']:.2f}"
                            + (f" · 시총 {r['mktcap_eok']:,.0f}억" if r.get("mktcap_eok") is not None else ""))
         else:
             st.info("오늘 순매수·거래량 상위에 오른 종목 중 저평가 목록과 겹치는 종목이 없습니다.")
