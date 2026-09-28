@@ -148,7 +148,7 @@ def build_value_screen_section() -> list:
 
     if "balanced" in vs:
         lines.append(f"\n[⭐ 균형형 — PER ≤ {cr.get('bal_per_max'):g} & PBR ≤ {cr.get('bal_pbr_max'):g} & "
-                     f"ROE(추정) {cr.get('bal_roe_min'):g}~{cr.get('bal_roe_max'):g}%, {total_note('balanced', 10)} — 처음 볼 때 권하는 목록]")
+                     f"ROE(추정) {cr.get('bal_roe_min'):g}~{cr.get('bal_roe_max'):g}%, {total_note('balanced', 10)} — 처음 볼 때 권하는 목록, PER 3 미만은 뒤로]")
         lines += [fmt_value_row(r, caution) for r in vs["balanced"][:10]] or ["(해당 종목 없음)"]
     lines.append(f"\n[저PER 우량 — PER ≤ {cr.get('low_per_max')} & PBR ≤ {cr.get('low_per_pbr_max')}, {total_note('low_per', 5)}]")
     lines += [fmt_value_row(r, caution) for r in vs.get("low_per", [])[:5]] or ["(해당 종목 없음)"]
