@@ -30,9 +30,6 @@ BASE_URL = "https://openapi.koreainvestment.com:9443"
 RANKING_API_PATH = "/uapi/domestic-stock/v1/quotations/foreign-institution-total"
 RANKING_TR_ID = "FHPTJ04400000"
 
-VALUATION_RANK_API_PATH = "/uapi/domestic-stock/v1/ranking/market-value"
-VALUATION_RANK_TR_ID = "FHPST01790000"
-VALUATION_FISCAL_YEAR = "2025"  # 회계연도(결산 기준) — 매년 갱신 필요
 DAILY_CHART_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 DAILY_CHART_TR_ID = "FHKST03010100"
 CURRENT_PRICE_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"
@@ -112,52 +109,51 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
     return rows
 
 
-def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30, per_max: float = 50.0) -> list[dict]:
-    """전체 시장 PER/PBR 순위. API 원본 순서는 신뢰하지 않고 PER 오름차순으로 직접
-    재정렬하며, 0 < PER <= per_max 범위만 남긴다 (EPS 0에 가까운 이상치 제외)."""
-    params = {
-        "fid_trgt_cls_code": "0",
-        "fid_cond_mrkt_div_code": "J",
-        "fid_cond_scr_div_code": "20179",
-        "fid_input_iscd": "0000",
-        "fid_div_cls_code": "6",  # 보통주만 (우선주 제외)
-        "fid_input_price_1": "0",
-        "fid_input_price_2": "0",
-        "fid_vol_cnt": "0",
-        "fid_input_option_1": VALUATION_FISCAL_YEAR,
-        "fid_input_option_2": "3",  # 결산(연간)
-        "fid_rank_sort_cls_code": sort_code,
-        "fid_blng_cls_code": "0",
-        "fid_trgt_exls_cls_code": "0",
-    }
-    resp = requests.get(f"{BASE_URL}{VALUATION_RANK_API_PATH}", headers=kis_headers(VALUATION_RANK_TR_ID),
-                         params=params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("rt_cd") != "0":
-        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
-    candidates = []
-    for item in data.get("output", []):
-        name = item.get("hts_kor_isnm", "")
-        if is_fund_product(name):
-            continue
+def fetch_price_detail(stock_code: str, retries: int = 3):
+    """현재가 조회 API(inquire-price)의 output 전체를 dict로 반환. 실패하면 None.
+    PER/PBR/EPS/BPS, 시가총액, 52주 고저 등이 이 응답 하나에 들어있다.
+    초당 호출 제한(EGW00201)에 걸리면 잠깐 쉬고 재시도한다."""
+    for attempt in range(retries + 1):
         try:
-            per = float(item.get("per", "") or 0)
-            pbr = float(item.get("pbr", "") or 0)
-        except (TypeError, ValueError):
+            resp = requests.get(
+                f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
+                headers=kis_headers(CURRENT_PRICE_TR_ID),
+                params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
+                timeout=10,
+            )
+            data = resp.json()
+        except Exception:
+            time.sleep(0.5 * (attempt + 1))
             continue
-        if not (0 < per <= per_max):
+        if data.get("rt_cd") == "0":
+            return data.get("output", {}) or {}
+        if data.get("msg_cd") == "EGW00201":  # 초당 거래건수 초과
+            time.sleep(1.0 * (attempt + 1))
             continue
-        candidates.append({
-            "stock_code": item.get("mksc_shrn_iscd", ""),
-            "stock_name": name,
-            "price": item.get("stck_prpr", ""),
-            "day_pct": float(item.get("prdy_ctrt", 0) or 0),
-            "per": per,
-            "pbr": pbr,
-        })
-    candidates.sort(key=lambda r: r["per"])
-    return [{"rank": i, **c} for i, c in enumerate(candidates[:top_n], start=1)]
+        return None  # 종목 없음 등 재시도해도 소용없는 오류
+    return None
+
+
+def _to_float(value):
+    try:
+        return float(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def fetch_valuation(stock_code: str):
+    """{'per','pbr','eps','bps'} 반환 (값이 없으면 None). 조회 실패 시 None."""
+    out = fetch_price_detail(stock_code)
+    if out is None:
+        return None
+    return {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
+
+
+def is_cheap(val: dict | None, per_max: float = 15.0, pbr_max: float = 1.5) -> bool:
+    """흑자(PER>0)이면서 PER/PBR이 기준 이하인지."""
+    if not val or val.get("per") is None or val.get("pbr") is None:
+        return False
+    return 0 < val["per"] <= per_max and 0 < val["pbr"] <= pbr_max
 
 
 def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
@@ -250,14 +246,17 @@ def compute_transition_signal(df: pd.DataFrame) -> bool:
 
 
 _dart_corp_map_cache = None
+_dart_name_map_cache = None
 
 
-def load_dart_corp_code_map() -> dict:
-    global _dart_corp_map_cache
+def _load_dart_lists():
+    """DART 상장사 목록을 한 번만 내려받아 (종목코드->corp_code, 종목코드->회사명) 두 매핑을 채운다."""
+    global _dart_corp_map_cache, _dart_name_map_cache
     if _dart_corp_map_cache is not None:
-        return _dart_corp_map_cache
+        return
     if not DART_API_KEY:
-        return {}
+        _dart_corp_map_cache, _dart_name_map_cache = {}, {}
+        return
     try:
         resp = requests.get("https://opendart.fss.or.kr/api/corpCode.xml",
                              params={"crtfc_key": DART_API_KEY}, timeout=30)
@@ -265,15 +264,28 @@ def load_dart_corp_code_map() -> dict:
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
             xml_bytes = zf.read(zf.namelist()[0])
         root = ET.fromstring(xml_bytes)
-        mapping = {}
+        corp_map, name_map = {}, {}
         for node in root.findall("list"):
-            sc, cc = (node.findtext("stock_code") or "").strip(), (node.findtext("corp_code") or "").strip()
+            sc = (node.findtext("stock_code") or "").strip()
+            cc = (node.findtext("corp_code") or "").strip()
+            nm = (node.findtext("corp_name") or "").strip()
             if sc and len(sc) == 6:
-                mapping[sc] = cc
-        _dart_corp_map_cache = mapping
-        return mapping
+                corp_map[sc] = cc
+                name_map[sc] = nm
+        _dart_corp_map_cache, _dart_name_map_cache = corp_map, name_map
     except Exception:
-        return {}
+        _dart_corp_map_cache, _dart_name_map_cache = {}, {}
+
+
+def load_dart_corp_code_map() -> dict:
+    _load_dart_lists()
+    return _dart_corp_map_cache
+
+
+def load_dart_name_map() -> dict:
+    """{종목코드: 회사명} — 상장사 전체 유니버스로도 쓴다."""
+    _load_dart_lists()
+    return _dart_name_map_cache
 
 
 def check_disclosure_risk(stock_code: str) -> list[str]:
