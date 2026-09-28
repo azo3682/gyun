@@ -58,9 +58,6 @@ RANKING_TR_ID = "FHPTJ04400000"
 VOLUME_RANK_API_PATH = "/uapi/domestic-stock/v1/quotations/volume-rank"
 VOLUME_RANK_TR_ID = "FHPST01710000"
 
-VALUATION_RANK_API_PATH = "/uapi/domestic-stock/v1/ranking/market-value"
-VALUATION_RANK_TR_ID = "FHPST01790000"
-VALUATION_FISCAL_YEAR = "2025"  # 회계연도(결산 기준) — 매년 갱신 필요
 
 DAILY_CHART_API_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 DAILY_CHART_TR_ID = "FHKST03010100"
@@ -204,65 +201,6 @@ def fetch_volume_rank() -> tuple[list[dict], dict]:
         })
         if len(rows) >= TOP_N:
             break
-    return rows, raw_sample
-
-
-@st.cache_data(ttl=1800)
-def fetch_valuation_rank(sort_code: str = "23", top_n: int = 30, per_max: float = 50.0):
-    """전체 시장 PER/PBR 순위. (순위 리스트, 원본 응답 첫 항목) 반환.
-    API가 반환한 순서(오름/내림 여부 미확인)를 신뢰하지 않고, 받은 데이터를
-    직접 PER 오름차순으로 재정렬하고 상식적인 범위(0 < PER <= per_max)만 남긴다
-    — EPS가 0에 가까운 종목은 PER이 수천 배로 튀는 경우가 있어 그런 값은 제외.
-    재무비율은 하루에도 거의 안 바뀌어 캐시를 길게 둠."""
-    params = {
-        "fid_trgt_cls_code": "0",
-        "fid_cond_mrkt_div_code": "J",
-        "fid_cond_scr_div_code": "20179",
-        "fid_input_iscd": "0000",
-        "fid_div_cls_code": "6",  # 보통주만 (우선주 제외)
-        "fid_input_price_1": "0",
-        "fid_input_price_2": "0",
-        "fid_vol_cnt": "0",
-        "fid_input_option_1": VALUATION_FISCAL_YEAR,
-        "fid_input_option_2": "3",  # 결산(연간)
-        "fid_rank_sort_cls_code": sort_code,
-        "fid_blng_cls_code": "0",
-        "fid_trgt_exls_cls_code": "0",
-    }
-    resp = requests.get(f"{BASE_URL}{VALUATION_RANK_API_PATH}", headers=kis_headers(VALUATION_RANK_TR_ID),
-                         params=params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("rt_cd") != "0":
-        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
-
-    output = data.get("output", [])
-    raw_sample = output[0] if output else {}
-    candidates = []
-    for item in output:
-        name = item.get("hts_kor_isnm", "")
-        if is_fund_product(name):
-            continue
-        try:
-            per = float(item.get("per", "") or 0)
-            pbr = float(item.get("pbr", "") or 0)
-        except (TypeError, ValueError):
-            continue
-        if not (0 < per <= per_max):  # 적자·EPS 0에 가까운 이상치 제외
-            continue
-        candidates.append({
-            "stock_code": item.get("mksc_shrn_iscd", ""),
-            "stock_name": name,
-            "price": item.get("stck_prpr", ""),
-            "day_pct": float(item.get("prdy_ctrt", 0) or 0),
-            "per": per,
-            "pbr": pbr,
-        })
-
-    candidates.sort(key=lambda r: r["per"])  # 낮은 PER부터 — API 원본 순서는 신뢰 안 함
-    rows = []
-    for i, c in enumerate(candidates[:top_n], start=1):
-        rows.append({"rank": i, **c})
     return rows, raw_sample
 
 
@@ -728,7 +666,8 @@ def colored_pct_html(value, suffix: str = "%") -> str:
 
 
 def style_signed(df: pd.DataFrame, cols: list[str], plain_cols: dict | None = None):
-    """signed cols: 양수 빨강/음수 파랑 + '만주'/부호 단위 표시. plain_cols: {컬럼명: 포맷함수}로 단위만 적용."""
+    """signed cols: 양수 빨강/음수 파랑 + '만주'/부호 단위 표시. plain_cols: {컬럼명: 포맷함수}로 단위만 적용.
+    주의: Styler.format을 dict로 여러 번 부르면 앞서 지정한 컬럼 포맷이 초기화되므로 컬럼별 subset으로 지정한다."""
     def _color(v):
         try:
             v = float(v)
@@ -745,16 +684,20 @@ def style_signed(df: pd.DataFrame, cols: list[str], plain_cols: dict | None = No
             v = float(v)
         except (TypeError, ValueError):
             return str(v)
+        if v != v:  # NaN
+            return "—"
         return f"{'+' if v > 0 else ''}{v:,.2f}%"
 
     existing = [c for c in cols if c in df.columns]
     styler = df.style
     if existing:
         styler = styler.map(_color, subset=existing)
-        fmt_map = {c: (fmt_shares if c != "등락률(%)" and c != "당일등락률(%)" else _fmt_pct) for c in existing}
-        styler = styler.format(fmt_map)
-    if plain_cols:
-        styler = styler.format({c: f for c, f in plain_cols.items() if c in df.columns})
+        for c in existing:
+            fmt = _fmt_pct if c in ("등락률(%)", "당일등락률(%)") else fmt_shares
+            styler = styler.format(fmt, subset=[c])
+    for c, fmt in (plain_cols or {}).items():
+        if c in df.columns:
+            styler = styler.format(fmt, subset=[c])
     return styler
 
 
@@ -827,50 +770,96 @@ with tab_volume:
                     st.success("최근 30일 내 주의 공시 없음")
 
 # ---------------- 💰 저평가 후보 ----------------
-with tab_value:
-    st.subheader("저평가 후보 (전체 시장 PER 낮은 순)")
-    st.caption(f"회계연도 {VALUATION_FISCAL_YEAR} 결산 기준, 코스피/코스닥 보통주 중 PER이 0~50배 범위인 종목만 낮은 순으로 정렬합니다 "
-               "(EPS가 0에 가까워 PER이 수천 배로 튀는 이상치는 제외). API가 반환한 원래 순서는 신뢰할 수 없어 직접 재정렬한 것이라, "
-               "이 목록이 '전체 시장에서 진짜 가장 싼 30개'라는 보장은 아직 없습니다 — 참고용으로만 봐주세요. "
-               "PER이 낮다고 매수 신호도 아닙니다. 관리종목·투자위험 등 문제가 있어서 싼 경우도 섞여 있으니, "
-               "아래 공시 확인을 꼭 같이 보세요.")
+VALUE_SCREEN_PATH = "data/value_screen.json"
 
-    try:
-        value_rows, value_raw_sample = fetch_valuation_rank(sort_code="23", top_n=30)
-        value_error = None
-    except Exception as e:
-        value_rows, value_raw_sample, value_error = [], {}, str(e)
 
-    if value_error:
-        st.warning(f"저평가 순위 조회 실패: {value_error}")
-
-    if value_rows:
-        value_df = pd.DataFrame(value_rows).rename(columns={
-            "rank": "순위", "stock_code": "종목코드", "stock_name": "종목명",
-            "price": "현재가", "day_pct": "당일등락률(%)", "per": "PER", "pbr": "PBR",
+def render_value_table(rows: list):
+    """저평가 스캔 결과 목록을 표로 보여준다."""
+    if not rows:
+        st.info("조건에 맞는 종목이 없습니다.")
+        return
+    table = []
+    for i, r in enumerate(rows, start=1):
+        risky = r.get("risky_disclosures")
+        table.append({
+            "순위": i, "종목코드": r["code"], "종목명": r["name"], "업종": r.get("sector", ""),
+            "현재가": r.get("price"), "당일등락률(%)": r.get("day_pct"),
+            "PER": r.get("per"), "PBR": r.get("pbr"),
+            "시총(억)": r.get("mktcap_eok"), "52주고점대비(%)": r.get("drawdown_pct"),
+            "공시": ("⚠ " + "; ".join(risky)) if risky else ("이상 없음" if risky == [] else "미확인"),
         })
-        st.dataframe(style_signed(value_df, ["당일등락률(%)"]), use_container_width=True, hide_index=True)
-        with st.expander("원본 응답 확인 (필드명 검증용)"):
-            st.json(value_raw_sample)
+    df = pd.DataFrame(table)
+    nan_dash = lambda f: (lambda v: f(v) if pd.notna(v) else "—")
+    st.dataframe(
+        style_signed(df, ["당일등락률(%)"], plain_cols={
+            "현재가": nan_dash(lambda v: f"{v:,.0f}"),
+            "PER": nan_dash(lambda v: f"{v:.1f}"),
+            "PBR": nan_dash(lambda v: f"{v:.2f}"),
+            "시총(억)": nan_dash(lambda v: f"{v:,.0f}"),
+            "52주고점대비(%)": nan_dash(lambda v: f"{v:+.1f}%"),
+        }),
+        use_container_width=True, hide_index=True)
 
-        st.markdown("**🎯💰 오늘 순매수·거래량 상위와 동시에 저PER인 종목**")
-        st.caption("검증된 수급/거래량 신호와 저평가가 겹치는, 가장 근거가 탄탄한 조합입니다.")
-        candidate_codes = {r["stock_code"] for r in buy_rows}
+
+with tab_value:
+    st.subheader("저평가 후보 (전체 상장사 PER·PBR 자동 스캔)")
+
+    if not os.path.exists(VALUE_SCREEN_PATH):
+        st.info("아직 스캔 결과가 없습니다. GitHub Actions의 'Value Screen' 워크플로를 한 번 실행해주세요 "
+                "(이후에는 평일 07:20에 자동 실행됩니다).")
+    else:
+        with open(VALUE_SCREEN_PATH, "r", encoding="utf-8") as f:
+            value_screen = json.load(f)
+        vs_stats = value_screen.get("market_stats", {})
+        vs_crit = value_screen.get("criteria", {})
+
+        st.caption(
+            f"스캔 시각 {value_screen.get('generated_at')} · 조회 성공 {value_screen.get('scanned_ok', 0):,}"
+            f" / 실패 {value_screen.get('scanned_failed', 0):,} · 필터 통과 {vs_stats.get('eligible_count', 0):,}종목"
+            f" · 시장 PER 중앙값 {vs_stats.get('median_per')} · PBR 1 미만 비중 {vs_stats.get('pbr_below_1_pct')}%")
+        if value_screen.get("partial"):
+            st.warning("시간 초과로 일부 종목만 스캔된 결과입니다.")
+
+        filt = ["흑자 종목만", "관리·경고·정지 종목 제외"]
+        if vs_crit.get("mktcap_filter_applied"):
+            filt.insert(1, f"시총 {vs_crit.get('min_mktcap_eok'):.0f}억 이상")
+        if vs_crit.get("liquidity_filter_applied"):
+            filt.insert(2, f"전일 거래대금 {vs_crit.get('min_tr_value_eok')}억 이상")
+        st.caption("적용 기준: " + ", ".join(filt) + ". PER은 KIS가 제공하는 '최근 확정 연간 EPS' 기준이라 "
+                   "실적이 막 좋아지는 회사는 아직 비싸 보이고, 막 나빠지는 회사는 싸 보일 수 있습니다. "
+                   "이 목록은 관심 종목 후보 풀일 뿐 매수 신호로 검증된 게 아니며, 싼 데에는 이유(실적 악화, "
+                   "지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 같이 확인하세요.")
+
+        sub_per, sub_pbr = st.tabs([
+            f"저PER 우량 (PER ≤ {vs_crit.get('low_per_max')} & PBR ≤ {vs_crit.get('low_per_pbr_max')})",
+            f"저PBR 자산가치 (PBR ≤ {vs_crit.get('low_pbr_max')} & 흑자)",
+        ])
+        with sub_per:
+            render_value_table(value_screen.get("low_per", []))
+        with sub_pbr:
+            render_value_table(value_screen.get("low_pbr", []))
+
+        st.markdown("**🎯💰 오늘 순매수·거래량 상위와 겹치는 저평가 종목**")
+        st.caption("수급/거래량 관심과 저평가가 동시에 나타난 종목입니다.")
+        today_codes = {r["stock_code"] for r in buy_rows}
         if volume_rows:
-            candidate_codes |= {r["stock_code"] for r in volume_rows}
-        overlap = [r for r in value_rows if r["stock_code"] in candidate_codes]
+            today_codes |= {r["stock_code"] for r in volume_rows}
+        seen, overlap = set(), []
+        for r in value_screen.get("low_per", []) + value_screen.get("low_pbr", []):
+            if r["code"] in today_codes and r["code"] not in seen:
+                seen.add(r["code"])
+                overlap.append(r)
         if overlap:
             for r in overlap:
-                with st.expander(f"{r['stock_name']}({r['stock_code']}) · PER {r['per']:.1f}배 · PBR {r['pbr']:.1f}배"):
-                    orisky = check_disclosure_risk(r["stock_code"])
-                    if orisky:
-                        st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {x}" for x in orisky))
-                    elif DART_API_KEY:
-                        st.success("최근 30일 내 주의 공시 없음")
+                st.success(f"{r['name']}({r['code']}) — PER {r['per']:.1f} · PBR {r['pbr']:.2f}"
+                           + (f" · 시총 {r['mktcap_eok']:,.0f}억" if r.get("mktcap_eok") is not None else ""))
         else:
-            st.info("오늘 순매수·거래량 상위 후보 중에는 저PER 상위 30위 안에 든 종목이 없습니다.")
-    else:
-        st.info("저평가 후보 데이터를 가져오지 못했습니다.")
+            st.info("오늘 순매수·거래량 상위에 오른 종목 중 저평가 목록과 겹치는 종목이 없습니다.")
+
+        with st.expander("스캔 원본 응답·종목상태코드 분포 확인 (필드 검증용)"):
+            st.caption("PER/PBR·시총 필드가 실제 응답에서 기대한 이름으로 오는지, 종목상태코드 해석이 맞는지 확인하는 용도입니다.")
+            st.json(value_screen.get("raw_sample", {}))
+            st.write("종목상태코드 분포:", value_screen.get("stat_code_counts", {}))
 
 # ---------------- 🔥 동시 등장 ----------------
 with tab_overlap:
