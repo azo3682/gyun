@@ -96,7 +96,7 @@ def fmt_valuation(v) -> str:
     return f" · PER {per} · PBR {v['pbr']:.2f}"
 
 
-def fmt_value_row(r: dict) -> str:
+def fmt_value_row(r: dict, caution_below: float = 3.0) -> str:
     parts = [f"PER {r['per']:.1f}", f"PBR {r['pbr']:.2f}"]
     if r.get("roe_pct") is not None:
         parts.append(f"ROE(추정) {r['roe_pct']:.0f}%")
@@ -107,6 +107,8 @@ def fmt_value_row(r: dict) -> str:
     line = f"· {r['name']}({r['code']}) — " + " · ".join(parts)
     if r.get("oneoff_suspect"):
         line += "  ⚠ 일회성 이익 의심"
+    if r.get("per") is not None and 0 < r["per"] < caution_below:
+        line += f"  ⚠ PER {caution_below:g} 미만(이익 지속성 확인)"
     if r.get("risky_disclosures"):
         line += f"  ⚠ 공시: {'; '.join(r['risky_disclosures'])}"
     return line
@@ -137,14 +139,21 @@ def build_value_screen_section() -> list:
         filt.append(f"전일 거래대금 {cr.get('min_tr_value_eok')}억↑")
     lines.append(f"(기준: 흑자 종목, {', '.join(filt) if filt else '시총·거래대금 필터 미적용'}, 관리/경고/정지 종목 제외)")
 
+    totals = vs.get("list_totals", {})
+    caution = cr.get("per_caution_below", 3.0)
+
+    def total_note(key: str, shown: int) -> str:
+        """'통과 N종목 중 상위 K' 문구 (통과 수를 모르는 옛 데이터면 '상위 K'만)."""
+        return f"조건 통과 {totals[key]}종목 중 상위 {shown}" if key in totals else f"상위 {shown}"
+
     if "balanced" in vs:
         lines.append(f"\n[⭐ 균형형 — PER ≤ {cr.get('bal_per_max'):g} & PBR ≤ {cr.get('bal_pbr_max'):g} & "
-                     f"ROE(추정) {cr.get('bal_roe_min'):g}~{cr.get('bal_roe_max'):g}%, 상위 10 — 처음 볼 때 권하는 목록]")
-        lines += [fmt_value_row(r) for r in vs["balanced"][:10]] or ["(해당 종목 없음)"]
-    lines.append(f"\n[저PER 우량 — PER ≤ {cr.get('low_per_max')} & PBR ≤ {cr.get('low_per_pbr_max')}, 상위 5]")
-    lines += [fmt_value_row(r) for r in vs.get("low_per", [])[:5]] or ["(해당 종목 없음)"]
-    lines.append(f"\n[저PBR 자산가치 — PBR ≤ {cr.get('low_pbr_max')} & 흑자, 상위 5]")
-    lines += [fmt_value_row(r) for r in vs.get("low_pbr", [])[:5]] or ["(해당 종목 없음)"]
+                     f"ROE(추정) {cr.get('bal_roe_min'):g}~{cr.get('bal_roe_max'):g}%, {total_note('balanced', 10)} — 처음 볼 때 권하는 목록]")
+        lines += [fmt_value_row(r, caution) for r in vs["balanced"][:10]] or ["(해당 종목 없음)"]
+    lines.append(f"\n[저PER 우량 — PER ≤ {cr.get('low_per_max')} & PBR ≤ {cr.get('low_per_pbr_max')}, {total_note('low_per', 5)}]")
+    lines += [fmt_value_row(r, caution) for r in vs.get("low_per", [])[:5]] or ["(해당 종목 없음)"]
+    lines.append(f"\n[저PBR 자산가치 — PBR ≤ {cr.get('low_pbr_max')} & 흑자, {total_note('low_pbr', 5)}]")
+    lines += [fmt_value_row(r, caution) for r in vs.get("low_pbr", [])[:5]] or ["(해당 종목 없음)"]
     lines.append("\n※ PER은 최근 확정된 연간 EPS 기준이고, 이 스크린은 매수 신호로 검증된 게 아니라 관심 종목 후보 풀입니다. "
                  "싸 보이는 데는 이유(실적 악화, 지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 확인하세요.")
     return lines
