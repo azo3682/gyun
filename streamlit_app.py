@@ -773,11 +773,14 @@ with tab_volume:
 VALUE_SCREEN_PATH = "data/value_screen.json"
 
 
-def render_value_table(rows: list):
-    """저평가 스캔 결과 목록을 표로 보여준다."""
+def render_value_table(rows: list, total: int | None = None, caution_below: float = 3.0):
+    """저평가 스캔 결과 목록을 표로 보여준다. total: 조건을 통과한 전체 종목 수(저장된 건 상위 일부)."""
     if not rows:
         st.info("조건에 맞는 종목이 없습니다.")
         return
+    if total is not None:
+        st.caption(f"조건을 통과한 종목 {total:,}개 중 상위 {len(rows)}개를 표시합니다." if total > len(rows)
+                   else f"조건을 통과한 종목 {total:,}개를 모두 표시합니다.")
     table = []
     for i, r in enumerate(rows, start=1):
         risky = r.get("risky_disclosures")
@@ -787,7 +790,11 @@ def render_value_table(rows: list):
             "PER": r.get("per"), "PBR": r.get("pbr"), "ROE(추정,%)": r.get("roe_pct"),
             "시총(억)": r.get("mktcap_eok"), "52주고점대비(%)": r.get("drawdown_pct"),
             "공시": ("⚠ " + "; ".join(risky)) if risky else ("이상 없음" if risky == [] else "미확인"),
-            "비고": "⚠ 일회성 이익 의심" if r.get("oneoff_suspect") else "",
+            "비고": " / ".join(filter(None, [
+                "⚠ 일회성 이익 의심" if r.get("oneoff_suspect") else "",
+                f"PER {caution_below:g} 미만: 이익 지속성 확인 필요"
+                if (r.get("per") is not None and 0 < r["per"] < caution_below) else "",
+            ])),
         })
     df = pd.DataFrame(table)
     nan_dash = lambda f: (lambda v: f(v) if pd.notna(v) else "—")
@@ -831,14 +838,19 @@ with tab_value:
                    "실적이 막 좋아지는 회사는 아직 비싸 보이고, 막 나빠지는 회사는 싸 보일 수 있습니다. "
                    "ROE(추정)는 PBR÷PER로 역산한 값이며, 40%를 넘으면 자산 매각 같은 일회성 이익으로 PER이 낮게 나온 것일 "
                    "가능성이 높아 '일회성 이익 의심'으로 표시하고 목록 뒤로 보냅니다. "
+                   "PER이 3 미만인 종목도 정상 영업이익으로는 드문 수준이라 '이익 지속성 확인 필요'를 붙입니다"
+                   "(순서는 바꾸지 않음). "
                    "이 목록은 관심 종목 후보 풀일 뿐 매수 신호로 검증된 게 아니며, 싼 데에는 이유(실적 악화, "
                    "지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 같이 확인하세요.")
 
+        vs_totals = value_screen.get("list_totals", {})
+        cnt = lambda k: f" · {vs_totals[k]:,}종목" if k in vs_totals else ""
+        caution_below = vs_crit.get("per_caution_below", 3.0)
         sub_bal, sub_per, sub_pbr = st.tabs([
             f"⭐ 균형형 (PER ≤ {vs_crit.get('bal_per_max', 10):g} & PBR ≤ {vs_crit.get('bal_pbr_max', 1):g} & "
-            f"ROE {vs_crit.get('bal_roe_min', 10):g}~{vs_crit.get('bal_roe_max', 25):g}%)",
-            f"저PER 우량 (PER ≤ {vs_crit.get('low_per_max')} & PBR ≤ {vs_crit.get('low_per_pbr_max')})",
-            f"저PBR 자산가치 (PBR ≤ {vs_crit.get('low_pbr_max')} & 흑자)",
+            f"ROE {vs_crit.get('bal_roe_min', 10):g}~{vs_crit.get('bal_roe_max', 25):g}%){cnt('balanced')}",
+            f"저PER 우량 (PER ≤ {vs_crit.get('low_per_max')} & PBR ≤ {vs_crit.get('low_per_pbr_max')}){cnt('low_per')}",
+            f"저PBR 자산가치 (PBR ≤ {vs_crit.get('low_pbr_max')} & 흑자){cnt('low_pbr')}",
         ])
         with sub_bal:
             if "balanced" not in value_screen:
@@ -848,11 +860,11 @@ with tab_value:
                            "한쪽만 싼 종목·수익성이 낮아서 싼 종목·일회성 이익 종목을 함께 걸러냅니다. "
                            "순서는 PER과 PBR을 각 상한으로 나눈 값의 합이 작은 순입니다(둘을 똑같이 중요하게 봄). "
                            "업종 특성(금융·건설·해운은 원래 PBR이 낮음)과 최근 분기 실적은 직접 확인하세요.")
-                render_value_table(value_screen.get("balanced", []))
+                render_value_table(value_screen.get("balanced", []), vs_totals.get("balanced"), caution_below)
         with sub_per:
-            render_value_table(value_screen.get("low_per", []))
+            render_value_table(value_screen.get("low_per", []), vs_totals.get("low_per"), caution_below)
         with sub_pbr:
-            render_value_table(value_screen.get("low_pbr", []))
+            render_value_table(value_screen.get("low_pbr", []), vs_totals.get("low_pbr"), caution_below)
 
         st.markdown("**🎯💰 오늘 순매수·거래량 상위와 겹치는 저평가 종목**")
         st.caption("수급/거래량 관심과 저평가가 동시에 나타난 종목입니다.")
