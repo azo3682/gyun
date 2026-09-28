@@ -1,0 +1,36 @@
+name: Value Screen
+
+on:
+  schedule:
+    - cron: "20 22 * * 0-4"   # 매일 07:20 KST (= 전날 22:20 UTC), 월~금 아침에 해당 — 08:00 아침 리포트 전에 끝나도록
+  workflow_dispatch: {}        # 수동 실행 버튼도 제공
+
+permissions:
+  contents: write
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-actions.txt
+      - name: Run value screen
+        env:
+          KIS_APP_KEY: ${{ secrets.KIS_APP_KEY }}
+          KIS_APP_SECRET: ${{ secrets.KIS_APP_SECRET }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          cd scripts
+          python value_screen.py
+      - name: Commit result
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/value_screen.json
+          git commit -m "Update value screen [skip ci]" || echo "no changes"
+          git pull --rebase || true
+          git push
