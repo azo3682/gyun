@@ -10,6 +10,8 @@ scripts/value_screen.py
   돌려주므로, DART 상장사 목록 전체를 이 API로 훑어서 우리가 직접 걸러낸다.
 
 결과: data/value_screen.json (대시보드 '저평가 후보' 탭과 아침 이메일이 읽음)
+  - balanced: 균형형 (PER <= BAL_PER_MAX 이고 PBR <= BAL_PBR_MAX 이면서 ROE(추정) BAL_ROE_MIN~MAX)
+              — PER·PBR이 둘 다 낮고 수익성도 적당한 종목. 처음 볼 때 권하는 목록
   - low_per : 저PER 우량 (0 < PER <= LOW_PER_MAX 이면서 PBR <= LOW_PER_PBR_MAX)
   - low_pbr : 저PBR 자산가치 (0 < PBR <= LOW_PBR_MAX 이면서 흑자)
 
@@ -40,6 +42,11 @@ MIN_TR_VALUE_EOK = 1.0      # 전일 거래대금 최소(억원) — 거래 안 
 LOW_PER_MAX = 10.0
 LOW_PER_PBR_MAX = 1.5
 LOW_PBR_MAX = 0.6
+# 균형형: PER·PBR이 둘 다 낮고, ROE(추정)가 적당한 종목 (한쪽만 싼 종목, 수익성이 낮아 싼 종목, 일회성 이익 종목을 함께 거른다)
+BAL_PER_MAX = 10.0
+BAL_PBR_MAX = 1.0
+BAL_ROE_MIN = 10.0
+BAL_ROE_MAX = 25.0
 TOP_N = 50                  # 각 목록에 저장할 최대 종목 수
 RISK_CHECK_N = 20           # 상위 몇 개까지 DART 공시 리스크를 확인할지
 ROE_SUSPECT_PCT = 40.0      # PBR÷PER로 역산한 ROE가 이 값을 넘으면 '일회성 이익 의심' — 목록 뒤로 밀고 표시
@@ -150,6 +157,13 @@ def build_output(rows: list, meta: dict) -> dict:
          and 0 < r["pbr"] <= LOW_PBR_MAX and r["per"] > 0],
         key=lambda r: (r["oneoff_suspect"], r["pbr"]))[:TOP_N]
 
+    # 균형형: 각 상한 대비 비율의 합이 작은 순 (PER·PBR을 똑같이 중요하게 본다)
+    balanced = sorted(
+        [r for r in eligible if r["per"] is not None and r["pbr"] is not None and r["roe_pct"] is not None
+         and 0 < r["per"] <= BAL_PER_MAX and 0 < r["pbr"] <= BAL_PBR_MAX
+         and BAL_ROE_MIN <= r["roe_pct"] <= BAL_ROE_MAX],
+        key=lambda r: r["per"] / BAL_PER_MAX + r["pbr"] / BAL_PBR_MAX)[:TOP_N]
+
     positive_per = [r["per"] for r in eligible if r["per"] is not None and r["per"] > 0]
     pbr_values = [r["pbr"] for r in eligible if r["pbr"] is not None and r["pbr"] > 0]
     market_stats = {
@@ -166,10 +180,13 @@ def build_output(rows: list, meta: dict) -> dict:
             "min_mktcap_eok": MIN_MKTCAP_EOK if use_mktcap else None,
             "min_tr_value_eok": MIN_TR_VALUE_EOK if use_liquidity else None,
             "low_per_max": LOW_PER_MAX, "low_per_pbr_max": LOW_PER_PBR_MAX, "low_pbr_max": LOW_PBR_MAX,
+            "bal_per_max": BAL_PER_MAX, "bal_pbr_max": BAL_PBR_MAX,
+            "bal_roe_min": BAL_ROE_MIN, "bal_roe_max": BAL_ROE_MAX,
             "mktcap_filter_applied": use_mktcap, "liquidity_filter_applied": use_liquidity,
         },
         "market_stats": market_stats,
         "stat_code_counts": stat_counts,
+        "balanced": balanced,
         "low_per": low_per,
         "low_pbr": low_pbr,
     }
@@ -248,9 +265,15 @@ def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str 
     result = build_output(rows, meta)
 
     # 상위 후보에만 DART 공시 리스크를 붙인다 (전 종목에 하면 호출이 너무 많음)
-    for key in ("low_per", "low_pbr"):
-        for i, r in enumerate(result[key]):
-            r["risky_disclosures"] = check_disclosure_risk(r["code"]) if i < RISK_CHECK_N else None
+    lists = ("balanced", "low_per", "low_pbr")
+    checked = {}
+    for key in lists:
+        for r in result[key][:RISK_CHECK_N]:
+            if r["code"] not in checked:
+                checked[r["code"]] = check_disclosure_risk(r["code"])
+    for key in lists:
+        for r in result[key]:
+            r["risky_disclosures"] = checked.get(r["code"])   # 조회하지 않은 종목은 None(미확인)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
@@ -265,7 +288,7 @@ if __name__ == "__main__":
     print(f"조회 성공 {result['scanned_ok']} / 실패 {result['scanned_failed']} "
           f"(소요 {result['elapsed_sec']}초, 중단여부 {result['partial']})")
     print(f"필터 통과 {ms['eligible_count']}종목 · 시장 PER 중앙값 {ms['median_per']} · PBR<1 비중 {ms['pbr_below_1_pct']}%")
-    print(f"저PER 우량 {len(result['low_per'])}개 / 저PBR 자산가치 {len(result['low_pbr'])}개")
+    print(f"균형형 {len(result['balanced'])}개 / 저PER 우량 {len(result['low_per'])}개 / 저PBR 자산가치 {len(result['low_pbr'])}개")
     print(f"적용된 필터: {result['criteria']}")
     print(f"종목상태코드 분포: {result['stat_code_counts']}")
     print(f"실패 사유: {result['fail_reasons']}")
