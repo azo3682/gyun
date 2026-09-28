@@ -11,7 +11,8 @@ scripts/value_screen.py
 
 결과: data/value_screen.json (대시보드 '저평가 후보' 탭과 아침 이메일이 읽음)
   - balanced: 균형형 (PER <= BAL_PER_MAX 이고 PBR <= BAL_PBR_MAX 이면서 ROE(추정) BAL_ROE_MIN~MAX)
-              — PER·PBR이 둘 다 낮고 수익성도 적당한 종목. 처음 볼 때 권하는 목록
+              — PER·PBR이 둘 다 낮고 수익성도 적당한 종목. 처음 볼 때 권하는 목록.
+              PER이 PER_CAUTION_BELOW 미만인 종목은 목록 뒤로 보낸다(표시는 유지)
   - low_per : 저PER 우량 (0 < PER <= LOW_PER_MAX 이면서 PBR <= LOW_PER_PBR_MAX)
   - low_pbr : 저PBR 자산가치 (0 < PBR <= LOW_PBR_MAX 이면서 흑자)
 
@@ -47,7 +48,8 @@ BAL_PER_MAX = 10.0
 BAL_PBR_MAX = 1.0
 BAL_ROE_MIN = 10.0
 BAL_ROE_MAX = 25.0
-TOP_N = 50                  # 각 목록에 저장할 최대 종목 수
+TOP_N = 50                  # 저PER·저PBR 목록에 저장할 최대 종목 수
+BAL_TOP_N = 100             # 균형형은 통과 종목을 사실상 전부 저장 (표 머리글을 눌러 직접 정렬해 볼 수 있게)
 RISK_CHECK_N = 20           # 상위 몇 개까지 DART 공시 리스크를 확인할지
 PER_CAUTION_BELOW = 3.0     # PER이 이 값 미만이면 '이익 지속성 확인 필요' 표시 (정상 영업이익으로는 드문 수준)
 ROE_SUSPECT_PCT = 40.0      # PBR÷PER로 역산한 ROE가 이 값을 넘으면 '일회성 이익 의심' — 목록 뒤로 밀고 표시
@@ -159,14 +161,16 @@ def build_output(rows: list, meta: dict) -> dict:
         key=lambda r: (r["oneoff_suspect"], r["pbr"]))
 
     # 균형형: 각 상한 대비 비율의 합이 작은 순 (PER·PBR을 똑같이 중요하게 본다)
+    # PER이 PER_CAUTION_BELOW 미만인 종목은 이익 지속성이 가장 의심스러운 극단값이라 목록 뒤로 보낸다
+    # (점수가 가장 낮은, 즉 가장 극단적인 종목이 맨 위에 오는 것을 막기 위함. 표시는 그대로 남는다)
     balanced_all = sorted(
         [r for r in eligible if r["per"] is not None and r["pbr"] is not None and r["roe_pct"] is not None
          and 0 < r["per"] <= BAL_PER_MAX and 0 < r["pbr"] <= BAL_PBR_MAX
          and BAL_ROE_MIN <= r["roe_pct"] <= BAL_ROE_MAX],
-        key=lambda r: r["per"] / BAL_PER_MAX + r["pbr"] / BAL_PBR_MAX)
-    # 화면·이메일에는 상위 TOP_N개만 저장하지만, 실제로 몇 개가 조건을 통과했는지는 따로 기록한다
+        key=lambda r: (r["per"] < PER_CAUTION_BELOW, r["per"] / BAL_PER_MAX + r["pbr"] / BAL_PBR_MAX))
+    # 목록별 상위 N개만 저장하지만, 실제로 몇 개가 조건을 통과했는지는 따로 기록한다
     list_totals = {"balanced": len(balanced_all), "low_per": len(low_per_all), "low_pbr": len(low_pbr_all)}
-    balanced, low_per, low_pbr = balanced_all[:TOP_N], low_per_all[:TOP_N], low_pbr_all[:TOP_N]
+    balanced, low_per, low_pbr = balanced_all[:BAL_TOP_N], low_per_all[:TOP_N], low_pbr_all[:TOP_N]
 
     positive_per = [r["per"] for r in eligible if r["per"] is not None and r["per"] > 0]
     pbr_values = [r["pbr"] for r in eligible if r["pbr"] is not None and r["pbr"] > 0]
@@ -186,7 +190,7 @@ def build_output(rows: list, meta: dict) -> dict:
             "low_per_max": LOW_PER_MAX, "low_per_pbr_max": LOW_PER_PBR_MAX, "low_pbr_max": LOW_PBR_MAX,
             "bal_per_max": BAL_PER_MAX, "bal_pbr_max": BAL_PBR_MAX,
             "bal_roe_min": BAL_ROE_MIN, "bal_roe_max": BAL_ROE_MAX,
-            "per_caution_below": PER_CAUTION_BELOW, "top_n": TOP_N,
+            "per_caution_below": PER_CAUTION_BELOW, "top_n": TOP_N, "bal_top_n": BAL_TOP_N,
             "mktcap_filter_applied": use_mktcap, "liquidity_filter_applied": use_liquidity,
         },
         "market_stats": market_stats,
@@ -295,7 +299,7 @@ if __name__ == "__main__":
           f"(소요 {result['elapsed_sec']}초, 중단여부 {result['partial']})")
     print(f"필터 통과 {ms['eligible_count']}종목 · 시장 PER 중앙값 {ms['median_per']} · PBR<1 비중 {ms['pbr_below_1_pct']}%")
     lt = result["list_totals"]
-    print(f"조건 통과 종목 수 — 균형형 {lt['balanced']} / 저PER 우량 {lt['low_per']} / 저PBR 자산가치 {lt['low_pbr']} (각 목록은 상위 {TOP_N}개까지만 저장)")
+    print(f"조건 통과 종목 수 — 균형형 {lt['balanced']} / 저PER 우량 {lt['low_per']} / 저PBR 자산가치 {lt['low_pbr']} (저장은 균형형 상위 {BAL_TOP_N}개, 나머지 목록은 상위 {TOP_N}개까지)")
     print(f"적용된 필터: {result['criteria']}")
     print(f"종목상태코드 분포: {result['stat_code_counts']}")
     print(f"실패 사유: {result['fail_reasons']}")
