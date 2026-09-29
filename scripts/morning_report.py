@@ -173,7 +173,8 @@ def build_report_body() -> str:
     lines.append(build_market_briefing())
     lines.append("")
 
-    lines.append("=== 오늘의 스윙 후보 (전환신호: VCP 눌림 후 거래량급증 — 백테스트로 검증된 유일한 신호) ===")
+    lines.append("=== 오늘의 스윙 후보 (전환신호: VCP 눌림 후 거래량급증+상승 — 2026-09-29 방향 조건 추가로 "
+                 "9/21 백테스트 재검증 전, 참고용) ===")
     candidates = [r for r in snapshot.get("buy_top10", [])
                   if r.get("transition") is True and not r.get("deferred_to_watchlist")]
     if not candidates:
