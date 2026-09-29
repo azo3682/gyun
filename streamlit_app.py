@@ -341,6 +341,46 @@ def fetch_valuation(stock_code: str):
         return None, None, None, None, {}
 
 
+@st.cache_data(ttl=6 * 3600)
+def fetch_financial_ratio(stock_code: str, period: str = "0"):
+    """KIS 국내주식 재무비율(v1_국내주식-080, 실전 전용) — 최근 결산 기준 정식 재무비율 dict, 실패하면 None.
+    ROE(roe_val)·부채비율(lblt_rate)·매출/영업이익/순이익 증가율. 결산 데이터라 6시간 캐시.
+    output은 결산년월별 배열이라 이번 달 이하 중 가장 최근 결산을 고른다. 'raw'는 필드명 검증용.
+    영업이익 증가율(bsop_prfi_inrt)은 적자지속/흑자전환/적자전환이면 0으로 오므로 0을 '성장 없음'으로 보면 안 된다."""
+    try:
+        resp = requests.get(
+            f"{BASE_URL}/uapi/domestic-stock/v1/finance/financial-ratio",
+            headers=kis_headers("FHKST66430300"),
+            params={"FID_DIV_CLS_CODE": period, "fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("rt_cd") != "0":
+            return None
+        rows = data.get("output") or []
+        if isinstance(rows, dict):
+            rows = [rows]
+        rows = [r for r in rows if isinstance(r, dict) and r.get("stac_yymm")]
+        if not rows:
+            return None
+        cutoff = datetime.now(KST).strftime("%Y%m")
+        latest = max([r for r in rows if r["stac_yymm"] <= cutoff] or rows, key=lambda r: r["stac_yymm"])
+
+        def f(key):
+            v = latest.get(key)
+            try:
+                return float(v) if v not in (None, "") else None
+            except (TypeError, ValueError):
+                return None
+
+        return {"stac_yymm": latest.get("stac_yymm"), "roe": f("roe_val"), "debt_ratio": f("lblt_rate"),
+                "sales_growth": f("grs"), "op_growth": f("bsop_prfi_inrt"), "ni_growth": f("ntin_inrt"),
+                "eps": f("eps"), "bps": f("bps"), "rsrv_rate": f("rsrv_rate"), "raw": latest}
+    except Exception:
+        return None
+
+
 def compute_rsi(closes: pd.Series, period: int = 14):
     series = compute_rsi_series(closes, period)
     return float(series.iloc[-1]) if not series.empty and pd.notna(series.iloc[-1]) else None
@@ -702,6 +742,179 @@ def pbr_label(pbr) -> str:
     return "🔴 매우 나쁨(고평가)"
 
 
+# ============================================================
+# 종합점수 (ROE · 부채비율 · 성장률 · PER/PBR)
+#   - 각 항목을 0~100점 구간 점수로 바꾼 뒤 가중합. 값이 없는 항목은 빼고 나머지 가중치로 재정규화.
+#   - 절대적인 '좋은 종목' 판정이 아니라 구간 분류일 뿐이며, 업종 특성(금융업 부채비율 등)은 감안해야 한다.
+#   - scripts/common.py의 '종합점수' 블록과 같은 코드다 (이 파일은 st.secrets를 쓰므로 common을 import하지 않고 복사해 둠).
+#     한쪽을 고치면 다른 쪽도 같이 고칠 것.
+# ============================================================
+SCORE_WEIGHTS = {
+    "roe": 0.30,            # 수익성
+    "debt": 0.20,           # 안정성
+    "sales_growth": 0.10,   # 성장성
+    "op_growth": 0.10,
+    "per": 0.15,            # 밸류에이션
+    "pbr": 0.15,
+}
+SCORE_PART_NAMES = {"roe": "ROE", "debt": "부채비율", "sales_growth": "매출증가율",
+                    "op_growth": "영업이익증가율", "per": "PER", "pbr": "PBR"}
+
+
+def _band(x, bands):
+    """bands: [(상한, 점수), ...] 오름차순. x <= 상한인 첫 구간의 점수. 상한 None은 '그 이상 전부'."""
+    for limit, pts in bands:
+        if limit is None or x <= limit:
+            return pts
+    return bands[-1][1]
+
+
+def score_roe(roe):
+    if roe is None:
+        return None
+    if roe > 40:
+        return 50            # 일회성 이익 가능성 — 만점을 주지 않는다
+    return _band(roe, [(0, 0), (5, 20), (10, 50), (15, 75), (25, 100), (40, 85)])
+
+
+def score_debt(debt):        # 낮을수록 좋음
+    if debt is None:
+        return None
+    return _band(debt, [(50, 100), (100, 80), (200, 50), (300, 25), (None, 0)])
+
+
+def score_sales_growth(g):
+    if g is None:
+        return None
+    return _band(g, [(-10, 0), (0, 30), (5, 50), (15, 75), (None, 100)])
+
+
+def score_op_growth(g):
+    # 0은 '적자지속/흑자전환/적자전환' 표시와 구분이 안 되므로 점수에서 제외(None)
+    if g is None or g == 0:
+        return None
+    return _band(g, [(-20, 0), (0, 30), (10, 55), (30, 80), (None, 100)])
+
+
+def score_per(per):
+    if per is None:
+        return None
+    if per <= 0:
+        return 0
+    if per <= 3:
+        return 50            # 수치 왜곡 가능성 (per_label과 같은 기준)
+    return _band(per, [(8, 100), (15, 80), (30, 50), (60, 20), (None, 0)])
+
+
+def score_pbr(pbr):
+    if pbr is None or pbr <= 0:
+        return None
+    return _band(pbr, [(0.6, 100), (1.0, 85), (1.5, 65), (3.0, 30), (None, 0)])
+
+
+def composite_score(per, pbr, fin, weights=None) -> dict:
+    """반환: {"score": 0~100 또는 None, "parts": {항목: 점수|None}, "coverage": 반영된 가중치 비율(0~1), "notes": [...]}
+    fin은 fetch_financial_ratio 결과(dict) 또는 None."""
+    weights = weights or SCORE_WEIGHTS
+    fin = fin or {}
+    parts = {
+        "roe": score_roe(fin.get("roe")),
+        "debt": score_debt(fin.get("debt_ratio")),
+        "sales_growth": score_sales_growth(fin.get("sales_growth")),
+        "op_growth": score_op_growth(fin.get("op_growth")),
+        "per": score_per(per),
+        "pbr": score_pbr(pbr),
+    }
+    used = {k: v for k, v in parts.items() if v is not None}
+    total_w = sum(weights.values())
+    used_w = sum(weights[k] for k in used)
+    notes = []
+    if fin.get("op_growth") == 0:
+        notes.append("영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외")
+    if fin.get("roe") is not None and fin["roe"] > 40:
+        notes.append("ROE 40% 초과: 일회성 이익 의심")
+    if fin.get("debt_ratio") is not None and fin["debt_ratio"] > 500:
+        notes.append("부채비율 500% 초과: 금융업이면 구조적으로 높을 수 있음")
+    coverage = round(used_w / total_w, 2) if total_w else 0.0
+    if used_w and coverage < 0.8:
+        notes.append(f"일부 항목 미반영(가중치 {coverage:.0%}만 반영): 점수 신뢰도 낮음")
+    score = round(sum(weights[k] * v for k, v in used.items()) / used_w, 1) if used_w else None
+    return {"score": score, "parts": parts, "coverage": coverage, "notes": notes}
+
+
+def score_label(score) -> str:
+    if score is None:
+        return "—"
+    if score >= 75:
+        return "🟢 우수"
+    if score >= 55:
+        return "⚪ 보통"
+    return "🔴 미흡"
+
+
+# PER/PBR 라벨(per_label/pbr_label)과 같은 방식의 직관 라벨
+def roe_label(roe) -> str:
+    if roe is None:
+        return ""
+    if roe <= 0:
+        return "🔴 나쁨(적자)"
+    if roe < 5:
+        return "🔴 나쁨(낮음)"
+    if roe < 10:
+        return "⚪ 보통"
+    if roe <= 25:
+        return "🟢 좋음"
+    if roe <= 40:
+        return "🟢 좋음(높음)"
+    return "🟡 주의(일회성 이익 의심)"
+
+
+def debt_label(debt) -> str:
+    if debt is None:
+        return ""
+    if debt <= 100:
+        return "🟢 좋음(안정)"
+    if debt <= 200:
+        return "⚪ 보통"
+    if debt <= 300:
+        return "🔴 나쁨(부담)"
+    return "🔴 매우 나쁨(과다)"
+
+
+def growth_label(g) -> str:
+    if g is None:
+        return ""
+    if g < 0:
+        return "🔴 역성장"
+    if g < 5:
+        return "⚪ 정체"
+    if g < 15:
+        return "🟢 성장"
+    return "🟢 고성장"
+
+
+
+def fmt_fin_line(fin, score_info=None) -> str:
+    """재무 한 줄 요약 (ROE·부채비율·성장률·종합점수). fin이 None이면 빈 문자열."""
+    if not fin:
+        return ""
+    parts = []
+    if fin.get("roe") is not None:
+        parts.append(f"ROE {fin['roe']:.1f}% {roe_label(fin['roe'])}".strip())
+    if fin.get("debt_ratio") is not None:
+        parts.append(f"부채비율 {fin['debt_ratio']:.0f}% {debt_label(fin['debt_ratio'])}".strip())
+    if fin.get("sales_growth") is not None:
+        parts.append(f"매출증가 {fin['sales_growth']:+.1f}% {growth_label(fin['sales_growth'])}".strip())
+    op = fin.get("op_growth")
+    if op is not None:
+        parts.append("영업이익 증가율 0(적자 관련 상태일 수 있음)" if op == 0
+                     else f"영업이익증가 {op:+.1f}% {growth_label(op)}".strip())
+    if score_info and score_info.get("score") is not None:
+        parts.append(f"종합점수 {score_info['score']:.0f} {score_label(score_info['score'])}")
+    yymm = f" (결산 {fin['stac_yymm']})" if fin.get("stac_yymm") else ""
+    return " · ".join(parts) + yymm
+
+
 def fmt_shares(value) -> str:
     """1만주 이상이면 '만주' 단위로, 부호 포함 표시."""
     try:
@@ -862,12 +1075,18 @@ def render_value_table(rows: list, total: int | None = None, caution_below: floa
         table.append({
             "순위": i, "종목코드": r["code"], "종목명": r["name"], "업종": r.get("sector", ""),
             "현재가": r.get("price"), "당일등락률(%)": r.get("day_pct"),
+            "종합점수": r.get("score"), "등급": score_label(r.get("score")),
             "PER": r.get("per"), "PER평가": per_label(r.get("per")),
-            "PBR": r.get("pbr"), "PBR평가": pbr_label(r.get("pbr")), "ROE(추정,%)": r.get("roe_pct"),
+            "PBR": r.get("pbr"), "PBR평가": pbr_label(r.get("pbr")),
+            "ROE(%)": r.get("roe_used", r.get("roe_pct")), "ROE평가": roe_label(r.get("roe_used", r.get("roe_pct"))),
+            "부채비율(%)": r.get("debt_ratio"), "매출증가율(%)": r.get("sales_growth"),
+            "영업이익증가율(%)": r.get("op_growth"),
             "시총(억)": r.get("mktcap_eok"), "52주고점대비(%)": r.get("drawdown_pct"),
             "공시": ("⚠ " + "; ".join(risky)) if risky else ("이상 없음" if risky == [] else "미확인"),
             "비고": " / ".join(filter(None, [
+                "ROE는 PBR÷PER 역산 추정(재무비율 조회 실패)" if r.get("roe_source") == "추정" else "",
                 "⚠ 일회성 이익 의심" if r.get("oneoff_suspect") else "",
+                *[f"⚠ {n}" for n in (r.get("score_notes") or [])],
                 f"PER {caution_below:g} 미만: 이익 지속성 확인 필요"
                 if (r.get("per") is not None and 0 < r["per"] < caution_below) else "",
             ])),
@@ -879,7 +1098,11 @@ def render_value_table(rows: list, total: int | None = None, caution_below: floa
             "현재가": nan_dash(lambda v: f"{v:,.0f}"),
             "PER": nan_dash(lambda v: f"{v:.1f}"),
             "PBR": nan_dash(lambda v: f"{v:.2f}"),
-            "ROE(추정,%)": nan_dash(lambda v: f"{v:.1f}"),
+            "종합점수": nan_dash(lambda v: f"{v:.0f}"),
+            "ROE(%)": nan_dash(lambda v: f"{v:.1f}"),
+            "부채비율(%)": nan_dash(lambda v: f"{v:.0f}"),
+            "매출증가율(%)": nan_dash(lambda v: f"{v:+.1f}"),
+            "영업이익증가율(%)": nan_dash(lambda v: f"{v:+.1f}"),
             "시총(억)": nan_dash(lambda v: f"{v:,.0f}"),
             "52주고점대비(%)": nan_dash(lambda v: f"{v:+.1f}%"),
         }),
@@ -912,8 +1135,11 @@ with tab_value:
             filt.insert(2, f"전일 거래대금 {vs_crit.get('min_tr_value_eok')}억 이상")
         st.caption("적용 기준: " + ", ".join(filt) + ". PER은 KIS가 제공하는 '최근 확정 연간 EPS' 기준이라 "
                    "실적이 막 좋아지는 회사는 아직 비싸 보이고, 막 나빠지는 회사는 싸 보일 수 있습니다. "
-                   "ROE(추정)는 PBR÷PER로 역산한 값이며, 40%를 넘으면 자산 매각 같은 일회성 이익으로 PER이 낮게 나온 것일 "
-                   "가능성이 높아 '일회성 이익 의심'으로 표시하고 목록 뒤로 보냅니다. "
+                   "ROE·부채비율·매출/영업이익 증가율은 KIS 재무비율 API의 최근 결산 값입니다(PER/PBR 1차 필터를 통과한 후보에만 조회하며, "
+                   "조회에 실패한 종목은 ROE만 PBR÷PER 역산 추정으로 대체하고 종합점수는 비웁니다). "
+                   "종합점수는 ROE·부채비율·성장률·PER/PBR을 0~100점 구간으로 바꿔 가중합산한 참고용 점수라 금융업 부채비율 같은 업종 특성은 반영되지 않습니다. "
+                   "영업이익 증가율 0은 적자지속·흑자전환·적자전환일 수 있어 점수에서 제외합니다. "
+                   "ROE가 40%를 넘으면 자산 매각 같은 일회성 이익일 가능성이 높아 '일회성 이익 의심'으로 표시하고 목록 뒤로 보냅니다. "
                    "PER이 3 미만인 종목도 정상 영업이익으로는 드문 수준이라 '이익 지속성 확인 필요'를 붙이고, "
                    "균형형에서는 이런 종목을 목록 뒤로 보냅니다(다른 두 목록은 순서 그대로). "
                    "이 목록은 관심 종목 후보 풀일 뿐 매수 신호로 검증된 게 아니며, 싼 데에는 이유(실적 악화, "
@@ -932,10 +1158,10 @@ with tab_value:
             if "balanced" not in value_screen:
                 st.info("균형형 목록은 다음 스캔부터 표시됩니다. GitHub Actions의 'Value Screen'을 한 번 실행해주세요.")
             else:
-                st.caption("처음 볼 때 권하는 목록입니다. PER·PBR이 둘 다 낮고 ROE(추정)가 적당한 종목만 남겨서, "
+                st.caption("처음 볼 때 권하는 목록입니다. PER·PBR이 둘 다 낮고 ROE가 적당한 종목만 남겨서, "
                            "한쪽만 싼 종목·수익성이 낮아서 싼 종목·일회성 이익 종목을 함께 걸러냅니다. "
-                           "순서는 PER과 PBR을 각 상한으로 나눈 값의 합이 작은 순이고(둘을 똑같이 중요하게 봄), "
-                           "PER 3 미만은 맨 뒤로 보냅니다. 표 머리글을 누르면 PBR·시총·ROE 등 원하는 기준으로 "
+                           "순서는 종합점수가 높은 순이고(동점이면 PER·PBR 상한 대비 합이 작은 순), "
+                           "PER 3 미만은 맨 뒤로 보냅니다. 표 머리글을 누르면 종합점수·PBR·시총·ROE 등 원하는 기준으로 "
                            "다시 정렬할 수 있습니다. 업종 특성(금융·건설·해운은 원래 PBR이 낮음)과 "
                            "최근 분기 실적은 직접 확인하세요.")
                 render_value_table(value_screen.get("balanced", []), vs_totals.get("balanced"), caution_below)
@@ -967,6 +1193,10 @@ with tab_value:
             st.json(value_screen.get("raw_sample", {}))
             st.write("종목상태코드 분포:", value_screen.get("stat_code_counts", {}))
             st.write("조회 실패 사유(코드별 건수·예시 메시지):", value_screen.get("fail_reasons", {}))
+        st.write(f"재무비율 조회 — 후보 풀 {value_screen.get('fin_pool_size', '—')} / 성공 {value_screen.get('fin_ok', '—')}"
+                 f" / 실패 {value_screen.get('fin_failed', '—')}" + (" (시간 초과로 일부 생략)" if value_screen.get("fin_partial") else ""))
+        st.caption("재무비율 API 원본 응답 한 건 — roe_val·lblt_rate·grs·bsop_prfi_inrt 필드가 기대한 값으로 오는지 확인하는 용도입니다.")
+        st.json(value_screen.get("fin_raw_sample", {}))
 
 # ---------------- 🔥 동시 등장 ----------------
 with tab_overlap:
@@ -1075,6 +1305,8 @@ with tab_screen:
         raw_transition = compute_transition_signal(df)
         price, pct, mflags = fetch_current_price(code)
         per, pbr, _, _, _ = fetch_valuation(code)
+        fin = fetch_financial_ratio(code)
+        fscore = composite_score(per, pbr, fin) if fin else None
         trend_label, _, _ = classify_trend_state(df)  # 이미 받아온 df 재사용 (중복 조회 방지)
         # 관리종목·투자위험 등 거래소 지정 상태면 '거래량급증'이 매수세가 아니라 투매일 수 있어
         # 검증된 신호로 인정하지 않는다 (백테스트 표본에 이런 상태의 종목은 없었다)
@@ -1085,7 +1317,7 @@ with tab_screen:
         scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed,
                              "_total": total, "_transition": transition, "_mflags": mflags,
                              "_price": price, "_pct": pct, "_per": per, "_pbr": pbr,
-                             "_trend": trend_label})
+                             "_trend": trend_label, "_fin": fin, "_score": fscore})
 
     # 전환신호 있는 종목을 최상단으로, 그다음은 참고점수순
     scored_rows.sort(key=lambda r: (not r["_transition"], -r["_passed"], r["rank"]))
@@ -1115,6 +1347,9 @@ with tab_screen:
             "현재가": r["_price"], "당일등락률(%)": r["_pct"], "상태": price_status_badge(r["_pct"]),
             "PER": r["_per"], "PER평가": per_label(r["_per"]),
             "PBR": r["_pbr"], "PBR평가": pbr_label(r["_pbr"]),
+            "ROE(%)": (r["_fin"] or {}).get("roe"), "부채비율(%)": (r["_fin"] or {}).get("debt_ratio"),
+            "매출증가율(%)": (r["_fin"] or {}).get("sales_growth"), "영업이익증가율(%)": (r["_fin"] or {}).get("op_growth"),
+            "종합점수": (r["_score"] or {}).get("score"), "등급": score_label((r["_score"] or {}).get("score")),
             "국면": r["_trend"], "참고지표": f"{r['_passed']}/{r['_total']}",
         })
     summary_df = pd.DataFrame(table_rows)
@@ -1124,6 +1359,11 @@ with tab_screen:
             "현재가": nan_dash(lambda v: f"{v:,.0f}"),
             "PER": nan_dash(lambda v: f"{v:.2f}"),
             "PBR": nan_dash(lambda v: f"{v:.2f}"),
+            "ROE(%)": nan_dash(lambda v: f"{v:.1f}"),
+            "부채비율(%)": nan_dash(lambda v: f"{v:.0f}"),
+            "매출증가율(%)": nan_dash(lambda v: f"{v:+.1f}"),
+            "영업이익증가율(%)": nan_dash(lambda v: f"{v:+.1f}"),
+            "종합점수": nan_dash(lambda v: f"{v:.0f}"),
         }),
         use_container_width=True, hide_index=True)
 
@@ -1147,6 +1387,13 @@ with tab_screen:
                 st.caption("전환신호 없음 (조건 미충족)")
 
             st.caption(f"국면 판단: **{row['_trend']}**")
+            fin_line = fmt_fin_line(row["_fin"], row["_score"])
+            if fin_line:
+                st.markdown(f"**재무**: {fin_line}")
+                for n in (row["_score"] or {}).get("notes", []):
+                    st.caption(f"⚠ {n}")
+            else:
+                st.caption("재무비율을 가져오지 못했습니다 (ETF·신규상장 등은 제공되지 않을 수 있습니다).")
 
             rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
             st.markdown(f"**참고지표: {passed}/{total} 통과**{rsi_note} — 아래는 효과가 "
@@ -1236,6 +1483,7 @@ with tab_lookup:
             lookup_price, lookup_pct, lookup_flags = fetch_current_price(lookup_code)
             lookup_risky = check_disclosure_risk(lookup_code)
             lookup_per, lookup_pbr, lookup_eps, lookup_bps, lookup_val_raw = fetch_valuation(lookup_code)
+            lookup_fin = fetch_financial_ratio(lookup_code)
 
         if lookup_price is not None:
             st.markdown(f"### {lookup_price:,.0f}원 &nbsp; {colored_pct_html(lookup_pct)}", unsafe_allow_html=True)
@@ -1262,6 +1510,34 @@ with tab_lookup:
             st.caption("PER/PBR 조회 실패 (적자 기업은 PER이 제공되지 않을 수 있습니다).")
         with st.expander("원본 응답 확인 (필드명 검증용)"):
             st.json(lookup_val_raw)
+
+        st.markdown("**재무 지표 (KIS 재무비율 · 최근 결산)**")
+        if lookup_fin:
+            lookup_score = composite_score(lookup_per, lookup_pbr, lookup_fin)
+            fin_cols = st.columns(5)
+            fin_cols[0].metric("ROE", f"{lookup_fin['roe']:.1f}%" if lookup_fin["roe"] is not None else "N/A",
+                                delta=(roe_label(lookup_fin["roe"]) or None), delta_color="off")
+            fin_cols[1].metric("부채비율", f"{lookup_fin['debt_ratio']:.0f}%" if lookup_fin["debt_ratio"] is not None else "N/A",
+                                delta=(debt_label(lookup_fin["debt_ratio"]) or None), delta_color="off")
+            fin_cols[2].metric("매출 증가율", f"{lookup_fin['sales_growth']:+.1f}%" if lookup_fin["sales_growth"] is not None else "N/A",
+                                delta=(growth_label(lookup_fin["sales_growth"]) or None), delta_color="off")
+            op_g = lookup_fin["op_growth"]
+            fin_cols[3].metric("영업이익 증가율",
+                                "0 (적자 관련?)" if op_g == 0 else (f"{op_g:+.1f}%" if op_g is not None else "N/A"),
+                                delta=(growth_label(op_g) if op_g not in (None, 0) else None), delta_color="off")
+            fin_cols[4].metric("종합점수", f"{lookup_score['score']:.0f}" if lookup_score["score"] is not None else "N/A",
+                                delta=(score_label(lookup_score["score"]) if lookup_score["score"] is not None else None),
+                                delta_color="off")
+            st.caption(f"결산 {lookup_fin['stac_yymm']} 기준. 종합점수는 ROE·부채비율·성장률·PER/PBR을 구간 점수로 바꿔 가중합산한 "
+                       "참고용 점수입니다(금융업 부채비율 같은 업종 특성은 반영되지 않음). 영업이익 증가율 0은 적자지속·흑자전환·"
+                       "적자전환일 수 있어 점수에서 제외됩니다.")
+            for n in lookup_score["notes"]:
+                st.caption(f"⚠ {n}")
+            with st.expander("종합점수 항목별 점수 / 재무비율 원본 응답 (검증용)"):
+                st.write({SCORE_PART_NAMES[k]: v for k, v in lookup_score["parts"].items()})
+                st.json(lookup_fin.get("raw", {}))
+        else:
+            st.caption("재무비율 조회 실패 (ETF·신규상장·결산 미공시 종목은 제공되지 않을 수 있습니다).")
 
         lookup_transition = compute_transition_signal(lookup_df)
         if lookup_transition:
