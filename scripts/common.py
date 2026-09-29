@@ -214,9 +214,12 @@ def fetch_valuation(stock_code: str):
 MARKET_STAT_LABELS = {"51": "🚨 관리종목", "52": "🚨 투자위험", "53": "⚠️ 투자경고",
                        "54": "⚠️ 투자주의", "58": "🚨 거래정지", "59": "⚠️ 정리매매"}
 MARKET_WARN_LABELS = {"01": "⚠️ 투자주의", "02": "⚠️ 투자경고", "03": "🚨 투자위험"}
+# 관리종목 지정 요건(시가총액 200억 미만)은 '우려 안내' 단계에서는 종목상태코드에 아직 안 잡힌다.
+# (거래소가 확정 지정하기 전까지는 상태코드가 정상으로 남아있음 — 2026-09-29 엔젠바이오 사례로 확인)
+MKTCAP_RISK_THRESHOLD_EOK = 300  # 관리종목 기준(200억)보다 여유를 둔 경고선
 
 
-def market_risk_flags(stat_code: str, warn_code: str, halted: bool) -> list[str]:
+def market_risk_flags(stat_code: str, warn_code: str, halted: bool, mktcap_eok: float | None = None) -> list[str]:
     flags = []
     if halted:
         flags.append("🚨 거래정지")
@@ -224,6 +227,8 @@ def market_risk_flags(stat_code: str, warn_code: str, halted: bool) -> list[str]
         flags.append(MARKET_STAT_LABELS[stat_code])
     if warn_code in MARKET_WARN_LABELS and MARKET_WARN_LABELS[warn_code] not in flags:
         flags.append(MARKET_WARN_LABELS[warn_code])
+    if mktcap_eok is not None and mktcap_eok < MKTCAP_RISK_THRESHOLD_EOK:
+        flags.append(f"⚠️ 시가총액 {mktcap_eok:,.0f}억(관리종목 요건 200억에 근접/미달)")
     return flags
 
 
@@ -237,6 +242,7 @@ def fetch_valuation_and_risk(stock_code: str):
         str(out.get("iscd_stat_cls_code") or ""),
         str(out.get("mrkt_warn_cls_code") or ""),
         str(out.get("temp_stop_yn") or "") == "Y",
+        _to_float(out.get("hts_avls")),
     )
     return valuation, flags
 
