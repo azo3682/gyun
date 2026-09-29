@@ -254,6 +254,229 @@ def is_cheap(val: dict | None, per_max: float = 15.0, pbr_max: float = 1.5) -> b
     return 0 < val["per"] <= per_max and 0 < val["pbr"] <= pbr_max
 
 
+# ============================================================
+# 재무비율 (KIS 국내주식 재무비율 v1_국내주식-080 — 실전 도메인 전용, 모의투자 미지원)
+#   정식 ROE(roe_val)·부채비율(lblt_rate)·매출액/영업이익/순이익 증가율을 한 번에 준다.
+#   (영업이익률은 KIS 재무 4종 API 어디에도 없다 — 필요하면 DART로 따로 계산해야 함)
+# ============================================================
+FIN_RATIO_API_PATH = "/uapi/domestic-stock/v1/finance/financial-ratio"
+FIN_RATIO_TR_ID = "FHKST66430300"
+
+
+def fetch_financial_ratio(stock_code: str, period: str = "0", retries: int = 3):
+    """최근 결산 기준 정식 재무비율 dict를 반환. 실패하면 None (사유는 FAIL_REASONS에 'FIN_' 접두어로 기록).
+    period: '0'=연간, '1'=분기.
+
+    - output은 결산년월(stac_yymm)별 배열이라 정렬 순서에 기대지 않고, 이번 달 이하 중 가장 최근 결산을 고른다
+      (미래 결산월이 '예상치'로 섞여 있을 가능성을 피하려는 방어).
+    - op_growth(bsop_prfi_inrt)는 적자지속/흑자전환/적자전환이면 0으로 온다 → 0을 '성장 없음'으로 해석하면 안 된다.
+    - 반환 dict의 'raw'는 화면/JSON에서 필드명 검증용으로만 쓰고, 저장 전에 빼는 것을 권장.
+    """
+    last_reason, last_msg = "EXCEPTION", ""
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.get(
+                f"{BASE_URL}{FIN_RATIO_API_PATH}",
+                headers=kis_headers(FIN_RATIO_TR_ID),
+                params={"FID_DIV_CLS_CODE": period, "fid_cond_mrkt_div_code": "J",
+                        "fid_input_iscd": stock_code},
+                timeout=10,
+            )
+            data = resp.json()
+        except Exception as e:
+            last_reason, last_msg = "EXCEPTION", str(e)[:80]
+            time.sleep(0.5 * (attempt + 1))
+            continue
+        if data.get("rt_cd") != "0":
+            msg_cd, msg1 = data.get("msg_cd", "UNKNOWN"), (data.get("msg1") or "")[:80]
+            if msg_cd == "EGW00201":      # 초당 거래건수 초과 → 쉬었다 재시도
+                last_reason, last_msg = "RATE_LIMIT_EXHAUSTED", msg1
+                time.sleep(1.0 * (attempt + 1))
+                continue
+            record_fail(f"FIN_{msg_cd}", msg1)
+            return None
+        rows = data.get("output") or []
+        if isinstance(rows, dict):
+            rows = [rows]
+        rows = [r for r in rows if isinstance(r, dict) and r.get("stac_yymm")]
+        if not rows:
+            record_fail("FIN_NO_DATA", "재무비율 output이 비어 있음")
+            return None
+        cutoff = datetime.now(KST).strftime("%Y%m")
+        confirmed = [r for r in rows if r["stac_yymm"] <= cutoff] or rows
+        latest = max(confirmed, key=lambda r: r["stac_yymm"])
+        return {
+            "stac_yymm": latest.get("stac_yymm"),
+            "roe": _to_float(latest.get("roe_val")),
+            "debt_ratio": _to_float(latest.get("lblt_rate")),
+            "sales_growth": _to_float(latest.get("grs")),
+            "op_growth": _to_float(latest.get("bsop_prfi_inrt")),
+            "ni_growth": _to_float(latest.get("ntin_inrt")),
+            "eps": _to_float(latest.get("eps")),
+            "bps": _to_float(latest.get("bps")),
+            "rsrv_rate": _to_float(latest.get("rsrv_rate")),
+            "raw": latest,
+        }
+    record_fail(f"FIN_{last_reason}", last_msg)
+    return None
+
+
+def strip_raw(fin):
+    """저장용: fetch_financial_ratio 결과에서 'raw'를 뺀 사본 (None이면 None)."""
+    return {k: v for k, v in fin.items() if k != "raw"} if fin else None
+
+
+# ============================================================
+# 종합점수 (ROE · 부채비율 · 성장률 · PER/PBR)
+#   - 각 항목을 0~100점 구간 점수로 바꾼 뒤 가중합. 값이 없는 항목은 빼고 나머지 가중치로 재정규화.
+#   - 절대적인 '좋은 종목' 판정이 아니라 구간 분류일 뿐이며, 업종 특성(금융업 부채비율 등)은 감안해야 한다.
+#   - streamlit_app.py에도 같은 블록이 복사돼 있다 (그쪽은 환경변수 대신 st.secrets를 쓰므로 common을 import하지 않음).
+#     여기를 고치면 streamlit_app.py의 '종합점수' 블록도 같이 고칠 것.
+# ============================================================
+SCORE_WEIGHTS = {
+    "roe": 0.30,            # 수익성
+    "debt": 0.20,           # 안정성
+    "sales_growth": 0.10,   # 성장성
+    "op_growth": 0.10,
+    "per": 0.15,            # 밸류에이션
+    "pbr": 0.15,
+}
+SCORE_PART_NAMES = {"roe": "ROE", "debt": "부채비율", "sales_growth": "매출증가율",
+                    "op_growth": "영업이익증가율", "per": "PER", "pbr": "PBR"}
+
+
+def _band(x, bands):
+    """bands: [(상한, 점수), ...] 오름차순. x <= 상한인 첫 구간의 점수. 상한 None은 '그 이상 전부'."""
+    for limit, pts in bands:
+        if limit is None or x <= limit:
+            return pts
+    return bands[-1][1]
+
+
+def score_roe(roe):
+    if roe is None:
+        return None
+    if roe > 40:
+        return 50            # 일회성 이익 가능성 — 만점을 주지 않는다
+    return _band(roe, [(0, 0), (5, 20), (10, 50), (15, 75), (25, 100), (40, 85)])
+
+
+def score_debt(debt):        # 낮을수록 좋음
+    if debt is None:
+        return None
+    return _band(debt, [(50, 100), (100, 80), (200, 50), (300, 25), (None, 0)])
+
+
+def score_sales_growth(g):
+    if g is None:
+        return None
+    return _band(g, [(-10, 0), (0, 30), (5, 50), (15, 75), (None, 100)])
+
+
+def score_op_growth(g):
+    # 0은 '적자지속/흑자전환/적자전환' 표시와 구분이 안 되므로 점수에서 제외(None)
+    if g is None or g == 0:
+        return None
+    return _band(g, [(-20, 0), (0, 30), (10, 55), (30, 80), (None, 100)])
+
+
+def score_per(per):
+    if per is None:
+        return None
+    if per <= 0:
+        return 0
+    if per <= 3:
+        return 50            # 수치 왜곡 가능성 (per_label과 같은 기준)
+    return _band(per, [(8, 100), (15, 80), (30, 50), (60, 20), (None, 0)])
+
+
+def score_pbr(pbr):
+    if pbr is None or pbr <= 0:
+        return None
+    return _band(pbr, [(0.6, 100), (1.0, 85), (1.5, 65), (3.0, 30), (None, 0)])
+
+
+def composite_score(per, pbr, fin, weights=None) -> dict:
+    """반환: {"score": 0~100 또는 None, "parts": {항목: 점수|None}, "coverage": 반영된 가중치 비율(0~1), "notes": [...]}
+    fin은 fetch_financial_ratio 결과(dict) 또는 None."""
+    weights = weights or SCORE_WEIGHTS
+    fin = fin or {}
+    parts = {
+        "roe": score_roe(fin.get("roe")),
+        "debt": score_debt(fin.get("debt_ratio")),
+        "sales_growth": score_sales_growth(fin.get("sales_growth")),
+        "op_growth": score_op_growth(fin.get("op_growth")),
+        "per": score_per(per),
+        "pbr": score_pbr(pbr),
+    }
+    used = {k: v for k, v in parts.items() if v is not None}
+    total_w = sum(weights.values())
+    used_w = sum(weights[k] for k in used)
+    notes = []
+    if fin.get("op_growth") == 0:
+        notes.append("영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외")
+    if fin.get("roe") is not None and fin["roe"] > 40:
+        notes.append("ROE 40% 초과: 일회성 이익 의심")
+    if fin.get("debt_ratio") is not None and fin["debt_ratio"] > 500:
+        notes.append("부채비율 500% 초과: 금융업이면 구조적으로 높을 수 있음")
+    coverage = round(used_w / total_w, 2) if total_w else 0.0
+    if used_w and coverage < 0.8:
+        notes.append(f"일부 항목 미반영(가중치 {coverage:.0%}만 반영): 점수 신뢰도 낮음")
+    score = round(sum(weights[k] * v for k, v in used.items()) / used_w, 1) if used_w else None
+    return {"score": score, "parts": parts, "coverage": coverage, "notes": notes}
+
+
+def score_label(score) -> str:
+    if score is None:
+        return "—"
+    if score >= 75:
+        return "🟢 우수"
+    if score >= 55:
+        return "⚪ 보통"
+    return "🔴 미흡"
+
+
+# PER/PBR 라벨(per_label/pbr_label)과 같은 방식의 직관 라벨
+def roe_label(roe) -> str:
+    if roe is None:
+        return ""
+    if roe <= 0:
+        return "🔴 나쁨(적자)"
+    if roe < 5:
+        return "🔴 나쁨(낮음)"
+    if roe < 10:
+        return "⚪ 보통"
+    if roe <= 25:
+        return "🟢 좋음"
+    if roe <= 40:
+        return "🟢 좋음(높음)"
+    return "🟡 주의(일회성 이익 의심)"
+
+
+def debt_label(debt) -> str:
+    if debt is None:
+        return ""
+    if debt <= 100:
+        return "🟢 좋음(안정)"
+    if debt <= 200:
+        return "⚪ 보통"
+    if debt <= 300:
+        return "🔴 나쁨(부담)"
+    return "🔴 매우 나쁨(과다)"
+
+
+def growth_label(g) -> str:
+    if g is None:
+        return ""
+    if g < 0:
+        return "🔴 역성장"
+    if g < 5:
+        return "⚪ 정체"
+    if g < 15:
+        return "🟢 성장"
+    return "🟢 고성장"
+
+
 def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
     end = datetime.now(KST).strftime("%Y%m%d")
     start = (datetime.now(KST) - timedelta(days=130)).strftime("%Y%m%d")
