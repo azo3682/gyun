@@ -209,6 +209,38 @@ def fetch_valuation(stock_code: str):
     return {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
 
 
+# 거래소가 실시간으로 매기는 종목상태코드 — DART 공시보다 먼저, 더 확실하게 위험을 알려준다
+# (예: '관리종목 지정 우려' 같은 거래소 시장조치 안내는 DART 기업공시로 안 올라오는 경우가 있다)
+MARKET_STAT_LABELS = {"51": "🚨 관리종목", "52": "🚨 투자위험", "53": "⚠️ 투자경고",
+                       "54": "⚠️ 투자주의", "58": "🚨 거래정지", "59": "⚠️ 정리매매"}
+MARKET_WARN_LABELS = {"01": "⚠️ 투자주의", "02": "⚠️ 투자경고", "03": "🚨 투자위험"}
+
+
+def market_risk_flags(stat_code: str, warn_code: str, halted: bool) -> list[str]:
+    flags = []
+    if halted:
+        flags.append("🚨 거래정지")
+    if stat_code in MARKET_STAT_LABELS and MARKET_STAT_LABELS[stat_code] not in flags:
+        flags.append(MARKET_STAT_LABELS[stat_code])
+    if warn_code in MARKET_WARN_LABELS and MARKET_WARN_LABELS[warn_code] not in flags:
+        flags.append(MARKET_WARN_LABELS[warn_code])
+    return flags
+
+
+def fetch_valuation_and_risk(stock_code: str):
+    """(밸류에이션 dict|None, 거래소 위험 플래그 리스트) — 현재가 조회 한 번으로 둘 다 얻는다."""
+    out = fetch_price_detail(stock_code)
+    if out is None:
+        return None, []
+    valuation = {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
+    flags = market_risk_flags(
+        str(out.get("iscd_stat_cls_code") or ""),
+        str(out.get("mrkt_warn_cls_code") or ""),
+        str(out.get("temp_stop_yn") or "") == "Y",
+    )
+    return valuation, flags
+
+
 def is_cheap(val: dict | None, per_max: float = 15.0, pbr_max: float = 1.5) -> bool:
     """흑자(PER>0)이면서 PER/PBR이 기준 이하인지."""
     if not val or val.get("per") is None or val.get("pbr") is None:
