@@ -671,6 +671,37 @@ def price_status_badge(day_pct):
     return "➖ 보합 (신선한 구간)"
 
 
+# 2026-09-29 추가: PER/PBR 숫자만 봐서는 좋은지 나쁜지 바로 판단하기 어렵다는 피드백으로
+# 직관 라벨을 붙인다. 절대적인 '싸다/비싸다' 판정이 아니라 구간 분류일 뿐이며, 업종마다
+# 기준이 다르다는 점(금융·건설·해운은 원래 PBR이 낮음)은 그대로 감안해야 한다.
+def per_label(per) -> str:
+    if per is None:
+        return ""
+    if per <= 0:
+        return "🔴 나쁨(적자)"
+    if per <= 3:
+        return "🟡 주의(수치 왜곡 가능성)"
+    if per <= 15:
+        return "🟢 좋음(저평가권)"
+    if per <= 30:
+        return "⚪ 보통"
+    if per <= 60:
+        return "🔴 나쁨(고평가권)"
+    return "🔴 매우 나쁨(고평가)"
+
+
+def pbr_label(pbr) -> str:
+    if pbr is None or pbr <= 0:
+        return ""
+    if pbr <= 0.6:
+        return "🟢 좋음(저평가권)"
+    if pbr <= 1.5:
+        return "⚪ 보통"
+    if pbr <= 3:
+        return "🔴 나쁨(고평가권)"
+    return "🔴 매우 나쁨(고평가)"
+
+
 def fmt_shares(value) -> str:
     """1만주 이상이면 '만주' 단위로, 부호 포함 표시."""
     try:
@@ -831,7 +862,8 @@ def render_value_table(rows: list, total: int | None = None, caution_below: floa
         table.append({
             "순위": i, "종목코드": r["code"], "종목명": r["name"], "업종": r.get("sector", ""),
             "현재가": r.get("price"), "당일등락률(%)": r.get("day_pct"),
-            "PER": r.get("per"), "PBR": r.get("pbr"), "ROE(추정,%)": r.get("roe_pct"),
+            "PER": r.get("per"), "PER평가": per_label(r.get("per")),
+            "PBR": r.get("pbr"), "PBR평가": pbr_label(r.get("pbr")), "ROE(추정,%)": r.get("roe_pct"),
             "시총(억)": r.get("mktcap_eok"), "52주고점대비(%)": r.get("drawdown_pct"),
             "공시": ("⚠ " + "; ".join(risky)) if risky else ("이상 없음" if risky == [] else "미확인"),
             "비고": " / ".join(filter(None, [
@@ -1041,7 +1073,9 @@ with tab_screen:
             df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
         tech = analyze_technicals(df)
         raw_transition = compute_transition_signal(df)
-        _, _, mflags = fetch_current_price(code)
+        price, pct, mflags = fetch_current_price(code)
+        per, pbr, _, _, _ = fetch_valuation(code)
+        trend_label, _, _ = classify_trend_state(df)  # 이미 받아온 df 재사용 (중복 조회 방지)
         # 관리종목·투자위험 등 거래소 지정 상태면 '거래량급증'이 매수세가 아니라 투매일 수 있어
         # 검증된 신호로 인정하지 않는다 (백테스트 표본에 이런 상태의 종목은 없었다)
         transition = raw_transition and not mflags
@@ -1049,61 +1083,70 @@ with tab_screen:
         passed = sum(1 for v in checks.values() if v is True)
         total = sum(1 for v in checks.values() if v is not None)
         scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed,
-                             "_total": total, "_transition": transition, "_mflags": mflags})
+                             "_total": total, "_transition": transition, "_mflags": mflags,
+                             "_price": price, "_pct": pct, "_per": per, "_pbr": pbr,
+                             "_trend": trend_label})
 
     # 전환신호 있는 종목을 최상단으로, 그다음은 참고점수순
     scored_rows.sort(key=lambda r: (not r["_transition"], -r["_passed"], r["rank"]))
 
     n_transition = sum(1 for r in scored_rows if r["_transition"])
     n_transition_risky = sum(1 for r in scored_rows if r["_transition"] and r["_mflags"])
+    n_transition_chased = sum(1 for r in scored_rows if r["_transition"] and r["_pct"] is not None and r["_pct"] >= 7)
     if n_transition:
         st.success(f"🎯 전환신호 종목 {n_transition}개 발견")
         if n_transition_risky:
             st.error(f"⚠️ 그중 {n_transition_risky}개는 관리종목·투자위험 등 거래소 지정 상태입니다 — "
                      "거래량급증이 매수세가 아니라 투매일 수 있으니 근거로 쓰지 마세요.")
+        if n_transition_chased:
+            st.warning(f"🔥 그중 {n_transition_chased}개는 오늘 이미 +7% 이상 올라 추격 부담이 있습니다 "
+                       "(아래 표의 '상태' 열 참고 — 2026-09-29 백테스트로 '며칠 기다렸다 재진입'은 "
+                       "효과가 없다고 확인돼, 따로 관찰 목록으로 미루지 않고 그대로 표시합니다).")
     else:
         st.info("오늘은 전환신호가 뜬 종목이 없습니다. 아래는 전부 참고용입니다.")
 
-    # 재진입 후보 / 관찰 목록 (전일 마감 배치가 생성한 데이터, GitHub Actions가 커밋)
-    EOD_SNAPSHOT_PATH = "data/eod_snapshot.json"
-    WATCHLIST_PATH = "data/watchlist.json"
-    if os.path.exists(EOD_SNAPSHOT_PATH):
-        with open(EOD_SNAPSHOT_PATH, "r", encoding="utf-8") as f:
-            eod_snapshot = json.load(f)
-        reentry = eod_snapshot.get("reentry_candidates", [])
-        if reentry:
-            st.markdown("**🎯 재진입 후보** (급등 후 관찰 중이던 종목이 눌림 상태로 복귀)")
-            for r in reentry:
-                st.markdown(f"- {r['stock_name']}({r['stock_code']}) — {r['days_watched']}거래일 관찰 후 눌림 확인 "
-                            f"(최초 급등 +{r['initial_pct']*100:.2f}%)")
-
-    if os.path.exists(WATCHLIST_PATH):
-        with open(WATCHLIST_PATH, "r", encoding="utf-8") as f:
-            watchlist = json.load(f)
-        if watchlist:
-            with st.expander(f"👀 관찰 목록 ({len(watchlist)}개 — 급등 후 눌림 대기 중)"):
-                watch_rows = [{"종목명": v["stock_name"], "종목코드": k,
-                               "최초급등률(%)": v["initial_pct"] * 100,
-                               "관찰경과(거래일)": v["days_watched"]}
-                              for k, v in watchlist.items()]
-                st.dataframe(pd.DataFrame(watch_rows), use_container_width=True, hide_index=True)
-                st.caption("이 종목들은 당일 +7% 이상 급등해서 추격 대신 눌림을 기다리는 중입니다. "
-                           "눌림이 오면 위 '재진입 후보'로 자동 승격됩니다 (최대 15거래일 대기).")
+    st.markdown("**한눈에 비교**")
+    st.caption("표 머리글을 누르면 정렬됩니다. 자세한 뉴스·공시는 아래 종목별 펼치기에서 확인하세요.")
+    table_rows = []
+    for r in scored_rows:
+        table_rows.append({
+            "순위": r["rank"], "종목코드": r["stock_code"], "종목명": r["stock_name"],
+            "전환신호": "🎯 확인" if r["_transition"] else ("🚨 위험상태" if r["_mflags"] else "—"),
+            "현재가": r["_price"], "당일등락률(%)": r["_pct"], "상태": price_status_badge(r["_pct"]),
+            "PER": r["_per"], "PER평가": per_label(r["_per"]),
+            "PBR": r["_pbr"], "PBR평가": pbr_label(r["_pbr"]),
+            "국면": r["_trend"], "참고지표": f"{r['_passed']}/{r['_total']}",
+        })
+    summary_df = pd.DataFrame(table_rows)
+    nan_dash = lambda f: (lambda v: f(v) if pd.notna(v) else "—")
+    st.dataframe(
+        style_signed(summary_df, ["당일등락률(%)"], plain_cols={
+            "현재가": nan_dash(lambda v: f"{v:,.0f}"),
+            "PER": nan_dash(lambda v: f"{v:.2f}"),
+            "PBR": nan_dash(lambda v: f"{v:.2f}"),
+        }),
+        use_container_width=True, hide_index=True)
 
     for row in scored_rows:
         code, name = row["stock_code"], row["stock_name"]
         tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
         transition, mflags = row["_transition"], row["_mflags"]
+        price, pct = row["_price"], row["_pct"]
+        price_str = f" · {price:,.0f}원 ({pct:+.2f}%)" if price is not None else ""
         title_prefix = ("🚨 " if mflags else "") + ("🎯 전환신호 " if transition else "참고 ")
-        with st.expander(f"{title_prefix}· 원순위 {row['rank']}위 · {name} ({code})"):
+        with st.expander(f"{title_prefix}· 원순위 {row['rank']}위 · {name} ({code}){price_str}"):
             if mflags:
                 st.error("🚨 거래소 지정 상태: " + " · ".join(mflags) +
                           " — 거래소 위험 상태에서는 신호 자체를 인정하지 않습니다.")
             if transition:
                 st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증+상승. "
                            "(2026-09-29 방향 조건 추가로 9/21 백테스트 재검증 전 — 참고용)")
+                if pct is not None and pct >= 7:
+                    st.warning(f"🔥 오늘 이미 {pct:+.2f}% 상승 — 추격 매수 부담이 있는 구간입니다.")
             else:
                 st.caption("전환신호 없음 (조건 미충족)")
+
+            st.caption(f"국면 판단: **{row['_trend']}**")
 
             rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
             st.markdown(f"**참고지표: {passed}/{total} 통과**{rsi_note} — 아래는 효과가 "
@@ -1206,12 +1249,15 @@ with tab_lookup:
         st.markdown("**밸류에이션 (PER · PBR)**")
         if lookup_per is not None or lookup_pbr is not None:
             val_cols = st.columns(4)
-            val_cols[0].metric("PER", f"{lookup_per:.2f}배" if lookup_per is not None else "N/A")
-            val_cols[1].metric("PBR", f"{lookup_pbr:.2f}배" if lookup_pbr is not None else "N/A")
+            val_cols[0].metric("PER", f"{lookup_per:.2f}배" if lookup_per is not None else "N/A",
+                                delta=(per_label(lookup_per) or None), delta_color="off")
+            val_cols[1].metric("PBR", f"{lookup_pbr:.2f}배" if lookup_pbr is not None else "N/A",
+                                delta=(pbr_label(lookup_pbr) or None), delta_color="off")
             val_cols[2].metric("EPS", f"{lookup_eps:,.0f}원" if lookup_eps is not None else "N/A")
             val_cols[3].metric("BPS", f"{lookup_bps:,.0f}원" if lookup_bps is not None else "N/A")
             st.caption("PBR 1배 미만이면 장부가치보다 싸게 거래 중이라는 뜻입니다. 다만 이것만으로 '저평가'라 단정할 순 없고, "
-                       "동종업계 평균과 비교하거나 왜 싼지(실적 부진 등) 같이 확인하셔야 합니다.")
+                       "동종업계 평균과 비교하거나 왜 싼지(실적 부진 등) 같이 확인하셔야 합니다. 옆 라벨은 일반적인 구간 "
+                       "분류일 뿐이라 업종 특성(금융·건설·해운은 원래 PBR이 낮음)은 별도로 감안하세요.")
         else:
             st.caption("PER/PBR 조회 실패 (적자 기업은 PER이 제공되지 않을 수 있습니다).")
         with st.expander("원본 응답 확인 (필드명 검증용)"):
