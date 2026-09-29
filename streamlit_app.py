@@ -249,9 +249,27 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+# 거래소가 실시간으로 매기는 종목상태코드 — DART 공시보다 먼저, 더 확실하게 위험을 알려준다
+# (예: '관리종목 지정 우려' 같은 거래소 시장조치 안내는 DART 기업공시로 안 올라오는 경우가 있다)
+MARKET_STAT_LABELS = {"51": "🚨 관리종목", "52": "🚨 투자위험", "53": "⚠️ 투자경고",
+                       "54": "⚠️ 투자주의", "58": "🚨 거래정지", "59": "⚠️ 정리매매"}
+MARKET_WARN_LABELS = {"01": "⚠️ 투자주의", "02": "⚠️ 투자경고", "03": "🚨 투자위험"}
+
+
+def market_risk_flags(stat_code: str, warn_code: str, halted: bool) -> list[str]:
+    flags = []
+    if halted:
+        flags.append("🚨 거래정지")
+    if stat_code in MARKET_STAT_LABELS and MARKET_STAT_LABELS[stat_code] not in flags:
+        flags.append(MARKET_STAT_LABELS[stat_code])
+    if warn_code in MARKET_WARN_LABELS and MARKET_WARN_LABELS[warn_code] not in flags:
+        flags.append(MARKET_WARN_LABELS[warn_code])
+    return flags
+
+
 @st.cache_data(ttl=30)
 def fetch_current_price(stock_code: str):
-    """(현재가, 전일대비 등락률%) 반환. 실패하면 (None, None)."""
+    """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트) 반환. 실패하면 (None, None, [])."""
     try:
         resp = requests.get(
             f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
@@ -262,13 +280,18 @@ def fetch_current_price(stock_code: str):
         resp.raise_for_status()
         data = resp.json()
         if data.get("rt_cd") != "0":
-            return None, None
+            return None, None, []
         output = data.get("output", {})
         price = float(output.get("stck_prpr", 0) or 0)
         pct = float(output.get("prdy_ctrt", 0) or 0)
-        return price, pct
+        flags = market_risk_flags(
+            str(output.get("iscd_stat_cls_code") or ""),
+            str(output.get("mrkt_warn_cls_code") or ""),
+            str(output.get("temp_stop_yn") or "") == "Y",
+        )
+        return price, pct, flags
     except Exception:
-        return None, None
+        return None, None, []
 
 
 @st.cache_data(ttl=30)
@@ -993,19 +1016,27 @@ with tab_screen:
             time.sleep(0.5)
             df = fetch_daily_ohlcv.__wrapped__(code)  # 캐시 우회 재시도
         tech = analyze_technicals(df)
-        transition = compute_transition_signal(df)
+        raw_transition = compute_transition_signal(df)
+        _, _, mflags = fetch_current_price(code)
+        # 관리종목·투자위험 등 거래소 지정 상태면 '거래량급증'이 매수세가 아니라 투매일 수 있어
+        # 검증된 신호로 인정하지 않는다 (백테스트 표본에 이런 상태의 종목은 없었다)
+        transition = raw_transition and not mflags
         checks = {k: v for k, v in tech.items() if k != "RSI값"}
         passed = sum(1 for v in checks.values() if v is True)
         total = sum(1 for v in checks.values() if v is not None)
         scored_rows.append({**row, "_tech": tech, "_checks": checks, "_passed": passed,
-                             "_total": total, "_transition": transition})
+                             "_total": total, "_transition": transition, "_mflags": mflags})
 
     # 전환신호 있는 종목을 최상단으로, 그다음은 참고점수순
     scored_rows.sort(key=lambda r: (not r["_transition"], -r["_passed"], r["rank"]))
 
     n_transition = sum(1 for r in scored_rows if r["_transition"])
+    n_transition_risky = sum(1 for r in scored_rows if r["_transition"] and r["_mflags"])
     if n_transition:
         st.success(f"🎯 전환신호 종목 {n_transition}개 발견")
+        if n_transition_risky:
+            st.error(f"⚠️ 그중 {n_transition_risky}개는 관리종목·투자위험 등 거래소 지정 상태입니다 — "
+                     "거래량급증이 매수세가 아니라 투매일 수 있으니 근거로 쓰지 마세요.")
     else:
         st.info("오늘은 전환신호(검증된 신호)가 뜬 종목이 없습니다. 아래는 전부 참고용입니다.")
 
@@ -1038,9 +1069,13 @@ with tab_screen:
     for row in scored_rows:
         code, name = row["stock_code"], row["stock_name"]
         tech, checks, passed, total = row["_tech"], row["_checks"], row["_passed"], row["_total"]
-        transition = row["_transition"]
-        title_prefix = "🎯 전환신호 " if transition else "참고 "
+        transition, mflags = row["_transition"], row["_mflags"]
+        title_prefix = ("🚨 " if mflags else "") + ("🎯 전환신호 " if transition else "참고 ")
         with st.expander(f"{title_prefix}· 원순위 {row['rank']}위 · {name} ({code})"):
+            if mflags:
+                st.error("🚨 거래소 지정 상태: " + " · ".join(mflags) +
+                          " — '거래량급증'이 매수세가 아니라 투매일 수 있어, 전환신호 조건을 충족해도 "
+                          "검증된 신호로 인정하지 않습니다.")
             if transition:
                 st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증. 검증된 신호입니다.")
             else:
@@ -1093,15 +1128,19 @@ with tab_reversal:
         rdf = fetch_daily_ohlcv(code)
         rlabel, rdesc, rfn = classify_trend_state(rdf)
         if rlabel in REVERSAL_LABELS:
-            rprice, rpct = fetch_current_price(code)
+            rprice, rpct, rflags = fetch_current_price(code)
             reversal_found.append({"code": code, "name": name, "label": rlabel, "desc": rdesc,
-                                     "fn": rfn, "price": rprice, "pct": rpct})
+                                     "fn": rfn, "price": rprice, "pct": rpct, "flags": rflags})
 
     if not reversal_found:
         st.info("현재 후보군(순매수·거래량 상위) 안에는 하락추세 반등 패턴이 없습니다.")
     else:
         for item in reversal_found:
-            with st.expander(f"{item['name']}({item['code']}) — {item['label']}"):
+            title = f"{'🚨 ' if item['flags'] else ''}{item['name']}({item['code']}) — {item['label']}"
+            with st.expander(title):
+                if item["flags"]:
+                    st.error("거래소 지정 상태: " + " · ".join(item["flags"]) +
+                             " — 기술적 반등 모양이어도 이 상태면 통상적인 매매 판단이 적용되지 않습니다.")
                 if item["price"] is not None:
                     st.markdown(f"현재가 {item['price']:,.0f}원 &nbsp; {colored_pct_html(item['pct'])}", unsafe_allow_html=True)
                 item["fn"](f"**{item['label']}** — {item['desc']}")
@@ -1127,13 +1166,16 @@ with tab_lookup:
         with st.spinner("조회 중..."):
             lookup_df = fetch_daily_ohlcv(lookup_code)
             lookup_tech = analyze_technicals(lookup_df)
-            lookup_price, lookup_pct = fetch_current_price(lookup_code)
+            lookup_price, lookup_pct, lookup_flags = fetch_current_price(lookup_code)
             lookup_risky = check_disclosure_risk(lookup_code)
             lookup_per, lookup_pbr, lookup_eps, lookup_bps, lookup_val_raw = fetch_valuation(lookup_code)
 
         if lookup_price is not None:
             st.markdown(f"### {lookup_price:,.0f}원 &nbsp; {colored_pct_html(lookup_pct)}", unsafe_allow_html=True)
             st.markdown(f"**상태: {price_status_badge(lookup_pct)}**")
+            if lookup_flags:
+                st.error("🚨 거래소 지정 상태: " + " · ".join(lookup_flags) +
+                         " — 아래 전환신호·국면 판단은 이 상태를 반영하지 않으니 근거로 쓰지 마세요.")
         else:
             st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
 
