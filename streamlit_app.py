@@ -1020,7 +1020,8 @@ def build_tracker_table(signals: list, n_days: int):
     for s in sorted(signals, key=lambda x: (x["signal_date"], x["code"]), reverse=True):
         base = s["signal_close"]
         closes = s.get("closes") or {}
-        row = {"종목명": s["name"], "종목코드": s["code"], "신호일": s["signal_date"], "신호일종가": base}
+        row = {"종목명": s["name"], "종목코드": s["code"], "신호일": s["signal_date"], "신호일종가": base,
+               "다음날시가": s.get("entry_open"), "갭(%)": (s.get("perf") or {}).get("gap_pct")}
         for d, lab in zip(shown, labels):
             row[lab] = closes.get(d)                    # 신호일 이전·당일은 빈칸 (당일 종가는 '신호일종가' 열)
         rets = [(c / base - 1) * 100 for c in closes.values()] if base else []
@@ -1034,7 +1035,7 @@ def build_tracker_table(signals: list, n_days: int):
         row["두 신호 겹침"] = "✔" if (s.get("conditions") or {}).get("overlap") else ""
         rows.append(row)
     df = pd.DataFrame(rows)
-    num_cols = ["신호일종가", "최근종가", "수익률(%)", "최고(%)", "최저(%)"] + labels
+    num_cols = ["신호일종가", "다음날시가", "갭(%)", "최근종가", "수익률(%)", "최고(%)", "최저(%)"] + labels
     df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
     return df, labels
 
@@ -1057,12 +1058,85 @@ def style_tracker_table(df: pd.DataFrame, date_cols: list):
             return ""
         return "color: #e03131; font-weight: 600;" if v > 0 else "color: #1971c2; font-weight: 600;" if v < 0 else ""
 
-    ret_cols = ["수익률(%)", "최고(%)", "최저(%)"]
+    ret_cols = ["수익률(%)", "최고(%)", "최저(%)", "갭(%)"]
     styler = df.style.apply(_row_style, axis=1).map(_ret_color, subset=ret_cols)
-    styler = styler.format(lambda v: "" if pd.isna(v) else f"{v:,.0f}", subset=["신호일종가", "최근종가"] + date_cols)
+    styler = styler.format(lambda v: "" if pd.isna(v) else f"{v:,.0f}", subset=["신호일종가", "다음날시가", "최근종가"] + date_cols)
     for c in ret_cols:
         styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}%", subset=[c])
     return styler
+
+
+# ---- 성과 (진입가 = 신호 다음 거래일 시가 기준, D+n = 신호일이 D+0일 때 n번째 거래일 종가) ----
+PERF_HORIZONS = (1, 3, 5, 10)
+
+
+def _signed_style(v):
+    if pd.isna(v):
+        return ""
+    return "color: #e03131; font-weight: 600;" if v > 0 else "color: #1971c2; font-weight: 600;" if v < 0 else ""
+
+
+def build_perf_table(signals: list) -> pd.DataFrame:
+    """종목별 성과 표: 진입가, 갭, D+n 수익률(진입가 대비), D+n 지수 대비 초과수익(%p). 아직 오지 않은 날은 빈칸."""
+    rows = []
+    for s in sorted(signals, key=lambda x: (x["signal_date"], x["code"]), reverse=True):
+        perf = s.get("perf") or {}
+        ret, exc = perf.get("ret") or {}, perf.get("excess") or {}
+        row = {"종목명": s["name"], "종목코드": s["code"], "신호일": s["signal_date"], "시장": s.get("index_key") or "—",
+               "진입일": s.get("entry_date") or "", "진입가(다음날 시가)": s.get("entry_open"), "갭(%)": perf.get("gap_pct")}
+        for n in PERF_HORIZONS:
+            row[f"D+{n}(%)"] = ret.get(str(n))
+        for n in PERF_HORIZONS:
+            row[f"초과 D+{n}(%p)"] = exc.get(str(n))
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    num = [c for c in df.columns if c not in ("종목명", "종목코드", "신호일", "시장", "진입일")]
+    df[num] = df[num].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+def style_perf_table(df: pd.DataFrame):
+    signed = [c for c in df.columns if c.startswith("D+") or c.startswith("초과") or c == "갭(%)"]
+    styler = df.style.map(_signed_style, subset=signed)
+    styler = styler.format(lambda v: "" if pd.isna(v) else f"{v:,.0f}", subset=["진입가(다음날 시가)"])
+    return styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}", subset=signed)
+
+
+def summarize_performance(signals: list) -> pd.DataFrame:
+    """D+n별 통계: 표본 수, 평균·중앙값, 승률, 평균 이익/손실, 손익비, 지수 대비 평균 초과수익과 지수를 이긴 비율."""
+    rows = []
+    for n in PERF_HORIZONS:
+        key = str(n)
+        rets = [(s.get("perf") or {}).get("ret", {}).get(key) for s in signals]
+        rets = [r for r in rets if r is not None]
+        exc = [(s.get("perf") or {}).get("excess", {}).get(key) for s in signals]
+        exc = [e for e in exc if e is not None]
+        wins, losses = [r for r in rets if r > 0], [r for r in rets if r < 0]
+        avg_w = sum(wins) / len(wins) if wins else None
+        avg_l = sum(losses) / len(losses) if losses else None
+        rows.append({
+            "보유기간": f"D+{n}", "표본 수": len(rets),
+            "평균 수익률(%)": sum(rets) / len(rets) if rets else None,
+            "중앙값(%)": float(pd.Series(rets).median()) if rets else None,
+            "승률(%)": 100 * len(wins) / len(rets) if rets else None,
+            "평균 이익(%)": avg_w, "평균 손실(%)": avg_l,
+            "손익비": (avg_w / abs(avg_l)) if (avg_w is not None and avg_l) else None,
+            "지수 비교 표본": len(exc),
+            "평균 초과수익(%p)": sum(exc) / len(exc) if exc else None,
+            "지수 이긴 비율(%)": 100 * sum(1 for e in exc if e > 0) / len(exc) if exc else None,
+        })
+    df = pd.DataFrame(rows)
+    df[[c for c in df.columns if c != "보유기간"]] = df[[c for c in df.columns if c != "보유기간"]].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+def style_summary(df: pd.DataFrame):
+    signed = ["평균 수익률(%)", "중앙값(%)", "평균 이익(%)", "평균 손실(%)", "평균 초과수익(%p)"]
+    styler = df.style.map(_signed_style, subset=signed)
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}", subset=signed)
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:.0f}", subset=["승률(%)", "지수 이긴 비율(%)"])
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:.2f}", subset=["손익비"])
+    return styler.format(lambda v: f"{int(v)}", subset=["표본 수", "지수 비교 표본"])
 
 
 def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_msg: str):
@@ -1083,9 +1157,35 @@ def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_
     m[3].metric("평균 수익률", f"{measured.mean():+.2f}%" if len(measured) else "—")
     m[4].metric("마지막 종가 기록일", max((max(s["closes"]) for s in shown_signals if s.get("closes")), default="—"))
     st.dataframe(style_tracker_table(tdf, tdate_cols), use_container_width=True, hide_index=True)
-    st.caption("수익률·최고·최저는 신호일 종가 대비이며 수수료·세금·슬리피지는 반영하지 않았습니다. "
+    st.caption("이 표의 수익률·최고·최저는 신호일 종가 대비이며 수수료·세금·슬리피지는 반영하지 않았습니다. "
+               "'다음날시가'는 신호 다음 거래일의 시가(현실적인 진입가)이고 '갭'은 신호일 종가 대비 그 시가의 변동률입니다. "
                "신호일 종가는 수정주가 기준으로 갱신될 수 있어 최초 기록값과 다를 수 있습니다(액면분할 등). "
                "'두 신호 겹침'은 같은 날 다른 종류의 신호에도 해당했다는 표시입니다.")
+
+    # ---- 성과 요약: 진입가(다음날 시가) 기준. 추적 중만 보기와 상관없이 이 종류의 전체 신호로 계산 ----
+    st.markdown("##### 📊 성과 요약 (진입가 = 신호 다음 거래일 시가)")
+    summ = summarize_performance(signals)
+    if int(summ["표본 수"].sum()) == 0:
+        st.info("아직 신호 다음 거래일이 지난 신호가 없어 성과 통계가 비어 있습니다. 다음 거래일 15:40 이후부터 채워집니다.")
+    else:
+        st.dataframe(style_summary(summ), use_container_width=True, hide_index=True)
+        best_n = int(summ["표본 수"].max())
+        if best_n < 30:
+            st.warning(f"표본이 가장 많은 구간도 {best_n}건뿐입니다. 30건 미만이면 평균·승률은 우연에 크게 좌우되므로 "
+                       "결론으로 삼지 마세요(신호가 몇 번 통했다/안 통했다는 이야기일 뿐입니다).")
+        gaps = [(s.get("perf") or {}).get("gap_pct") for s in signals]
+        gaps = [g for g in gaps if g is not None]
+        if gaps:
+            st.caption(f"신호일 종가 → 다음날 시가 갭: 평균 {sum(gaps) / len(gaps):+.2f}% "
+                       f"(갭상승 {sum(1 for g in gaps if g > 0)}건 / 갭하락 {sum(1 for g in gaps if g < 0)}건 / "
+                       f"보합 {sum(1 for g in gaps if g == 0)}건, 표본 {len(gaps)}건). "
+                       "갭이 크면 신호일 종가는 현실에서 살 수 없는 가격이었다는 뜻입니다.")
+    st.caption("D+n은 신호일을 D+0으로 봤을 때 n번째 거래일 종가이며, 수익률은 진입가(D+1 시가) 대비입니다(D+1은 진입일 당일 시가→종가). "
+               "'지수 대비 초과수익'은 같은 기간 종목이 속한 시장(코스피/코스닥) 지수의 수익률을 뺀 값(%p)이고, 지수는 야후 파이낸스(yfinance) 비공식 "
+               "데이터라 받지 못한 날은 비어 있을 수 있습니다(지수 시가가 없으면 신호일 지수 종가를 기준으로 대체). "
+               "승률은 진입가 대비 수익률이 0보다 큰 비율입니다. 수수료·세금·슬리피지, 시가에 실제로 체결되는지는 반영하지 않았습니다.")
+    st.markdown("##### 🧾 종목별 성과 (D+n · 진입가 기준)")
+    st.dataframe(style_perf_table(build_perf_table(shown_signals)), use_container_width=True, hide_index=True)
     with st.expander("신호 발생 당시 조건 상세"):
         detail = pd.DataFrame([{
             "종목명": s["name"], "종목코드": s["code"], "신호일": s["signal_date"],
