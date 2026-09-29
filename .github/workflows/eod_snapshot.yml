@@ -39,6 +39,10 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data/eod_snapshot.json data/watchlist.json
+          git add data/eod_snapshot.json
+          # 관찰목록(watchlist.json)은 제거됨 — 파일이 남아 있을 때만 커밋하고, 없어도 오류로 멈추지 않게 한다
+          git add data/watchlist.json 2>/dev/null || true
+          git add data/history 2>/dev/null || true
+          git add data/signal_tracker.json 2>/dev/null || true
           git commit -m "Update EOD snapshot [skip ci]" || echo "no changes"
           git push
