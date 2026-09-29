@@ -894,6 +894,12 @@ def growth_label(g) -> str:
 
 
 
+def fmt_fin_base(yymm) -> str:
+    """결산년월 '202606' -> '2026.06' (없으면 '—'). 12월이 아니면 반기·분기 자료라는 걸 표에서 바로 알 수 있게 한다."""
+    y = str(yymm or "")
+    return f"{y[:4]}.{y[4:]}" if len(y) == 6 and y.isdigit() else "—"
+
+
 def fmt_fin_line(fin, score_info=None) -> str:
     """재무 한 줄 요약 (ROE·부채비율·성장률·종합점수). fin이 None이면 빈 문자열."""
     if not fin:
@@ -1080,7 +1086,7 @@ def render_value_table(rows: list, total: int | None = None, caution_below: floa
             "PBR": r.get("pbr"), "PBR평가": pbr_label(r.get("pbr")),
             "ROE(%)": r.get("roe_used", r.get("roe_pct")), "ROE평가": roe_label(r.get("roe_used", r.get("roe_pct"))),
             "부채비율(%)": r.get("debt_ratio"), "매출증가율(%)": r.get("sales_growth"),
-            "영업이익증가율(%)": r.get("op_growth"),
+            "영업이익증가율(%)": r.get("op_growth"), "재무기준": fmt_fin_base(r.get("fin_yymm")),
             "시총(억)": r.get("mktcap_eok"), "52주고점대비(%)": r.get("drawdown_pct"),
             "공시": ("⚠ " + "; ".join(risky)) if risky else ("이상 없음" if risky == [] else "미확인"),
             "비고": " / ".join(filter(None, [
@@ -1137,6 +1143,8 @@ with tab_value:
                    "실적이 막 좋아지는 회사는 아직 비싸 보이고, 막 나빠지는 회사는 싸 보일 수 있습니다. "
                    "ROE·부채비율·매출/영업이익 증가율은 KIS 재무비율 API의 최근 결산 값입니다(PER/PBR 1차 필터를 통과한 후보에만 조회하며, "
                    "조회에 실패한 종목은 ROE만 PBR÷PER 역산 추정으로 대체하고 종합점수는 비웁니다). "
+                   "'재무기준'은 그 값의 결산 시점이며, 12월이 아니면(예: 2026.06) 반기·분기 자료라 ROE는 연환산 값으로 보이고 "
+                   "PER/PBR(작년 확정 연간 EPS 기준)과 기준 시점이 다릅니다. "
                    "종합점수는 ROE·부채비율·성장률·PER/PBR을 0~100점 구간으로 바꿔 가중합산한 참고용 점수라 금융업 부채비율 같은 업종 특성은 반영되지 않습니다. "
                    "영업이익 증가율 0은 적자지속·흑자전환·적자전환일 수 있어 점수에서 제외합니다. "
                    "ROE가 40%를 넘으면 자산 매각 같은 일회성 이익일 가능성이 높아 '일회성 이익 의심'으로 표시하고 목록 뒤로 보냅니다. "
@@ -1349,6 +1357,7 @@ with tab_screen:
             "PBR": r["_pbr"], "PBR평가": pbr_label(r["_pbr"]),
             "ROE(%)": (r["_fin"] or {}).get("roe"), "부채비율(%)": (r["_fin"] or {}).get("debt_ratio"),
             "매출증가율(%)": (r["_fin"] or {}).get("sales_growth"), "영업이익증가율(%)": (r["_fin"] or {}).get("op_growth"),
+            "재무기준": fmt_fin_base((r["_fin"] or {}).get("stac_yymm")),
             "종합점수": (r["_score"] or {}).get("score"), "등급": score_label((r["_score"] or {}).get("score")),
             "국면": r["_trend"], "참고지표": f"{r['_passed']}/{r['_total']}",
         })
