@@ -473,11 +473,17 @@ def analyze_technicals(df: pd.DataFrame) -> dict:
 
 
 def compute_transition_signal(df: pd.DataFrame) -> bool:
-    """VCP(눌림) 상태였다가 거래량급증이 뜬 경우만 True.
+    """VCP(눌림) 상태였다가 거래량급증 + 실제 상승이 함께 뜬 경우만 True.
 
     2026-09-21 백테스트(코스닥 성장주 38종목, 5년)에서 근사t값 2.3~2.5로
-    반복 확인된, 유일하게 통계적 근거가 있는 신호. 정배열/20일모멘텀/RSI/
-    VCP단독/볼린저밴드 4종은 전부 효과가 확인되지 않아 참고용으로만 남김.
+    반복 확인된 신호는 원래 '거래량급증'만 조건이었다(상승/하락 무관). 그런데
+    2026-09-29 실전에서 폭락하며 거래량이 터진 날(투매)도 똑같이 잡히는 오작동이
+    2건(엔젠바이오 -24.9%, 퀀텀레일 -22.4%) 확인돼, 그날 실제로 올랐는지
+    (종가 > 전일종가) 조건을 추가했다.
+    이 조건 추가로 신호의 정의가 원래 백테스트와 달라졌다 — 즉 지금 이 버전은
+    9/21 백테스트로 재검증된 게 아니다. 논리적으로는 더 타당하지만
+    통계적 근거는 아직 없는 상태이니, 화면에 '검증된 신호'라고 표시하지 말 것.
+    정배열/20일모멘텀/RSI/VCP단독/볼린저밴드 4종은 여전히 효과 미확인 참고용.
     """
     if df.empty or len(df) < 60:
         return False
@@ -486,6 +492,7 @@ def compute_transition_signal(df: pd.DataFrame) -> bool:
 
     vol_avg20 = vol.rolling(20).mean().shift(1)
     vol_surge = vol >= vol_avg20 * 1.5
+    up_day = close > close.shift(1)   # 거래량 급증한 그날 실제로 올랐는지
 
     daily_range = (high - low) / close
     recent5 = daily_range.rolling(5).std()
@@ -493,7 +500,8 @@ def compute_transition_signal(df: pd.DataFrame) -> bool:
     vcp = recent5 < prior15 * 0.8
 
     recent_vcp = vcp.shift(1).rolling(3, min_periods=1).max().fillna(0).astype(bool)
-    transition = vol_surge.fillna(False).astype(bool) & recent_vcp
+    transition = (vol_surge.fillna(False).astype(bool) & recent_vcp
+                  & up_day.fillna(False).astype(bool))
     return bool(transition.iloc[-1]) if not transition.empty else False
 
 
@@ -969,7 +977,8 @@ with tab_overlap:
 # ---------------- ⏱ 장중 변동 ----------------
 with tab_intraday:
     st.subheader("장중 후보 변동 (제외 / 신규 / 유지)")
-    st.caption("후보 기준: 전환신호(VCP 눌림 후 거래량급증) — 백테스트로 검증된 신호입니다.")
+    st.caption("후보 기준: 전환신호(VCP 눌림 후 거래량급증+상승). 2026-09-29에 '상승' 조건을 "
+               "추가해 9/21 백테스트와 정의가 달라졌습니다 — 재검증 전까지 참고용입니다.")
 
     INTRADAY_STATUS_PATH = "data/intraday_status.json"
     if os.path.exists(INTRADAY_STATUS_PATH):
@@ -1014,9 +1023,11 @@ with tab_intraday:
 # ---------------- ✅ 스윙 후보 스크리닝 ----------------
 with tab_screen:
     st.subheader("순매수 상위 10 — 스윙 후보 스크리닝")
-    st.caption("2026-09-21 백테스트(코스닥 성장주 38종목, 5년) 결과, 검증된 신호는 "
-               "**전환신호(눌림 후 거래량급증) 하나뿐**입니다. 정배열·20일모멘텀·RSI·VCP단독·"
-               "볼린저밴드는 효과가 확인되지 않아 참고 정보로만 표시합니다.")
+    st.caption("2026-09-21 백테스트(코스닥 성장주 38종목, 5년)에서 유일하게 통계적 근거가 있던 "
+               "신호는 전환신호(눌림 후 거래량급증)였습니다. 다만 2026-09-29에 그날 실제로 올랐는지 "
+               "조건을 추가했습니다(폭락하며 거래량이 터진 날도 신호로 잡히는 오작동 발견 — 엔젠바이오·"
+               "퀀텀레일 사례). 조건이 바뀌어 위 백테스트가 지금 버전을 검증하진 않으니, 재검증 전까지 "
+               "**참고용**으로 봐주세요. 정배열·20일모멘텀·RSI·VCP단독·볼린저밴드는 원래도 효과 미확인.")
 
     if not (DART_API_KEY and NAVER_CLIENT_ID and NAVER_CLIENT_SECRET):
         st.warning("DART / 네이버 뉴스 Secrets이 없어 공시·뉴스 정보는 생략됩니다.")
@@ -1051,7 +1062,7 @@ with tab_screen:
             st.error(f"⚠️ 그중 {n_transition_risky}개는 관리종목·투자위험 등 거래소 지정 상태입니다 — "
                      "거래량급증이 매수세가 아니라 투매일 수 있으니 근거로 쓰지 마세요.")
     else:
-        st.info("오늘은 전환신호(검증된 신호)가 뜬 종목이 없습니다. 아래는 전부 참고용입니다.")
+        st.info("오늘은 전환신호가 뜬 종목이 없습니다. 아래는 전부 참고용입니다.")
 
     # 재진입 후보 / 관찰 목록 (전일 마감 배치가 생성한 데이터, GitHub Actions가 커밋)
     EOD_SNAPSHOT_PATH = "data/eod_snapshot.json"
@@ -1087,12 +1098,12 @@ with tab_screen:
         with st.expander(f"{title_prefix}· 원순위 {row['rank']}위 · {name} ({code})"):
             if mflags:
                 st.error("🚨 거래소 지정 상태: " + " · ".join(mflags) +
-                          " — '거래량급증'이 매수세가 아니라 투매일 수 있어, 전환신호 조건을 충족해도 "
-                          "검증된 신호로 인정하지 않습니다.")
+                          " — 거래소 위험 상태에서는 신호 자체를 인정하지 않습니다.")
             if transition:
-                st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증. 검증된 신호입니다.")
+                st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증+상승. "
+                           "(2026-09-29 방향 조건 추가로 9/21 백테스트 재검증 전 — 참고용)")
             else:
-                st.caption("전환신호 없음 (검증된 신호 기준 미충족)")
+                st.caption("전환신호 없음 (조건 미충족)")
 
             rsi_note = f" (RSI: {tech['RSI값']})" if tech["RSI값"] is not None else ""
             st.markdown(f"**참고지표: {passed}/{total} 통과**{rsi_note} — 아래는 효과가 "
@@ -1124,7 +1135,7 @@ REVERSAL_LABELS = {"하락추세 속 기술적 반등", "하락추세 · 반등 
 with tab_reversal:
     st.subheader("하락추세 반등 후보")
     st.caption("순매수 상위·거래량 상위 후보군 안에서, 국면 판단이 '하락추세 속 반등'류로 나온 종목만 골라 보여드립니다. "
-               "전환신호와 달리 이 분류 자체는 아직 검증된 신호가 아니라 참고용입니다 (코스피/코스닥 전체를 매번 스캔할 수는 없어, "
+               "전환신호도 지금은 재검증 전 참고용이고, 이 분류는 그보다도 더 느슨한 규칙 기반 참고용입니다 (코스피/코스닥 전체를 매번 스캔할 수는 없어, "
                "이미 화면에 있는 후보군 안에서만 찾습니다).")
 
     candidate_pool = {}
@@ -1208,9 +1219,10 @@ with tab_lookup:
 
         lookup_transition = compute_transition_signal(lookup_df)
         if lookup_transition:
-            st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증. 백테스트로 검증된 신호입니다.")
+            st.success("🎯 **전환신호 확인** — VCP(눌림) 이후 거래량급증+상승. "
+                       "(2026-09-29 방향 조건 추가로 9/21 백테스트 재검증 전 — 참고용)")
         else:
-            st.info("전환신호 없음 (검증된 신호 기준 미충족 — 아래 지표는 참고용입니다)")
+            st.info("전환신호 없음 (조건 미충족 — 아래 지표는 참고용입니다)")
 
         lookup_checks = {k: v for k, v in lookup_tech.items() if k != "RSI값"}
         lookup_passed = sum(1 for v in lookup_checks.values() if v is True)
