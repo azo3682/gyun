@@ -44,5 +44,6 @@ jobs:
           git add data/watchlist.json 2>/dev/null || true
           git add data/history 2>/dev/null || true
           git add data/signal_tracker.json 2>/dev/null || true
+          git add data/index_history.json 2>/dev/null || true
           git commit -m "Update EOD snapshot [skip ci]" || echo "no changes"
           git push
