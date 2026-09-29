@@ -1001,8 +1001,105 @@ def trend_label_for(stock_code: str) -> str:
     return label
 
 
-tab_supply, tab_volume, tab_value, tab_overlap, tab_intraday, tab_screen, tab_reversal, tab_lookup = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회",
+# ============================================================
+# 📌 신호 추적 (전환신호 + 거래량 상위 + 순매수 상위가 같은 날 겹친 종목의 신호일 종가 이후 추이)
+#   기록은 scripts/signal_tracker.py가 매 거래일 15:40에 data/signal_tracker.json에 쌓는다.
+# ============================================================
+TRACKER_PATH = "data/signal_tracker.json"
+_UP_STYLE = "background-color: rgba(224,49,49,0.16); color: #e03131; font-weight: 600;"
+_DOWN_STYLE = "background-color: rgba(25,113,194,0.16); color: #1971c2; font-weight: 600;"
+
+
+def build_tracker_table(signals: list, n_days: int):
+    """행=신호 종목, 열=신호일 종가 + 최근 n_days 거래일의 종가. (DataFrame, 날짜 컬럼 이름 리스트) 반환.
+    날짜 컬럼은 모든 종목이 같은 달력을 공유해서, 세로로 보면 '그날 종목들이 어땠는지'가 보인다."""
+    all_dates = sorted({d for s in signals for d in (s.get("closes") or {})} | {s["signal_date"] for s in signals})
+    shown = all_dates[-n_days:]
+    labels = [d[5:] for d in shown]                     # 'MM-DD'
+    rows = []
+    for s in sorted(signals, key=lambda x: (x["signal_date"], x["code"]), reverse=True):
+        base = s["signal_close"]
+        closes = s.get("closes") or {}
+        row = {"종목명": s["name"], "종목코드": s["code"], "신호일": s["signal_date"], "신호일종가": base}
+        for d, lab in zip(shown, labels):
+            row[lab] = closes.get(d)                    # 신호일 이전·당일은 빈칸 (당일 종가는 '신호일종가' 열)
+        rets = [(c / base - 1) * 100 for c in closes.values()] if base else []
+        last = closes[max(closes)] if closes else None
+        row["최근종가"] = last
+        row["수익률(%)"] = (last / base - 1) * 100 if (last and base) else None
+        row["최고(%)"] = max(rets) if rets else None
+        row["최저(%)"] = min(rets) if rets else None
+        row["경과(거래일)"] = len(closes)
+        row["상태"] = "추적 중" if s.get("active", True) else "추적 종료"
+        row["두 신호 겹침"] = "✔" if (s.get("conditions") or {}).get("overlap") else ""
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    num_cols = ["신호일종가", "최근종가", "수익률(%)", "최고(%)", "최저(%)"] + labels
+    df[num_cols] = df[num_cols].apply(pd.to_numeric, errors="coerce")
+    return df, labels
+
+
+def style_tracker_table(df: pd.DataFrame, date_cols: list):
+    """날짜별 종가 칸을 신호일 종가와 비교해 오르면 빨강, 내리면 파랑 배경으로 칠한다(한국식: 상승=빨강)."""
+    def _row_style(row):
+        base = row["신호일종가"]
+        out = []
+        for col in row.index:
+            v = row[col]
+            if col in date_cols and pd.notna(v) and pd.notna(base) and base:
+                out.append(_UP_STYLE if v > base else _DOWN_STYLE if v < base else "")
+            else:
+                out.append("")
+        return out
+
+    def _ret_color(v):
+        if pd.isna(v):
+            return ""
+        return "color: #e03131; font-weight: 600;" if v > 0 else "color: #1971c2; font-weight: 600;" if v < 0 else ""
+
+    ret_cols = ["수익률(%)", "최고(%)", "최저(%)"]
+    styler = df.style.apply(_row_style, axis=1).map(_ret_color, subset=ret_cols)
+    styler = styler.format(lambda v: "" if pd.isna(v) else f"{v:,.0f}", subset=["신호일종가", "최근종가"] + date_cols)
+    for c in ret_cols:
+        styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}%", subset=[c])
+    return styler
+
+
+def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_msg: str):
+    """신호 추적 표 한 벌(요약 지표 + 종가 표 + 발생 당시 조건)을 그린다. 종류별 하위 탭에서 각각 호출한다."""
+    if not signals:
+        st.info(empty_msg)
+        return
+    shown_signals = [s for s in signals if s.get("active", True)] if only_active else signals
+    if not shown_signals:
+        st.info("추적 중인 신호가 없습니다.")
+        return
+    tdf, tdate_cols = build_tracker_table(shown_signals, n_days)
+    measured = tdf["수익률(%)"].dropna()
+    m = st.columns(5)
+    m[0].metric("기록된 신호", f"{len(tdf)}건")
+    m[1].metric("신호일 종가보다 위", f"{int((measured > 0).sum())}건")
+    m[2].metric("신호일 종가보다 아래", f"{int((measured < 0).sum())}건")
+    m[3].metric("평균 수익률", f"{measured.mean():+.2f}%" if len(measured) else "—")
+    m[4].metric("마지막 종가 기록일", max((max(s["closes"]) for s in shown_signals if s.get("closes")), default="—"))
+    st.dataframe(style_tracker_table(tdf, tdate_cols), use_container_width=True, hide_index=True)
+    st.caption("수익률·최고·최저는 신호일 종가 대비이며 수수료·세금·슬리피지는 반영하지 않았습니다. "
+               "신호일 종가는 수정주가 기준으로 갱신될 수 있어 최초 기록값과 다를 수 있습니다(액면분할 등). "
+               "'두 신호 겹침'은 같은 날 다른 종류의 신호에도 해당했다는 표시입니다.")
+    with st.expander("신호 발생 당시 조건 상세"):
+        detail = pd.DataFrame([{
+            "종목명": s["name"], "종목코드": s["code"], "신호일": s["signal_date"],
+            "순매수 순위": (s.get("conditions") or {}).get("buy_rank"),
+            "거래량 순위": (s.get("conditions") or {}).get("volume_rank"),
+            "신호일 등락률(%)": s.get("day_pct"),
+            "최초 기록 종가": s.get("signal_close_first"),
+            "거래소 위험 표시": ", ".join((s.get("conditions") or {}).get("risk_flags") or []),
+        } for s in sorted(shown_signals, key=lambda x: (x["signal_date"], x["code"]), reverse=True)])
+        st.dataframe(detail, use_container_width=True, hide_index=True)
+
+
+tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회",
 ])
 
 # ---------------- 📊 순매수 상위 ----------------
@@ -1243,6 +1340,41 @@ with tab_overlap:
                     st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in orisky))
                 elif DART_API_KEY:
                     st.success("최근 30일 내 주의 공시 없음")
+
+# ---------------- 📌 신호 추적 ----------------
+with tab_tracker:
+    st.subheader("신호 추적 (신호일 종가 이후 추이)")
+    tracker = None
+    if os.path.exists(TRACKER_PATH):
+        try:
+            with open(TRACKER_PATH, "r", encoding="utf-8") as f:
+                tracker = json.load(f)
+        except Exception as e:
+            st.warning(f"신호 추적 파일을 읽지 못했습니다: {e}")
+    crit = (tracker or {}).get("criteria", {})
+    st.caption(
+        "매 거래일 15:40(장 마감 후)에 신호가 뜬 종목을 그날 종가와 함께 기록하고, 이후 거래일마다 종가를 옆에 이어서 적습니다. "
+        "두 종류의 신호를 서로 따로 기록합니다. 종가 칸은 신호일 종가보다 높으면 빨강, 낮으면 파랑입니다. "
+        f"신호 후 {crit.get('track_days', 40)}거래일치가 쌓이면 추적을 끝냅니다."
+    )
+    st.caption("⚠ 두 신호 모두 매수 신호로 검증된 적이 없습니다(전환신호는 2026-09-29 조건 변경 후 재검증 전, "
+               "거래량·수급 동시는 관심이 쏠렸다는 뜻일 뿐). 이 탭은 '실제로 올랐는지'를 지켜보기 위한 기록이며, "
+               "몇 건 안 되는 표본으로 결론을 내리면 안 됩니다. 종가는 매 거래일 15:40 이후 자동 갱신되고 실시간이 아닙니다.")
+    all_signals = (tracker or {}).get("signals", [])
+    opt_cols = st.columns([1, 1, 3])
+    n_days = opt_cols[0].selectbox("표시할 최근 거래일 수", [10, 20, 40], index=1)
+    only_active = opt_cols[1].checkbox("추적 중만 보기", value=False)
+    sub_trans, sub_vs = st.tabs(["🔀 전환신호", "🔥 거래량·수급 동시"])
+    with sub_trans:
+        st.caption(crit.get("transition", "전환신호(VCP 눌림 후 거래량급증+상승)가 뜬 종목 (순매수 상위 10 안에서 계산)")
+                   + " — 순매수·거래량 순위는 요구하지 않습니다.")
+        render_tracker_section([x for x in all_signals if x.get("type") == "transition"], n_days, only_active,
+                               "아직 기록된 전환신호가 없습니다. 신호가 뜨면 그날 15:40 이후 이 탭에 나타납니다.")
+    with sub_vs:
+        st.caption(crit.get("volume_supply", "순매수 상위 10과 거래량 상위에 같은 날 함께 오른 종목")
+                   + " — '🔥 동시 등장' 탭과 같은 정의이고, 전환신호는 요구하지 않습니다.")
+        render_tracker_section([x for x in all_signals if x.get("type") == "volume_supply"], n_days, only_active,
+                               "아직 기록된 종목이 없습니다. 두 순위에 함께 오른 종목이 생기면 그날 15:40 이후 이 탭에 나타납니다.")
 
 # ---------------- ⏱ 장중 변동 ----------------
 with tab_intraday:
