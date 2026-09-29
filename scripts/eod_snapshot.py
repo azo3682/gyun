@@ -22,7 +22,7 @@ from datetime import datetime
 
 from common import (
     fetch_investor_ranking, fetch_daily_ohlcv, analyze_technicals,
-    compute_transition_signal, compute_day_return, fetch_valuation, is_cheap,
+    compute_transition_signal, compute_day_return, fetch_valuation_and_risk, is_cheap,
     check_disclosure_risk, fetch_news, KST,
 )
 
@@ -90,14 +90,17 @@ def build_snapshot():
         code, name = row["stock_code"], row["stock_name"]
         df = fetch_daily_ohlcv(code)
         tech = analyze_technicals(df)
-        transition = compute_transition_signal(df)
+        raw_transition = compute_transition_signal(df)
         day_pct = compute_day_return(df)
         checks = {k: v for k, v in tech.items() if k != "RSI값"}
         passed = sum(1 for v in checks.values() if v is True)
         total = sum(1 for v in checks.values() if v is not None)
         risky = check_disclosure_risk(code)
         news = fetch_news(name)
-        valuation = fetch_valuation(code)   # {'per','pbr','eps','bps'} 또는 None
+        valuation, market_flags = fetch_valuation_and_risk(code)   # PER/PBR과 거래소 위험 상태를 한 번에
+        # 관리종목·투자위험 등 거래소 지정 상태면 '거래량급증'이 매수세가 아니라 투매일 수 있어
+        # 검증된 신호로 인정하지 않는다 (백테스트 표본에 이런 상태의 종목은 없었다)
+        transition = raw_transition and not market_flags
 
         deferred = False
         if transition and day_pct is not None and day_pct >= CHASE_THRESHOLD and code not in watchlist:
@@ -107,7 +110,7 @@ def build_snapshot():
 
         enriched.append({
             **row, "tech": tech, "transition": transition, "day_pct": day_pct,
-            "deferred_to_watchlist": deferred, "valuation": valuation,
+            "deferred_to_watchlist": deferred, "valuation": valuation, "market_risk_flags": market_flags,
             "passed": passed, "total": total,
             "risky_disclosures": risky, "news": news,
         })
