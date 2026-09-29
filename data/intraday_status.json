@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-29T09:57:29+09:00",
+  "checked_at": "2026-09-29T11:42:52+09:00",
   "kept": [],
   "excluded": [
     {
@@ -7,19 +7,19 @@
       "stock_name": "한화솔루션",
       "tech": {
         "정배열": false,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 59.0
+        "RSI값": 59.7
       },
       "transition": false,
-      "passed": 1,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
       "current_price": 31950.0,
       "day_pct": -4.2,
-      "reason": "당일 가격 -4.20% 하락"
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "178320",
@@ -30,35 +30,16 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 46.4
+        "RSI값": 49.2
       },
       "transition": false,
       "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 35550.0,
-      "day_pct": -0.97,
+      "current_price": 36350.0,
+      "day_pct": 1.25,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
-  "new_candidates": [
-    {
-      "stock_code": "256840",
-      "stock_name": "한국비엔씨",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 72.2
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 3655.0,
-      "day_pct": 6.72
-    }
-  ]
+  "new_candidates": []
 }
