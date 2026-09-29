@@ -153,6 +153,39 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
     return rows
 
 
+VOLUME_RANK_API_PATH = "/uapi/domestic-stock/v1/quotations/volume-rank"
+VOLUME_RANK_TR_ID = "FHPST01710000"
+
+
+def fetch_volume_ranking(top_n: int = 30) -> list[dict]:
+    """거래량 상위 순위 (streamlit_app.py의 fetch_volume_rank와 같은 요청). 실패하면 예외를 그대로 던진다.
+    반환: [{"rank","stock_code","stock_name","volume","day_pct"}, ...] — 펀드/ETF 계열은 제외."""
+    params = {
+        "FID_COND_MRKT_DIV_CODE": "J", "FID_COND_SCR_DIV_CODE": "20171", "FID_INPUT_ISCD": "0000",
+        "FID_DIV_CLS_CODE": "0", "FID_BLNG_CLS_CODE": "0", "FID_TRGT_CLS_CODE": "111111111",
+        "FID_TRGT_EXLS_CLS_CODE": "0000000000", "FID_INPUT_PRICE_1": "0", "FID_INPUT_PRICE_2": "0",
+        "FID_VOL_CNT": "0", "FID_INPUT_DATE_1": "",
+    }
+    resp = requests.get(f"{BASE_URL}{VOLUME_RANK_API_PATH}", headers=kis_headers(VOLUME_RANK_TR_ID),
+                         params=params, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
+    rows = []
+    for item in data.get("output", []):
+        name = item.get("hts_kor_isnm", "")
+        if is_fund_product(name):
+            continue
+        rows.append({
+            "rank": len(rows) + 1, "stock_code": item.get("mksc_shrn_iscd", ""), "stock_name": name,
+            "volume": _to_float(item.get("acml_vol")), "day_pct": _to_float(item.get("prdy_ctrt")),
+        })
+        if len(rows) >= top_n:
+            break
+    return rows
+
+
 FAIL_REASONS = {}          # {사유코드: {"count": n, "msg": 예시 메시지}} — 어떤 이유로 실패했는지 진단용
 _fail_lock = threading.Lock()
 
