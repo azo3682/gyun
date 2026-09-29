@@ -17,7 +17,6 @@ from common import KST
 
 SNAPSHOT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "eod_snapshot.json")
 VALUE_SCREEN_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "value_screen.json")
-CHASE_PCT_DISPLAY = 7  # eod_snapshot.py의 CHASE_THRESHOLD(0.07)와 맞춰 표시용
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS", "")
 EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD", "")
@@ -88,16 +87,49 @@ def build_market_briefing() -> str:
     return "\n".join(lines)
 
 
+# 2026-09-29 추가: 숫자만 봐서는 좋은지 나쁜지 바로 판단하기 어렵다는 피드백으로
+# PER/PBR 옆에 붙이는 직관 라벨. 절대적인 '싸다/비싸다' 판정이 아니라 구간 분류일
+# 뿐이며, 업종마다 기준이 다르다는 점(금융·건설·해운은 원래 PBR이 낮음)은 그대로 감안할 것.
+def per_label(per) -> str:
+    if per is None:
+        return ""
+    if per <= 0:
+        return "🔴 나쁨(적자)"
+    if per <= 3:
+        return "🟡 주의(수치 왜곡 가능성)"
+    if per <= 15:
+        return "🟢 좋음(저평가권)"
+    if per <= 30:
+        return "⚪ 보통"
+    if per <= 60:
+        return "🔴 나쁨(고평가권)"
+    return "🔴 매우 나쁨(고평가)"
+
+
+def pbr_label(pbr) -> str:
+    if pbr is None or pbr <= 0:
+        return ""
+    if pbr <= 0.6:
+        return "🟢 좋음(저평가권)"
+    if pbr <= 1.5:
+        return "⚪ 보통"
+    if pbr <= 3:
+        return "🔴 나쁨(고평가권)"
+    return "🔴 매우 나쁨(고평가)"
+
+
 def fmt_valuation(v) -> str:
-    """{'per','pbr'} -> ' · PER 8.0 · PBR 0.90' (없으면 빈 문자열)"""
+    """{'per','pbr'} -> ' · PER 8.0 🟢 좋음(저평가권) · PBR 0.90 ⚪ 보통' (없으면 빈 문자열)"""
     if not v or v.get("per") is None or v.get("pbr") is None:
         return ""
-    per = f"{v['per']:.1f}" if v["per"] > 0 else "적자"
-    return f" · PER {per} · PBR {v['pbr']:.2f}"
+    per_val = v["per"]
+    per_str = f"{per_val:.1f} {per_label(per_val)}".strip() if per_val > 0 else "적자 🔴 나쁨(적자)"
+    pbr_str = f"{v['pbr']:.2f} {pbr_label(v['pbr'])}".strip()
+    return f" · PER {per_str} · PBR {pbr_str}"
 
 
 def fmt_value_row(r: dict, caution_below: float = 3.0) -> str:
-    parts = [f"PER {r['per']:.1f}", f"PBR {r['pbr']:.2f}"]
+    parts = [f"PER {r['per']:.1f} {per_label(r['per'])}".strip(), f"PBR {r['pbr']:.2f} {pbr_label(r['pbr'])}".strip()]
     if r.get("roe_pct") is not None:
         parts.append(f"ROE(추정) {r['roe_pct']:.0f}%")
     if r.get("mktcap_eok") is not None:
@@ -175,13 +207,18 @@ def build_report_body() -> str:
 
     lines.append("=== 오늘의 스윙 후보 (전환신호: VCP 눌림 후 거래량급증+상승 — 2026-09-29 방향 조건 추가로 "
                  "9/21 백테스트 재검증 전, 참고용) ===")
-    candidates = [r for r in snapshot.get("buy_top10", [])
-                  if r.get("transition") is True and not r.get("deferred_to_watchlist")]
+    candidates = [r for r in snapshot.get("buy_top10", []) if r.get("transition") is True]
     if not candidates:
         lines.append("(전환신호가 뜬 후보가 없습니다)")
     for c in candidates:
         checks_str = ", ".join(f"{k}:{'O' if v else 'X'}" for k, v in c["tech"].items() if k != "RSI값")
-        day_pct_str = f" (당일 {c['day_pct']*100:+.2f}%)" if c.get("day_pct") is not None else ""
+        day_pct = c.get("day_pct")
+        if day_pct is not None and day_pct >= 0.07:
+            day_pct_str = f" (당일 {day_pct*100:+.2f}% ⚠️이미 급등, 추격 주의)"
+        elif day_pct is not None:
+            day_pct_str = f" (당일 {day_pct*100:+.2f}%)"
+        else:
+            day_pct_str = ""
         lines.append(f"\n· {c['stock_name']}({c['stock_code']}) — 전환신호 ✅{day_pct_str} (참고점수 {c['passed']}/{c['total']}){fmt_valuation(c.get('valuation'))}")
         lines.append(f"  참고지표: {checks_str}")
         if c.get("risky_disclosures"):
@@ -190,23 +227,6 @@ def build_report_body() -> str:
             lines.append("  관련 뉴스:")
             for n in c["news"][:2]:
                 lines.append(f"    - {n['title']} ({n['link']})")
-
-    deferred = [r for r in snapshot.get("buy_top10", []) if r.get("deferred_to_watchlist")]
-    if deferred:
-        lines.append(f"\n=== 관찰 후보로 전환됨 (당일 이미 +{CHASE_PCT_DISPLAY}% 이상 급등 — 추격 대신 눌림 대기) ===")
-        for d in deferred:
-            lines.append(f"· {d['stock_name']}({d['stock_code']}) — 당일 {d['day_pct']*100:+.2f}%")
-
-    reentry = snapshot.get("reentry_candidates", [])
-    if reentry:
-        lines.append("\n=== 🎯 재진입 후보 (관찰 중이던 종목이 눌림 상태로 복귀) ===")
-        for r in reentry:
-            lines.append(f"· {r['stock_name']}({r['stock_code']}) — {r['days_watched']}거래일 관찰 후 눌림 확인 "
-                         f"(최초 급등 +{r['initial_pct']*100:.2f}%)")
-
-    watch_size = snapshot.get("watchlist_size", 0)
-    if watch_size:
-        lines.append(f"\n(현재 관찰 목록 {watch_size}개 종목 눌림 대기 중 — 대시보드에서 확인 가능)")
 
     value_overlap = snapshot.get("value_overlap", [])
     if value_overlap:
