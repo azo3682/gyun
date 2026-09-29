@@ -23,7 +23,7 @@ from common import (
     fetch_investor_ranking, fetch_daily_ohlcv, analyze_technicals,
     compute_transition_signal, compute_day_return, fetch_valuation_and_risk, is_cheap,
     check_disclosure_risk, fetch_news, KST,
-    fetch_financial_ratio, strip_raw, composite_score, fetch_volume_ranking,
+    fetch_financial_ratio, strip_raw, composite_score, fetch_volume_ranking, fetch_price_detail,
 )
 import signal_tracker
 
@@ -159,11 +159,14 @@ if __name__ == "__main__":
         print(f"이력 누적 실패(스냅샷에는 영향 없음): {e}")
     # 신호 추적: 오늘 신호를 기록하고, 진행 중인 신호의 종가를 갱신한다 (실패해도 스냅샷에는 영향 없음)
     try:
-        res = signal_tracker.run(snapshot, fetcher=fetch_daily_ohlcv)
+        res = signal_tracker.run(
+            snapshot, fetcher=fetch_daily_ohlcv,
+            market_lookup=lambda code: (fetch_price_detail(code) or {}).get("rprs_mrkt_kor_name"))
         for t, label in signal_tracker.SIGNAL_TYPES.items():
             print(f"신호 추적[{label}]: 오늘 {res['found'][t]}개(신규 기록 {res['added'][t]}개) / "
                   f"진행 중 {res['active'][t]}개 / 누적 {res['total'][t]}개")
-        print(f"신호 추적: 종가 갱신 {res['updated']}건, 조회 실패 {res['failed']}건"
+        idx_msg = ", ".join(f"{k} {'OK' if v else '실패'}" for k, v in res["index_status"].items()) or "신호 없어 생략"
+        print(f"신호 추적: 종가 갱신 {res['updated']}건, 조회 실패 {res['failed']}건, 다음 날 시가 기록된 신호 {res['with_entry']}건, 지수 이력({idx_msg})"
               + ("" if res["volume_ok"] else " — 거래량 순위 조회 실패로 오늘은 '거래량·수급 동시' 신호를 기록하지 않음"))
     except Exception as e:
         print(f"신호 추적 실패(스냅샷에는 영향 없음): {e}")
