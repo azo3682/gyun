@@ -319,11 +319,17 @@ def analyze_technicals(df: pd.DataFrame) -> dict:
 
 
 def compute_transition_signal(df: pd.DataFrame) -> bool:
-    """VCP(눌림) 상태였다가 거래량급증이 뜬 경우만 True.
+    """VCP(눌림) 상태였다가 거래량급증 + 실제 상승이 함께 뜬 경우만 True.
 
     2026-09-21 백테스트(코스닥 성장주 38종목, 5년)에서 근사t값 2.3~2.5로
-    반복 확인된, 유일하게 통계적 근거가 있는 신호. 정배열/20일모멘텀/RSI/
-    VCP단독/볼린저밴드 4종은 전부 효과가 확인되지 않아 참고용으로만 남김.
+    반복 확인된 신호는 원래 '거래량급증'만 조건이었다(상승/하락 무관). 그런데
+    2026-09-29 실전에서 폭락하며 거래량이 터진 날(투매)도 똑같이 잡히는 오작동이
+    2건(엔젠바이오 -24.9%, 퀀텀레일 -22.4%) 확인돼, 그날 실제로 올랐는지
+    (종가 > 전일종가) 조건을 추가했다.
+    이 조건 추가로 신호의 정의가 원래 백테스트와 달라졌다 — 즉 지금 이 버전은
+    9/21 백테스트로 재검증된 게 아니다. 논리적으로는 더 타당하지만
+    통계적 근거는 아직 없는 상태이니, 화면에 '검증된 신호'라고 표시하지 말 것.
+    정배열/20일모멘텀/RSI/VCP단독/볼린저밴드 4종은 여전히 효과 미확인 참고용.
     """
     if df.empty or len(df) < 60:
         return False
@@ -332,6 +338,7 @@ def compute_transition_signal(df: pd.DataFrame) -> bool:
 
     vol_avg20 = vol.rolling(20).mean().shift(1)
     vol_surge = vol >= vol_avg20 * 1.5
+    up_day = close > close.shift(1)   # 거래량 급증한 그날 실제로 올랐는지
 
     daily_range = (high - low) / close
     recent5 = daily_range.rolling(5).std()
@@ -339,7 +346,8 @@ def compute_transition_signal(df: pd.DataFrame) -> bool:
     vcp = recent5 < prior15 * 0.8
 
     recent_vcp = vcp.shift(1).rolling(3, min_periods=1).max().fillna(0).astype(bool)
-    transition = vol_surge.fillna(False).astype(bool) & recent_vcp
+    transition = (vol_surge.fillna(False).astype(bool) & recent_vcp
+                  & up_day.fillna(False).astype(bool))
     return bool(transition.iloc[-1]) if not transition.empty else False
 
 
