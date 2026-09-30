@@ -1,9 +1,140 @@
 {
-  "signals": [],
+  "signals": [
+    {
+      "code": "093370",
+      "name": "후성",
+      "signal_date": "2026-09-30",
+      "signal_close": 15000,
+      "day_pct": 6.23,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 2,
+        "volume_rank": null,
+        "overlap": false,
+        "risk_flags": []
+      },
+      "signal_close_first": 15000,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-09-30T15:55:39+09:00",
+      "last_updated": "2026-09-30",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "018880",
+      "name": "한온시스템",
+      "signal_date": "2026-09-30",
+      "signal_close": 3520,
+      "day_pct": 10.0,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 1,
+        "volume_rank": 5,
+        "overlap": true,
+        "risk_flags": []
+      },
+      "signal_close_first": 3520,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-09-30T15:55:39+09:00",
+      "last_updated": "2026-09-30",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "018880",
+      "name": "한온시스템",
+      "signal_date": "2026-09-30",
+      "signal_close": 3520,
+      "day_pct": 10.0,
+      "type": "volume_supply",
+      "conditions": {
+        "buy_rank": 1,
+        "volume_rank": 5,
+        "overlap": true,
+        "risk_flags": []
+      },
+      "signal_close_first": 3520,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-09-30T15:55:39+09:00",
+      "last_updated": "2026-09-30",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "008970",
+      "name": "KBI동양철관",
+      "signal_date": "2026-09-30",
+      "signal_close": 1483,
+      "day_pct": 29.97,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 6,
+        "volume_rank": 6,
+        "overlap": true,
+        "risk_flags": []
+      },
+      "signal_close_first": 1483,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-09-30T15:55:39+09:00",
+      "last_updated": "2026-09-30",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "008970",
+      "name": "KBI동양철관",
+      "signal_date": "2026-09-30",
+      "signal_close": 1483,
+      "day_pct": 29.97,
+      "type": "volume_supply",
+      "conditions": {
+        "buy_rank": 6,
+        "volume_rank": 6,
+        "overlap": true,
+        "risk_flags": []
+      },
+      "signal_close_first": 1483,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-09-30T15:55:39+09:00",
+      "last_updated": "2026-09-30",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    }
+  ],
   "criteria": {
     "transition": "전환신호(VCP 눌림 후 거래량급증+상승)가 뜬 종목 (순매수 상위 10 안에서 계산)",
     "volume_supply": "순매수 상위 10과 거래량 상위에 같은 날 함께 오른 종목",
     "track_days": 40
   },
-  "updated_at": "2026-09-30T08:23:48+09:00"
+  "updated_at": "2026-09-30T15:55:43+09:00"
 }

@@ -1,139 +1,893 @@
 {
   "date": "2026-09-30",
-  "generated_at": "2026-09-30T08:23:48+09:00",
-  "buy_top10": [],
-  "sell_top10": [],
+  "generated_at": "2026-09-30T15:55:39+09:00",
+  "buy_top10": [
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 2,
+      "stock_code": "093370",
+      "stock_name": "후성",
+      "foreign_net": 596000.0,
+      "inst_net": 270000.0,
+      "combined_net": 862000.0,
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 69.6
+      },
+      "transition": true,
+      "day_pct": 0.062322946175637384,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 15000.0,
+      "valuation": {
+        "per": 300.0,
+        "pbr": 4.81,
+        "eps": 50.0,
+        "bps": 3118.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": 10.97,
+        "debt_ratio": 110.71,
+        "sales_growth": 42.51,
+        "op_growth": 122.74,
+        "ni_growth": 0.0,
+        "eps": 107.0,
+        "bps": 3408.0,
+        "rsrv_rate": 524.75
+      },
+      "score": {
+        "score": 52.5,
+        "parts": {
+          "roe": 75,
+          "debt": 50,
+          "sales_growth": 100,
+          "op_growth": 100,
+          "per": 0,
+          "pbr": 0
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "후성 거래량 872만주, 6.66% 상승…2분기 영업익 234억원",
+          "link": "https://www.job-post.co.kr/news/articleView.html?idxno=229952"
+        },
+        {
+          "title": "&quot;전고체 배터리 상용화 성큼&quot;…황화리튬 상업생산 기대에 화학株 '출렁...",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=491490"
+        },
+        {
+          "title": "앤트로픽 ‘700조 베팅’에…삼성전자우·테스 사들이는 고수들[주식 초...",
+          "link": "https://n.news.naver.com/mnews/article/011/0004666837?sid=101"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 1,
+      "stock_code": "018880",
+      "stock_name": "한온시스템",
+      "foreign_net": 444000.0,
+      "inst_net": 1297000.0,
+      "combined_net": 1624000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 52.8
+      },
+      "transition": true,
+      "day_pct": 0.10000000000000009,
+      "volume_rank": 5,
+      "last_date": "20260930",
+      "last_close": 3520.0,
+      "valuation": {
+        "per": -13.7,
+        "pbr": 0.96,
+        "eps": -257.0,
+        "bps": 3671.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": -0.15,
+        "debt_ratio": 157.17,
+        "sales_growth": 2.7,
+        "op_growth": 135.27,
+        "ni_growth": 0.0,
+        "eps": 149.0,
+        "bps": 4008.0,
+        "rsrv_rate": 3179.25
+      },
+      "score": {
+        "score": 37.8,
+        "parts": {
+          "roe": 0,
+          "debt": 50,
+          "sales_growth": 50,
+          "op_growth": 100,
+          "per": 0,
+          "pbr": 85
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "한온시스템 3505원으로 9.53% 급등…거래량 2111만주",
+          "link": "https://www.job-post.co.kr/news/articleView.html?idxno=229939"
+        },
+        {
+          "title": "큰 기업도 빗나가지 않았다…증시 활황 속 '불성실공시법인' 지정 100건...",
+          "link": "https://n.news.naver.com/mnews/article/014/0005583006?sid=101"
+        },
+        {
+          "title": "코스피 거래상위 차별화… 철강·소재 급등, 반도체 대형주 혼조",
+          "link": "https://n.news.naver.com/mnews/article/081/0003684751?sid=101"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 6,
+      "stock_code": "008970",
+      "stock_name": "KBI동양철관",
+      "foreign_net": 538000.0,
+      "inst_net": 0.0,
+      "combined_net": 531000.0,
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 74.3
+      },
+      "transition": true,
+      "day_pct": 0.2997370727432078,
+      "volume_rank": 6,
+      "last_date": "20260930",
+      "last_close": 1483.0,
+      "valuation": {
+        "per": -42.37,
+        "pbr": 1.09,
+        "eps": -35.0,
+        "bps": 1363.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": -3.48,
+        "debt_ratio": 75.16,
+        "sales_growth": 29.26,
+        "op_growth": 0.0,
+        "ni_growth": 0.0,
+        "eps": -6.0,
+        "bps": 1361.0,
+        "rsrv_rate": 35.42
+      },
+      "score": {
+        "score": 39.7,
+        "parts": {
+          "roe": 0,
+          "debt": 80,
+          "sales_growth": 100,
+          "op_growth": null,
+          "per": 0,
+          "pbr": 65
+        },
+        "coverage": 0.9,
+        "notes": [
+          "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+        ]
+      },
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "[EBN 데이터센터] 코스닥 강세…빅웨이브로보틱스 등 3종목 상한가",
+          "link": "https://www.ebn.co.kr/news/articleView.html?idxno=1726242"
+        },
+        {
+          "title": "유가 내려도 외인은 떠났다… 코스피, 4거래일째 '팔자'에 6830선 후퇴",
+          "link": "http://www.the-biz.co.kr/news/articleView.html?idxno=728592"
+        },
+        {
+          "title": "[EBN 데이터센터] 코스피 6838.04 마감...외국인·기관 동반 매도",
+          "link": "https://www.ebn.co.kr/news/articleView.html?idxno=1726240"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 7,
+      "stock_code": "441270",
+      "stock_name": "파인엠텍",
+      "foreign_net": 440000.0,
+      "inst_net": -83000.0,
+      "combined_net": 421000.0,
+      "tech": {
+        "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 65.3
+      },
+      "transition": false,
+      "day_pct": 0.05429864253393668,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 9320.0,
+      "valuation": {
+        "per": -23.72,
+        "pbr": 2.09,
+        "eps": -393.0,
+        "bps": 4459.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": -6.46,
+        "debt_ratio": 113.96,
+        "sales_growth": 17.65,
+        "op_growth": 118.88,
+        "ni_growth": 0.0,
+        "eps": -110.0,
+        "bps": 4842.0,
+        "rsrv_rate": 797.57
+      },
+      "score": {
+        "score": 34.5,
+        "parts": {
+          "roe": 0,
+          "debt": 50,
+          "sales_growth": 100,
+          "op_growth": 100,
+          "per": 0,
+          "pbr": 30
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "[코스닥 외국인] 주성엔지니어링·로보티즈·에코프로 쓸어 담았다",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=491539"
+        },
+        {
+          "title": "파인엠텍 주가, 9월 30일 장중 9,390원 기록 6.22% 상승",
+          "link": "https://www.joongangenews.com/news/articleView.html?idxno=551617"
+        },
+        {
+          "title": "[특징주] 외국인 '앱튼·삼성중공업', 기관 '한온시스템·한화솔루션' 러...",
+          "link": "https://www.newstnt.com/news/articleView.html?idxno=720762"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 5,
+      "stock_code": "009830",
+      "stock_name": "한화솔루션",
+      "foreign_net": 235000.0,
+      "inst_net": 257000.0,
+      "combined_net": 536000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 68.1
+      },
+      "transition": false,
+      "day_pct": 0.04307692307692301,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 33900.0,
+      "valuation": {
+        "per": -10.04,
+        "pbr": 0.71,
+        "eps": -3377.0,
+        "bps": 47898.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": -1.82,
+        "debt_ratio": 183.71,
+        "sales_growth": 36.27,
+        "op_growth": 201.51,
+        "ni_growth": 0.0,
+        "eps": 1218.0,
+        "bps": 51067.0,
+        "rsrv_rate": 615.84
+      },
+      "score": {
+        "score": 42.8,
+        "parts": {
+          "roe": 0,
+          "debt": 50,
+          "sales_growth": 100,
+          "op_growth": 100,
+          "per": 0,
+          "pbr": 85
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "[더벨][변곡점 선 한화갤러리아] 김동선의 선택과 집중, 사업 전략 새로...",
+          "link": "https://www.thebell.co.kr/free/content/ArticleView.asp?key=202609280930220680104068"
+        },
+        {
+          "title": "8월 기업 주식·회사채 발행 38% 감소…고금리에 금융채 발행 32%↓",
+          "link": "http://www.efnews.co.kr/news/articleView.html?idxno=132764"
+        },
+        {
+          "title": "8월 기업 직접금융 조달 38% 급감…신규 투자 자금은 ‘0’",
+          "link": "https://thetracker.co.kr/View.aspx?No=4246743"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 10,
+      "stock_code": "082740",
+      "stock_name": "한화엔진",
+      "foreign_net": 196000.0,
+      "inst_net": 30000.0,
+      "combined_net": 320000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 57.1
+      },
+      "transition": false,
+      "day_pct": 0.05263157894736836,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 49000.0,
+      "valuation": {
+        "per": 23.54,
+        "pbr": 7.35,
+        "eps": 2082.0,
+        "bps": 6666.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": 0.0,
+        "debt_ratio": 234.09,
+        "sales_growth": 0.22,
+        "op_growth": 59.2,
+        "ni_growth": 110.06,
+        "eps": 1031.0,
+        "bps": 7788.0,
+        "rsrv_rate": 637.53
+      },
+      "score": {
+        "score": 27.5,
+        "parts": {
+          "roe": 0,
+          "debt": 25,
+          "sales_growth": 50,
+          "op_growth": 100,
+          "per": 50,
+          "pbr": 0
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "'제2회 국제우주항공기술대전' 개최",
+          "link": "http://www.snmnews.com/news/articleView.html?idxno=575335"
+        },
+        {
+          "title": "한화엔진 5.26% 상승, 장중 5만원 돌파…영업이익률 10.5%",
+          "link": "https://www.job-post.co.kr/news/articleView.html?idxno=230002"
+        },
+        {
+          "title": "한화에어로, 재사용 발사체 총조립 착수…2028년 500m 수직이착륙 시험",
+          "link": "https://www.shinailbo.co.kr/news/articleView.html?idxno=5067484"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 3,
+      "stock_code": "010140",
+      "stock_name": "삼성중공업",
+      "foreign_net": 729000.0,
+      "inst_net": -50000.0,
+      "combined_net": 830000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 38.6
+      },
+      "transition": false,
+      "day_pct": 0.0191412312467667,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 19700.0,
+      "valuation": {
+        "per": 31.77,
+        "pbr": 4.06,
+        "eps": 620.0,
+        "bps": 4857.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": 13.42,
+        "debt_ratio": 281.28,
+        "sales_growth": 18.46,
+        "op_growth": 82.42,
+        "ni_growth": 6.75,
+        "eps": 370.0,
+        "bps": 5586.0,
+        "rsrv_rate": 365.76
+      },
+      "score": {
+        "score": 50.5,
+        "parts": {
+          "roe": 75,
+          "debt": 25,
+          "sales_growth": 100,
+          "op_growth": 100,
+          "per": 20,
+          "pbr": 0
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "기업 공시 [9월 30일]",
+          "link": "https://n.news.naver.com/mnews/article/011/0004666897?sid=101"
+        },
+        {
+          "title": "삼성중공업, 대형가스운반선 2척 3,074억 원 수주",
+          "link": "http://news.lghellovision.net/news/articleView.html?idxno=556681"
+        },
+        {
+          "title": "삼성중공업, VLGC 2척 3074억 원 수주…올해 목표 86% 달성",
+          "link": "https://n.news.naver.com/mnews/article/082/0001400525?sid=102"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 4,
+      "stock_code": "047040",
+      "stock_name": "대우건설",
+      "foreign_net": 771000.0,
+      "inst_net": 73000.0,
+      "combined_net": 788000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 37.5
+      },
+      "transition": false,
+      "day_pct": 0.021301093839954044,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 17740.0,
+      "valuation": {
+        "per": -8.08,
+        "pbr": 2.18,
+        "eps": -2195.0,
+        "bps": 8148.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": -14.26,
+        "debt_ratio": 266.54,
+        "sales_growth": -8.16,
+        "op_growth": 108.92,
+        "ni_growth": 2312.25,
+        "eps": 873.0,
+        "bps": 9216.0,
+        "rsrv_rate": 101.2
+      },
+      "score": {
+        "score": 22.5,
+        "parts": {
+          "roe": 0,
+          "debt": 25,
+          "sales_growth": 30,
+          "op_growth": 100,
+          "per": 0,
+          "pbr": 30
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "추석 끝나자 다시 불붙는 목동 수주전...8단지, 대우건설 '무혈입성' 예...",
+          "link": "https://n.news.naver.com/mnews/article/014/0005583075?sid=101"
+        },
+        {
+          "title": "국감 증인 셋 중 하나 기업인…이재용·최태원 막고 조희대 부르고",
+          "link": "https://n.news.naver.com/mnews/article/421/0009201330?sid=100"
+        },
+        {
+          "title": "공급 늘리는 LH, 하자·부실 역풍… 품질·관리 역량 국감 검증대",
+          "link": "https://www.greened.kr/news/articleView.html?idxno=351140"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 8,
+      "stock_code": "290690",
+      "stock_name": "아리바이오홀딩스",
+      "foreign_net": 355000.0,
+      "inst_net": 0.0,
+      "combined_net": 377000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 15.5
+      },
+      "transition": false,
+      "day_pct": -0.12515964240102173,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 3425.0,
+      "valuation": {
+        "per": -3.62,
+        "pbr": 2.08,
+        "eps": -946.0,
+        "bps": 1643.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202412",
+        "roe": -58.22,
+        "debt_ratio": 49.74,
+        "sales_growth": -15.27,
+        "op_growth": 0.0,
+        "ni_growth": 0.0,
+        "eps": -946.0,
+        "bps": 1643.0,
+        "rsrv_rate": 228.69
+      },
+      "score": {
+        "score": 27.2,
+        "parts": {
+          "roe": 0,
+          "debt": 100,
+          "sales_growth": 0,
+          "op_growth": null,
+          "per": 0,
+          "pbr": 30
+        },
+        "coverage": 0.9,
+        "notes": [
+          "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+        ]
+      },
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "아리바이오·홀딩스 합병 무산…2년 추진 종료",
+          "link": "https://www.dailymedi.com/news/news_view.php?wr_id=940985"
+        },
+        {
+          "title": "아리바이오·홀딩스 합병 철회…정재준 대표 &quot;내일 '그룹 비전' 공개&quot;",
+          "link": "https://n.news.naver.com/mnews/article/008/0005420300?sid=101"
+        },
+        {
+          "title": "아리바이오, 2년 끌었던 합병 중단 … 승부처는 'AR1001' 데이터",
+          "link": "https://biz.newdaily.co.kr/site/data/html/2026/09/30/2026093000171.html"
+        }
+      ]
+    },
+    {
+      "ts": "2026-09-30T15:54:54+09:00",
+      "rank_type": "buy",
+      "rank": 9,
+      "stock_code": "084180",
+      "stock_name": "수성웹툰",
+      "foreign_net": 0.0,
+      "inst_net": 0.0,
+      "combined_net": 332000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 20.5
+      },
+      "transition": false,
+      "day_pct": -0.04109589041095896,
+      "volume_rank": null,
+      "last_date": "20260930",
+      "last_close": 210.0,
+      "valuation": {
+        "per": -0.09,
+        "pbr": 0.05,
+        "eps": -2226.0,
+        "bps": 4306.0
+      },
+      "market_risk_flags": [
+        "🚨 관리종목",
+        "⚠️ 시가총액 38억(관리종목 요건 200억에 근접/미달)"
+      ],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": -42.72,
+        "debt_ratio": 118.98,
+        "sales_growth": 1.05,
+        "op_growth": 7.21,
+        "ni_growth": 0.0,
+        "eps": -33.0,
+        "bps": 4276.0,
+        "rsrv_rate": 5.34
+      },
+      "score": {
+        "score": 35.5,
+        "parts": {
+          "roe": 0,
+          "debt": 50,
+          "sales_growth": 50,
+          "op_growth": 55,
+          "per": 0,
+          "pbr": 100
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [
+        "20260916 주권매매거래정지              (상장폐지 사유발생)",
+        "20260909 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)",
+        "20260903 [기재정정]불성실공시법인지정예고              (공시번복)",
+        "20260902 기타시장안내              (시가총액 미달에 따른 상장폐지 우려 관련 안내)"
+      ],
+      "news": [
+        {
+          "title": "코스닥 시총미달 줄상폐 현실화…이달 들어서만 8곳 퇴출",
+          "link": "https://www.dnews.co.kr/uhtml/view.jsp?idxno=202609291337275700734"
+        },
+        {
+          "title": "상장폐지 퇴로 '코넥스 行' 열어줬지만…첫 사례부터 '삐걱'",
+          "link": "https://n.news.naver.com/mnews/article/079/0004193578?sid=101"
+        },
+        {
+          "title": "아홉, 3주 연속 ‘K탑스타’ 1위 굳건...식지 않는 인기 ‘RUN TO YOU’",
+          "link": "https://m.entertain.naver.com/article/410/0001141471"
+        }
+      ]
+    }
+  ],
+  "sell_top10": [
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 1,
+      "stock_code": "270520",
+      "stock_name": "앱튼",
+      "foreign_net": 997000.0,
+      "inst_net": 0.0,
+      "combined_net": -2604000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 2,
+      "stock_code": "088350",
+      "stock_name": "한화생명",
+      "foreign_net": -1112000.0,
+      "inst_net": -104000.0,
+      "combined_net": -1372000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 3,
+      "stock_code": "005935",
+      "stock_name": "삼성전자우",
+      "foreign_net": -1016000.0,
+      "inst_net": -89000.0,
+      "combined_net": -1111000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 4,
+      "stock_code": "316140",
+      "stock_name": "우리금융지주",
+      "foreign_net": -947000.0,
+      "inst_net": -96000.0,
+      "combined_net": -1026000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 5,
+      "stock_code": "266690",
+      "stock_name": "덕산넵코어스",
+      "foreign_net": -24000.0,
+      "inst_net": -430000.0,
+      "combined_net": -847000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 6,
+      "stock_code": "005930",
+      "stock_name": "삼성전자",
+      "foreign_net": -1695000.0,
+      "inst_net": -773000.0,
+      "combined_net": -753000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 7,
+      "stock_code": "950250",
+      "stock_name": "테라뷰",
+      "foreign_net": -521000.0,
+      "inst_net": 0.0,
+      "combined_net": -521000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 8,
+      "stock_code": "024110",
+      "stock_name": "기업은행",
+      "foreign_net": -370000.0,
+      "inst_net": -34000.0,
+      "combined_net": -466000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 9,
+      "stock_code": "005030",
+      "stock_name": "부산주공",
+      "foreign_net": -417000.0,
+      "inst_net": 0.0,
+      "combined_net": -417000.0
+    },
+    {
+      "ts": "2026-09-30T15:54:55+09:00",
+      "rank_type": "sell",
+      "rank": 10,
+      "stock_code": "010170",
+      "stock_name": "대한광통신",
+      "foreign_net": -246000.0,
+      "inst_net": -2000.0,
+      "combined_net": -403000.0
+    }
+  ],
   "volume_rank_ok": true,
   "volume_top": [
     {
       "rank": 1,
-      "stock_code": "000020",
-      "stock_name": "동화약품"
+      "stock_code": "266690",
+      "stock_name": "덕산넵코어스"
     },
     {
       "rank": 2,
-      "stock_code": "000040",
-      "stock_name": "KR모터스"
+      "stock_code": "486510",
+      "stock_name": "글로벌테크놀로지"
     },
     {
       "rank": 3,
-      "stock_code": "000050",
-      "stock_name": "경방"
+      "stock_code": "005030",
+      "stock_name": "부산주공"
     },
     {
       "rank": 4,
-      "stock_code": "000070",
-      "stock_name": "삼양홀딩스"
+      "stock_code": "267320",
+      "stock_name": "나인테크"
     },
     {
       "rank": 5,
-      "stock_code": "000080",
-      "stock_name": "하이트진로"
+      "stock_code": "018880",
+      "stock_name": "한온시스템"
     },
     {
       "rank": 6,
-      "stock_code": "000087",
-      "stock_name": "하이트진로2우B"
+      "stock_code": "008970",
+      "stock_name": "KBI동양철관"
     },
     {
       "rank": 7,
-      "stock_code": "0000Y0",
-      "stock_name": "HK 26-12 회사채(AA-이상)액티브"
+      "stock_code": "005930",
+      "stock_name": "삼성전자"
     },
     {
       "rank": 8,
-      "stock_code": "000100",
-      "stock_name": "유한양행"
+      "stock_code": "270520",
+      "stock_name": "앱튼"
     },
     {
       "rank": 9,
-      "stock_code": "000105",
-      "stock_name": "유한양행우"
+      "stock_code": "0035S0",
+      "stock_name": "빅웨이브로보틱스"
     },
     {
       "rank": 10,
-      "stock_code": "000120",
-      "stock_name": "CJ대한통운"
+      "stock_code": "052260",
+      "stock_name": "현대바이오랜드"
     },
     {
       "rank": 11,
-      "stock_code": "000140",
-      "stock_name": "하이트진로홀딩스"
+      "stock_code": "072950",
+      "stock_name": "빛샘전자"
     },
     {
       "rank": 12,
-      "stock_code": "000145",
-      "stock_name": "하이트진로홀딩스우"
-    },
-    {
-      "rank": 13,
-      "stock_code": "000150",
-      "stock_name": "두산"
-    },
-    {
-      "rank": 14,
-      "stock_code": "000155",
-      "stock_name": "두산우"
-    },
-    {
-      "rank": 15,
-      "stock_code": "000157",
-      "stock_name": "두산2우B"
-    },
-    {
-      "rank": 16,
-      "stock_code": "000180",
-      "stock_name": "성창기업지주"
-    },
-    {
-      "rank": 17,
-      "stock_code": "0001A0",
-      "stock_name": "덕양에너젠"
-    },
-    {
-      "rank": 18,
-      "stock_code": "0001P0",
-      "stock_name": "마이티 바이오시밀러&CDMO액티브"
-    },
-    {
-      "rank": 19,
-      "stock_code": "000210",
-      "stock_name": "DL"
-    },
-    {
-      "rank": 20,
-      "stock_code": "000215",
-      "stock_name": "DL우"
-    },
-    {
-      "rank": 21,
-      "stock_code": "000220",
-      "stock_name": "유유제약"
-    },
-    {
-      "rank": 22,
-      "stock_code": "000225",
-      "stock_name": "유유제약1우"
-    },
-    {
-      "rank": 23,
-      "stock_code": "000227",
-      "stock_name": "유유제약2우B"
-    },
-    {
-      "rank": 24,
-      "stock_code": "000230",
-      "stock_name": "일동홀딩스"
-    },
-    {
-      "rank": 25,
-      "stock_code": "000240",
-      "stock_name": "한국앤컴퍼니"
-    },
-    {
-      "rank": 26,
-      "stock_code": "000250",
-      "stock_name": "삼천당제약"
+      "stock_code": "900070",
+      "stock_name": "글로벌에스엠"
     }
   ],
   "value_overlap": []
