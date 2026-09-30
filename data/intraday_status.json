@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-30T11:40:55+09:00",
+  "checked_at": "2026-09-30T13:44:08+09:00",
   "kept": [],
   "excluded": [],
   "new_candidates": [
@@ -9,17 +9,17 @@
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": false,
+        "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 51.9
+        "RSI값": 53.8
       },
       "transition": true,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3500.0,
-      "day_pct": 9.38
+      "current_price": 3545.0,
+      "day_pct": 10.78
     },
     {
       "stock_code": "093370",
@@ -28,16 +28,16 @@
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 70.1
+        "RSI값": 69.7
       },
       "transition": true,
-      "passed": 3,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15080.0,
-      "day_pct": 6.8
+      "current_price": 15030.0,
+      "day_pct": 6.44
     },
     {
       "stock_code": "008970",
@@ -56,24 +56,6 @@
       "risky_disclosures": [],
       "current_price": 1483.0,
       "day_pct": 29.97
-    },
-    {
-      "stock_code": "417200",
-      "stock_name": "LS머트리얼즈",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 80.7
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 14090.0,
-      "day_pct": 7.89
     }
   ]
 }
