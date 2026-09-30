@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-30T09:58:55+09:00",
+  "checked_at": "2026-09-30T10:31:39+09:00",
   "kept": [],
   "excluded": [],
   "new_candidates": [
@@ -12,14 +12,32 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 55.2
+        "RSI값": 52.6
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3635.0,
-      "day_pct": 13.59
+      "current_price": 3510.0,
+      "day_pct": 9.69
+    },
+    {
+      "stock_code": "093370",
+      "stock_name": "후성",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 70.2
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 15090.0,
+      "day_pct": 6.87
     },
     {
       "stock_code": "417200",
@@ -30,14 +48,14 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 82.6
+        "RSI값": 82.1
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14630.0,
-      "day_pct": 12.02
+      "current_price": 14480.0,
+      "day_pct": 10.87
     }
   ]
 }
