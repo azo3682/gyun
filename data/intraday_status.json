@@ -1,64 +1,43 @@
 {
-  "checked_at": "2026-09-29T14:56:35+09:00",
+  "checked_at": "2026-09-30T09:58:55+09:00",
   "kept": [],
-  "excluded": [
-    {
-      "stock_code": "009830",
-      "stock_name": "한화솔루션",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 60.2
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 32200.0,
-      "day_pct": -3.45,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "178320",
-      "stock_name": "서진시스템",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 50.3
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 36700.0,
-      "day_pct": 2.23,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
+  "excluded": [],
   "new_candidates": [
     {
-      "stock_code": "403870",
-      "stock_name": "HPSP",
+      "stock_code": "018880",
+      "stock_name": "한온시스템",
       "tech": {
-        "정배열": true,
+        "정배열": false,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 72.1
+        "RSI값": 55.2
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 60900.0,
-      "day_pct": 8.75
+      "current_price": 3635.0,
+      "day_pct": 13.59
+    },
+    {
+      "stock_code": "417200",
+      "stock_name": "LS머트리얼즈",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 82.6
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 14630.0,
+      "day_pct": 12.02
     }
   ]
 }
