@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-30T10:31:39+09:00",
+  "checked_at": "2026-09-30T11:40:55+09:00",
   "kept": [],
   "excluded": [],
   "new_candidates": [
@@ -9,17 +9,17 @@
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": true,
+        "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 52.6
+        "RSI값": 51.9
       },
       "transition": true,
-      "passed": 3,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3510.0,
-      "day_pct": 9.69
+      "current_price": 3500.0,
+      "day_pct": 9.38
     },
     {
       "stock_code": "093370",
@@ -30,14 +30,32 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 70.2
+        "RSI값": 70.1
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15090.0,
-      "day_pct": 6.87
+      "current_price": 15080.0,
+      "day_pct": 6.8
+    },
+    {
+      "stock_code": "008970",
+      "stock_name": "KBI동양철관",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 74.3
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 1483.0,
+      "day_pct": 29.97
     },
     {
       "stock_code": "417200",
@@ -48,14 +66,14 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 82.1
+        "RSI값": 80.7
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14480.0,
-      "day_pct": 10.87
+      "current_price": 14090.0,
+      "day_pct": 7.89
     }
   ]
 }
