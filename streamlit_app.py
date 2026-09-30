@@ -20,12 +20,15 @@ streamlit_app.py (v2)
     NAVER_CLIENT_SECRET = "..."
 """
 
+import base64
+import hmac
 import io
 import json
 import os
 import re
 import sqlite3
 import time
+import uuid
 import zipfile
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
@@ -1198,8 +1201,436 @@ def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_
         st.dataframe(detail, use_container_width=True, hide_index=True)
 
 
-tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회",
+# ============================================================
+# 📒 매매 일지 — 입력·계산·통계는 앱에서, 저장은 '비공개' GitHub 저장소의 journal.json에 한다.
+#   (배포된 앱의 로컬 파일은 재시작하면 사라지고, 이 코드 저장소는 공개라서 일지를 여기에 두면 안 된다.)
+#   필요한 Secrets: JOURNAL_GITHUB_TOKEN(그 저장소 한 곳에만 Contents 읽기/쓰기 권한), JOURNAL_REPO('계정/저장소'),
+#                    JOURNAL_PASSWORD(탭을 여는 비밀번호). 선택: JOURNAL_PATH(기본 journal.json), JOURNAL_BRANCH.
+# ============================================================
+JOURNAL_SIGNAL_OPTIONS = ["순매수 상위", "거래량 상위", "동시 등장", "전환신호", "저평가 후보", "외국인 지속 매수", "기타"]
+JOURNAL_EXIT_TYPES = ["(선택 안 함)", "목표 도달", "손절", "신호 소멸·수급 이탈", "추세 판단(눌림 예상 등)", "기타"]
+GITHUB_API = "https://api.github.com"
+
+
+def _secret(name: str, default: str = "") -> str:
+    try:
+        return str(st.secrets.get(name, default) or default)
+    except Exception:
+        return default
+
+
+def journal_settings() -> dict:
+    return {"repo": _secret("JOURNAL_REPO"), "token": _secret("JOURNAL_GITHUB_TOKEN"),
+            "password": _secret("JOURNAL_PASSWORD"), "path": _secret("JOURNAL_PATH", "journal.json"),
+            "branch": _secret("JOURNAL_BRANCH") or None}
+
+
+# ---- 입력 파싱 ----
+def _parse_journal_date(tok: str, today) -> str | None:
+    """'2026-09-28', '2026.9.28', '20260928', '9.28', '9/28' → 'YYYY-MM-DD'. 연도가 없으면 올해(오늘보다 미래면 작년). 실패하면 None."""
+    t = tok.strip()
+    m = re.fullmatch(r"(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})", t) or re.fullmatch(r"(\d{4})(\d{2})(\d{2})", t)
+    try:
+        if m:
+            y, mo, d = map(int, m.groups())
+            return datetime(y, mo, d).date().isoformat()
+        m = re.fullmatch(r"(\d{1,2})[.\-/](\d{1,2})", t)
+        if not m:
+            return None
+        mo, d = map(int, m.groups())
+        cand = datetime(today.year, mo, d).date()
+        if cand > today + timedelta(days=1):
+            cand = datetime(today.year - 1, mo, d).date()
+        return cand.isoformat()
+    except ValueError:
+        return None
+
+
+def _to_number(tok: str):
+    t = re.sub(r"[,\s]", "", tok).rstrip("원주")
+    return float(t) if re.fullmatch(r"\d+(\.\d+)?", t) else None
+
+
+def parse_trade_lines(text: str, today=None):
+    """한 줄에 '날짜 가격 수량'(공백 구분). 가격의 쉼표·'원', 수량의 '주'는 무시한다. (rows, errors) 반환."""
+    today = today or datetime.now(KST).date()
+    rows, errors = [], []
+    for i, line in enumerate((text or "").splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) != 3:
+            errors.append(f"{i}번째 줄: '날짜 가격 수량' 세 값이 필요합니다 → {line}")
+            continue
+        d, price, qty = _parse_journal_date(parts[0], today), _to_number(parts[1]), _to_number(parts[2])
+        if d is None:
+            errors.append(f"{i}번째 줄: 날짜를 읽지 못했습니다 → {parts[0]}")
+        elif not price or price <= 0:
+            errors.append(f"{i}번째 줄: 가격이 올바르지 않습니다 → {parts[1]}")
+        elif not qty or qty <= 0 or qty != int(qty):
+            errors.append(f"{i}번째 줄: 수량은 1 이상의 정수여야 합니다 → {parts[2]}")
+        else:
+            rows.append({"date": d, "price": int(price) if price == int(price) else price, "qty": int(qty)})
+    return rows, errors
+
+
+def lines_from_rows(rows: list) -> str:
+    return "\n".join(f"{r['date']} {r['price']} {r['qty']}" for r in rows)
+
+
+# ---- 계산 ----
+def compute_trade(t: dict, today=None) -> dict:
+    """평균 매수/매도가, 실현손익(수수료·세금 반영), 수익률, 보유 기간, 상태.
+    실현손익 = 매도금액 - 평균 매수가 × 매도 수량 - 수수료·세금(입력한 전액).
+    수익률 = 실현손익 ÷ (평균 매수가 × 매도 수량). 일부만 매도했으면 매도한 수량 기준이다."""
+    today = today or datetime.now(KST).date()
+    buys, sells = t.get("buys") or [], t.get("sells") or []
+    buy_qty = sum(b["qty"] for b in buys)
+    buy_cost = sum(b["price"] * b["qty"] for b in buys)
+    sell_qty = sum(s["qty"] for s in sells)
+    sell_amt = sum(s["price"] * s["qty"] for s in sells)
+    avg_buy = buy_cost / buy_qty if buy_qty else None
+    avg_sell = sell_amt / sell_qty if sell_qty else None
+    costs = float(t.get("costs") or 0)
+    first_buy = min((b["date"] for b in buys), default=None)
+    last_sell = max((s["date"] for s in sells), default=None)
+    out = {"avg_buy": avg_buy, "buy_qty": buy_qty, "avg_sell": avg_sell, "sell_qty": sell_qty,
+           "remaining": buy_qty - sell_qty, "costs": costs, "first_buy": first_buy, "last_sell": last_sell,
+           "gross_pl": None, "net_pl": None, "ret_pct": None, "hold_days": None}
+    if not sells:
+        out["status"] = "보유 중"
+    else:
+        out["status"] = "마감" if out["remaining"] <= 0 else "일부 매도"
+    if sell_qty and avg_buy:
+        sold_cost = avg_buy * sell_qty
+        out["gross_pl"] = sell_amt - sold_cost
+        out["net_pl"] = out["gross_pl"] - costs
+        out["ret_pct"] = out["net_pl"] / sold_cost * 100
+    if first_buy:
+        end = datetime.fromisoformat(last_sell).date() if (last_sell and out["status"] == "마감") else today
+        out["hold_days"] = (end - datetime.fromisoformat(first_buy).date()).days
+    return out
+
+
+def summarize_trades(trades: list) -> dict:
+    """마감된(전량 매도) 매매만의 통계."""
+    rows = [c for c in (compute_trade(t) for t in trades) if c["status"] == "마감" and c["ret_pct"] is not None]
+    rets = [c["ret_pct"] for c in rows]
+    wins, losses = [r for r in rets if r > 0], [r for r in rets if r < 0]
+    avg_w = sum(wins) / len(wins) if wins else None
+    avg_l = sum(losses) / len(losses) if losses else None
+    return {"n": len(rows), "win_rate": 100 * len(wins) / len(rets) if rets else None,
+            "avg_ret": sum(rets) / len(rets) if rets else None,
+            "median_ret": float(pd.Series(rets).median()) if rets else None,
+            "avg_win": avg_w, "avg_loss": avg_l, "pl_ratio": (avg_w / abs(avg_l)) if (avg_w is not None and avg_l) else None,
+            "total_net_pl": sum(c["net_pl"] for c in rows) if rows else None}
+
+
+def summarize_journal_by(trades: list, field: str) -> pd.DataFrame:
+    """마감된 매매를 field(signals: 태그 목록 / exit_type: 문자열)별로 묶은 통계. 태그가 여러 개면 각각에 센다."""
+    groups = {}
+    for t in trades:
+        c = compute_trade(t)
+        if c["status"] != "마감" or c["ret_pct"] is None:
+            continue
+        v = t.get(field)
+        keys = v if isinstance(v, list) else ([v] if v and v != JOURNAL_EXIT_TYPES[0] else [])
+        for k in keys:
+            groups.setdefault(k, []).append(c)
+    rows = []
+    for k, cs in groups.items():
+        rets = [c["ret_pct"] for c in cs]
+        rows.append({"구분": k, "매매 수": len(cs), "승률(%)": 100 * sum(1 for r in rets if r > 0) / len(rets),
+                     "평균 수익률(%)": sum(rets) / len(rets), "총 실현손익(원)": sum(c["net_pl"] for c in cs)})
+    return pd.DataFrame(rows, columns=["구분", "매매 수", "승률(%)", "평균 수익률(%)", "총 실현손익(원)"]).sort_values("매매 수", ascending=False, ignore_index=True)
+
+
+def build_journal_table(trades: list) -> pd.DataFrame:
+    rows = []
+    for t in sorted(trades, key=lambda x: min((b["date"] for b in x.get("buys") or []), default=""), reverse=True):
+        c = compute_trade(t)
+        rows.append({"종목명": t["name"], "상태": c["status"], "매수일": c["first_buy"], "평균매수가": c["avg_buy"],
+                     "매수수량": c["buy_qty"], "매도일": c["last_sell"], "평균매도가": c["avg_sell"],
+                     "매도수량": c["sell_qty"], "남은수량": c["remaining"], "실현손익(원)": c["net_pl"],
+                     "수익률(%)": c["ret_pct"], "보유(일)": c["hold_days"],
+                     "매수 근거 신호": ", ".join(t.get("signals") or []), "청산 유형": t.get("exit_type") or ""})
+    df = pd.DataFrame(rows)
+    if len(df):
+        num = ["평균매수가", "매수수량", "평균매도가", "매도수량", "남은수량", "실현손익(원)", "수익률(%)", "보유(일)"]
+        df[num] = df[num].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+# ---- GitHub 저장 (Contents API) ----
+class JournalConflict(RuntimeError):
+    pass
+
+
+def _gh_headers(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"}
+
+
+def _gh_error(resp) -> str:
+    """오류 메시지를 만든다. 토큰이 들어갈 수 있는 요청 헤더는 절대 포함하지 않는다."""
+    try:
+        msg = (resp.json().get("message") or "")[:120]
+    except Exception:
+        msg = ""
+    hint = {401: "토큰이 잘못됐거나 만료됐습니다", 403: "권한이 부족하거나 호출 한도에 걸렸습니다"}.get(resp.status_code, "")
+    return f"GitHub {resp.status_code}: {msg} {('— ' + hint) if hint else ''}".strip()
+
+
+def gh_read_journal(repo: str, path: str, token: str, branch=None):
+    """(일지 dict, sha). 파일이 아직 없으면 ({'trades': []}, None). 저장소를 못 찾거나 권한이 없으면 RuntimeError."""
+    resp = requests.get(f"{GITHUB_API}/repos/{repo}/contents/{path}", headers=_gh_headers(token),
+                        params={"ref": branch} if branch else None, timeout=15)
+    if resp.status_code == 404:
+        # 404는 '파일 없음'과 '저장소 없음/권한 없음'이 같이 온다 → 저장소 접근으로 구분
+        r2 = requests.get(f"{GITHUB_API}/repos/{repo}", headers=_gh_headers(token), timeout=15)
+        if r2.status_code == 200:
+            return {"trades": []}, None
+        raise RuntimeError("저장소를 찾을 수 없거나 토큰에 접근 권한이 없습니다 (JOURNAL_REPO 이름과 토큰의 저장소 권한을 확인하세요)")
+    if resp.status_code != 200:
+        raise RuntimeError(_gh_error(resp))
+    data = resp.json()
+    text = base64.b64decode(data.get("content", "")).decode("utf-8")
+    journal = json.loads(text) if text.strip() else {"trades": []}
+    if not isinstance(journal.get("trades"), list):
+        journal["trades"] = []
+    return journal, data["sha"]
+
+
+def gh_write_journal(repo: str, path: str, token: str, journal: dict, sha, message: str, branch=None) -> str:
+    body = {"message": message,
+            "content": base64.b64encode(json.dumps(journal, ensure_ascii=False, indent=2).encode("utf-8")).decode("ascii")}
+    if sha:
+        body["sha"] = sha
+    if branch:
+        body["branch"] = branch
+    resp = requests.put(f"{GITHUB_API}/repos/{repo}/contents/{path}", headers=_gh_headers(token), json=body, timeout=15)
+    if resp.status_code in (200, 201):
+        return resp.json()["content"]["sha"]
+    if resp.status_code == 409 or (resp.status_code == 422 and "sha" in (resp.text or "").lower()):
+        raise JournalConflict("다른 곳에서 일지가 먼저 바뀌었습니다")
+    raise RuntimeError(_gh_error(resp))
+
+
+def journal_mutate(mutator, message: str):
+    """일지를 읽어 mutator로 바꾼 뒤 저장한다. 그 사이 다른 곳에서 바뀌었으면(충돌) 한 번 다시 읽어 재시도."""
+    cfg = journal_settings()
+    for attempt in range(2):
+        journal, sha = gh_read_journal(cfg["repo"], cfg["path"], cfg["token"], cfg["branch"])
+        journal = mutator(journal)
+        try:
+            gh_write_journal(cfg["repo"], cfg["path"], cfg["token"], journal, sha, message, cfg["branch"])
+            return journal
+        except JournalConflict:
+            if attempt == 1:
+                raise
+
+
+def journal_upsert(trade: dict):
+    def _m(j):
+        trades = j["trades"]
+        for i, t in enumerate(trades):
+            if t.get("id") == trade["id"]:
+                trades[i] = trade
+                break
+        else:
+            trades.append(trade)
+        return j
+    return journal_mutate(_m, f"journal: {trade['name']}")
+
+
+def journal_delete(trade_id: str):
+    def _m(j):
+        j["trades"] = [t for t in j["trades"] if t.get("id") != trade_id]
+        return j
+    return journal_mutate(_m, "journal: delete")
+
+
+@st.cache_data(ttl=60)
+def load_journal() -> dict:
+    cfg = journal_settings()
+    return gh_read_journal(cfg["repo"], cfg["path"], cfg["token"], cfg["branch"])[0]
+
+
+# ---- 화면 ----
+def style_journal_table(df: pd.DataFrame):
+    styler = df.style.map(_signed_style, subset=["실현손익(원)", "수익률(%)"])
+    styler = styler.format(lambda v: "" if pd.isna(v) else f"{v:,.0f}",
+                           subset=["평균매수가", "평균매도가", "매수수량", "매도수량", "남은수량"])
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+,.0f}", subset=["실현손익(원)"])
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}", subset=["수익률(%)"])
+    return styler.format(lambda v: "" if pd.isna(v) else f"{v:.0f}", subset=["보유(일)"])
+
+
+def style_journal_summary(df: pd.DataFrame):
+    styler = df.style.map(_signed_style, subset=["평균 수익률(%)", "총 실현손익(원)"])
+    styler = styler.format(lambda v: f"{v:.0f}", subset=["승률(%)"])
+    styler = styler.format(lambda v: f"{v:+.2f}", subset=["평균 수익률(%)"])
+    return styler.format(lambda v: f"{v:+,.0f}", subset=["총 실현손익(원)"])
+
+
+def render_journal_tab():
+    """비밀번호를 통과한 뒤에만 호출된다. 저장소에서 일지를 읽어 통계·목록·입력 폼을 그린다."""
+    flash = st.session_state.pop("journal_flash", None)
+    if flash:
+        st.success(flash)
+    if st.button("🔒 잠그기"):
+        st.session_state["journal_ok"] = False
+        st.rerun()
+    try:
+        journal = load_journal()
+    except Exception as ex:
+        st.error(f"일지를 불러오지 못했습니다: {ex}")
+        return
+    trades = journal.get("trades", [])
+    cfg = journal_settings()
+    st.caption(f"기록은 비공개 저장소 {cfg['repo']}의 {cfg['path']}에 저장됩니다. 화면의 값은 최대 1분 전 내용일 수 있습니다. "
+               "수익률은 입력한 수수료·세금까지 뺀 실현손익 기준입니다.")
+
+    # ---- 통계 (마감된 매매만) ----
+    st.markdown("##### 📊 마감된 매매 통계")
+    stats = summarize_trades(trades)
+    if stats["n"] == 0:
+        st.info("아직 전량 매도까지 끝난 매매가 없습니다.")
+    else:
+        m = st.columns(5)
+        m[0].metric("마감 매매", f"{stats['n']}건")
+        m[1].metric("승률", f"{stats['win_rate']:.0f}%")
+        m[2].metric("평균 수익률", f"{stats['avg_ret']:+.2f}%")
+        m[3].metric("손익비", f"{stats['pl_ratio']:.2f}" if stats["pl_ratio"] is not None else "—")
+        m[4].metric("총 실현손익", f"{stats['total_net_pl']:+,.0f}원")
+        if stats["n"] < 30:
+            st.caption("⚠ 마감 매매가 30건 미만이면 승률·평균은 우연에 크게 좌우됩니다. 결론이 아니라 복기용 기록으로 보세요.")
+        for title, field in (("매수 근거 신호별 (여러 신호를 골랐으면 각각에 집계)", "signals"), ("청산 유형별", "exit_type")):
+            by = summarize_journal_by(trades, field)
+            if len(by):
+                st.markdown(f"**{title}**")
+                st.dataframe(style_journal_summary(by), use_container_width=True, hide_index=True)
+
+    # ---- 목록 ----
+    st.markdown("##### 🧾 매매 목록")
+    if not trades:
+        st.info("아직 기록이 없습니다. 아래에서 첫 매매를 기록해 보세요.")
+    else:
+        st.dataframe(style_journal_table(build_journal_table(trades)), use_container_width=True, hide_index=True)
+        with st.expander("매수·매도 이유와 메모 보기"):
+            for t in sorted(trades, key=lambda x: compute_trade(x)["first_buy"] or "", reverse=True):
+                c = compute_trade(t)
+                ret = f"{c['ret_pct']:+.2f}%" if c["ret_pct"] is not None else "미정"
+                st.markdown(f"**{t['name']}** · {c['first_buy']} · {c['status']} · {ret}")
+                st.markdown(f"- 매수 이유: {t.get('buy_reason') or '—'}\n- 매도 이유: {t.get('sell_reason') or '—'}"
+                            + (f"\n- 메모: {t['memo']}" if t.get("memo") else ""))
+
+    # ---- 입력 / 수정 ----
+    st.markdown("##### ✍️ 매매 기록하기 / 수정하기")
+    nonce = st.session_state.get("journal_nonce", 0)
+    order = sorted(range(len(trades)), key=lambda i: compute_trade(trades[i])["first_buy"] or "", reverse=True)
+    pick = st.selectbox(
+        "입력 대상", [-1] + order, key=f"jn_target_{nonce}",
+        format_func=lambda i: "새 매매 기록" if i == -1 else
+        f"{trades[i]['name']} · {compute_trade(trades[i])['first_buy']} · {compute_trade(trades[i])['status']}")
+    existing = trades[pick] if pick != -1 else None
+    e = existing or {}
+    ks = f"{nonce}_{e.get('id', 'new')}"     # 대상이 바뀌거나 저장한 뒤에는 입력칸 초기값이 새로 적용되도록 key에 넣는다
+    name = st.text_input("종목명", value=e.get("name", ""), key=f"jn_name_{ks}")
+    code = st.text_input("종목코드 (선택)", value=e.get("code", ""), key=f"jn_code_{ks}")
+    buys_txt = st.text_area("매수 내역 — 한 줄에 하나, '날짜 가격 수량'", value=lines_from_rows(e.get("buys", [])),
+                            key=f"jn_buys_{ks}", height=110, placeholder="2026-09-28 36000 14\n9.29 36500 4")
+    sells_txt = st.text_area("매도 내역 — 아직 안 팔았으면 비워 두세요 (나중에 이 매매를 골라 추가)",
+                             value=lines_from_rows(e.get("sells", [])), key=f"jn_sells_{ks}", height=110,
+                             placeholder="2026-09-30 38050 9\n9.30 38750 9")
+    st.caption("날짜는 2026-09-28 · 2026.9.28 · 9.28 · 9/28 형식이 모두 됩니다. 연도를 빼면 올해로 봅니다. 쉼표·'원'·'주'는 있어도 됩니다.")
+    costs = st.number_input("수수료·세금 합계 (원, 증권사 체결내역에서 확인)", min_value=0.0, value=float(e.get("costs") or 0),
+                            step=100.0, key=f"jn_costs_{ks}")
+    signals = st.multiselect("매수 근거가 된 앱 신호", JOURNAL_SIGNAL_OPTIONS,
+                             default=[s for s in e.get("signals", []) if s in JOURNAL_SIGNAL_OPTIONS], key=f"jn_sig_{ks}")
+    exit_type = st.selectbox("청산 유형", JOURNAL_EXIT_TYPES, key=f"jn_exit_{ks}",
+                             index=JOURNAL_EXIT_TYPES.index(e["exit_type"]) if e.get("exit_type") in JOURNAL_EXIT_TYPES else 0)
+    buy_reason = st.text_area("매수 이유", value=e.get("buy_reason", ""), key=f"jn_br_{ks}", height=80)
+    sell_reason = st.text_area("매도 이유", value=e.get("sell_reason", ""), key=f"jn_sr_{ks}", height=80)
+    memo = st.text_area("메모 (복기할 점 등)", value=e.get("memo", ""), key=f"jn_memo_{ks}", height=80)
+
+    buys, err_b = parse_trade_lines(buys_txt)
+    sells, err_s = parse_trade_lines(sells_txt)
+    errors = list(err_b) + list(err_s)
+    typed = bool(name.strip() or buys_txt.strip() or sells_txt.strip())
+    if typed:
+        if not name.strip():
+            errors.append("종목명을 입력하세요.")
+        if not buys and not err_b:
+            errors.append("매수 내역을 한 줄 이상 입력하세요.")
+        if buys and sells:
+            if sum(s["qty"] for s in sells) > sum(b["qty"] for b in buys):
+                errors.append("매도 수량이 매수 수량보다 많습니다.")
+            if min(s["date"] for s in sells) < min(b["date"] for b in buys):
+                errors.append("매도일이 첫 매수일보다 빠릅니다.")
+    draft = {"buys": buys, "sells": sells, "costs": costs}
+    if typed and buys and not errors:
+        c = compute_trade(draft)
+        parts = [f"평균 매수가 {c['avg_buy']:,.0f}원 × {c['buy_qty']}주"]
+        if c["avg_sell"]:
+            parts.append(f"평균 매도가 {c['avg_sell']:,.0f}원 × {c['sell_qty']}주 → 실현손익 {c['net_pl']:+,.0f}원 ({c['ret_pct']:+.2f}%)")
+        if c["remaining"] > 0:
+            parts.append(f"남은 수량 {c['remaining']}주")
+        st.info("미리보기: " + " · ".join(parts))
+    for msg in errors:
+        st.warning(msg)
+
+    if st.button("💾 저장", key=f"jn_save_{ks}", disabled=(not typed or bool(errors))):
+        now = datetime.now(KST).isoformat(timespec="seconds")
+        trade = {
+            "id": e.get("id") or f"{datetime.now(KST):%Y%m%d%H%M%S}-{uuid.uuid4().hex[:6]}",
+            "name": name.strip(), "code": code.strip(), "signals": signals, "buys": buys, "sells": sells,
+            "costs": costs, "exit_type": "" if exit_type == JOURNAL_EXIT_TYPES[0] else exit_type,
+            "buy_reason": buy_reason.strip(), "sell_reason": sell_reason.strip(), "memo": memo.strip(),
+            "created_at": e.get("created_at") or now, "updated_at": now,
+        }
+        try:
+            journal_upsert(trade)
+        except Exception as ex:
+            st.error(f"저장하지 못했습니다: {ex}")
+        else:
+            load_journal.clear()
+            st.session_state["journal_nonce"] = nonce + 1
+            st.session_state["journal_flash"] = "저장했습니다 ✅"
+            st.rerun()
+
+    if existing:
+        with st.expander("이 매매 삭제"):
+            confirm = st.checkbox("정말 삭제합니다 (되돌릴 수 없습니다)", key=f"jn_del_ok_{ks}")
+            if st.button("🗑 삭제", key=f"jn_del_{ks}", disabled=not confirm):
+                try:
+                    journal_delete(existing["id"])
+                except Exception as ex:
+                    st.error(f"삭제하지 못했습니다: {ex}")
+                else:
+                    load_journal.clear()
+                    st.session_state["journal_nonce"] = nonce + 1
+                    st.session_state["journal_flash"] = "삭제했습니다."
+                    st.rerun()
+
+
+SETUP_JOURNAL_GUIDE = """**매매 일지를 쓰려면 먼저 설정이 필요합니다** (일지는 이 코드 저장소가 아니라 **비공개 저장소**에 저장됩니다).
+
+1. GitHub에서 비공개(Private) 저장소를 새로 만듭니다 (예: `gyun-journal`, README 추가 체크).
+2. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens**에서 새 토큰을 만들되, 저장소는 방금 만든 그 저장소 하나만 선택하고 권한은 **Contents: Read and write**로 둡니다.
+3. Streamlit 앱 설정 → Secrets에 아래 세 줄을 추가합니다 (기존 값은 그대로 두세요).
+
+```
+JOURNAL_GITHUB_TOKEN = "github_pat_..."
+JOURNAL_REPO = "내계정/gyun-journal"
+JOURNAL_PASSWORD = "정한 비밀번호"
+```
+"""
+
+
+tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지",
 ])
 
 # ---------------- 📊 순매수 상위 ----------------
@@ -1824,6 +2255,27 @@ with tab_lookup:
             st.error("⚠️ 최근 30일 내 주의 공시 발견:\n" + "\n".join(f"- {r}" for r in lookup_risky))
         elif DART_API_KEY:
             st.success("최근 30일 내 주의 공시 없음")
+
+# ---------------- 📒 매매 일지 ----------------
+with tab_journal:
+    st.subheader("📒 매매 일지")
+    _jcfg = journal_settings()
+    _missing = [n for n, k in (("JOURNAL_GITHUB_TOKEN", "token"), ("JOURNAL_REPO", "repo"), ("JOURNAL_PASSWORD", "password")) if not _jcfg[k]]
+    if _missing:
+        st.info(SETUP_JOURNAL_GUIDE)
+        st.caption("아직 없는 설정: " + ", ".join(_missing))
+    elif not st.session_state.get("journal_ok"):
+        _pw = st.text_input("비밀번호", type="password", key="journal_pw")
+        if _pw:
+            if hmac.compare_digest(_pw.encode("utf-8"), _jcfg["password"].encode("utf-8")):
+                st.session_state["journal_ok"] = True
+                st.rerun()
+            else:
+                time.sleep(1)
+                st.error("비밀번호가 맞지 않습니다.")
+        st.caption("매매 일지는 비밀번호를 입력해야 볼 수 있습니다.")
+    else:
+        render_journal_tab()
 
 st.divider()
 if st.button("지금 새로고침"):
