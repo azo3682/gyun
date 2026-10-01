@@ -1,8 +1,6 @@
 {
-  "checked_at": "2026-09-30T14:57:11+09:00",
-  "kept": [],
-  "excluded": [],
-  "new_candidates": [
+  "checked_at": "2026-10-01T10:00:03+09:00",
+  "kept": [
     {
       "stock_code": "018880",
       "stock_name": "한온시스템",
@@ -12,32 +10,35 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 52.6
+        "RSI값": 54.3
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3505.0,
-      "day_pct": 9.53
-    },
+      "current_price": 3635.0,
+      "day_pct": 3.27
+    }
+  ],
+  "excluded": [
     {
       "stock_code": "093370",
       "stock_name": "후성",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 69.7
+        "RSI값": 72.2
       },
-      "transition": true,
-      "passed": 4,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15030.0,
-      "day_pct": 6.44
+      "current_price": 15820.0,
+      "day_pct": 5.47,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "008970",
@@ -48,14 +49,35 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.3
+        "RSI값": 77.2
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1483.0,
-      "day_pct": 29.97
+      "current_price": 1491.0,
+      "day_pct": 0.54,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "003160",
+      "stock_name": "디아이",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 79.0
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 40200.0,
+      "day_pct": 9.54
     }
   ]
 }
