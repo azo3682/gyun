@@ -1826,6 +1826,81 @@ def path_dataframe(rows: list) -> pd.DataFrame:
     return df
 
 
+# ---- 실현 손익 (월별 / 당월) ----
+# 매도 한 건(lot)마다 실현손익을 계산해 '매도한 날이 속한 달'에 넣는다. 같은 매매를 두 달에 걸쳐 나눠 팔았으면 각 달에 따로 들어간다.
+# gross = (매도가 - 그 매매의 평균 매수가) × 수량, 수수료·세금은 입력한 합계를 매도 수량 비율로 나눠 배분한다.
+# → 모든 달을 더하면 compute_trade의 실현손익(net_pl)과 같다. 보유 중인 수량의 미실현 손익은 포함하지 않는다.
+def current_month(now=None) -> str:
+    return (now or datetime.now(KST)).strftime("%Y-%m")
+
+
+def realized_lots(trades: list) -> list:
+    out = []
+    for t in trades:
+        c = compute_trade(t)
+        if not c["sell_qty"] or not c["avg_buy"]:
+            continue
+        for s in t.get("sells") or []:
+            gross = (s["price"] - c["avg_buy"]) * s["qty"]
+            cost = c["costs"] * s["qty"] / c["sell_qty"]
+            out.append({"trade_id": t.get("id") or t.get("name"), "name": t.get("name", ""), "date": s["date"], "month": s["date"][:7],
+                        "price": s["price"], "qty": s["qty"], "avg_buy": c["avg_buy"], "gross": gross, "cost": cost,
+                        "net": gross - cost, "basis": c["avg_buy"] * s["qty"], "proceeds": s["price"] * s["qty"]})
+    out.sort(key=lambda x: (x["date"], x["name"]))
+    return out
+
+
+def month_summary(lots: list, month: str) -> dict:
+    ml = [l for l in lots if l["month"] == month]
+    per_trade = {}
+    for l in ml:
+        per_trade[l["trade_id"]] = per_trade.get(l["trade_id"], 0.0) + l["net"]
+    net, basis = sum(l["net"] for l in ml), sum(l["basis"] for l in ml)
+    wins = sum(1 for v in per_trade.values() if v > 0)
+    return {"month": month, "net": net, "ret_pct": (net / basis * 100) if basis else None, "n_lots": len(ml),
+            "n_trades": len(per_trade), "wins": wins, "losses": sum(1 for v in per_trade.values() if v < 0),
+            "win_rate": (100 * wins / len(per_trade)) if per_trade else None,
+            "proceeds": sum(l["proceeds"] for l in ml), "cost": sum(l["cost"] for l in ml)}
+
+
+MONTHLY_COLUMNS = ["월", "실현손익(원)", "수익률(%)", "매도금액(원)", "수수료·세금(원)", "매매 수", "수익 매매", "손실 매매", "승률(%)", "누적 실현손익(원)"]
+
+
+def monthly_realized(lots: list) -> pd.DataFrame:
+    """월별 요약(오래된 달부터). 수익률은 그 달에 판 수량의 매수 원가 대비, 승률은 그 달 실현손익이 +인 매매의 비율."""
+    rows, cum = [], 0.0
+    for m in sorted({l["month"] for l in lots}):
+        s = month_summary(lots, m)
+        cum += s["net"]
+        rows.append({"월": m, "실현손익(원)": s["net"], "수익률(%)": s["ret_pct"], "매도금액(원)": s["proceeds"],
+                     "수수료·세금(원)": s["cost"], "매매 수": s["n_trades"], "수익 매매": s["wins"], "손실 매매": s["losses"],
+                     "승률(%)": s["win_rate"], "누적 실현손익(원)": cum})
+    return pd.DataFrame(rows, columns=MONTHLY_COLUMNS)
+
+
+def month_lots_dataframe(lots: list, month: str) -> pd.DataFrame:
+    rows = [{"매도일": l["date"], "종목명": l["name"], "매도가": l["price"], "수량": l["qty"], "내 평균매수가": l["avg_buy"],
+             "실현손익(원)": l["net"], "수익률(%)": (l["net"] / l["basis"] * 100) if l["basis"] else None}
+            for l in lots if l["month"] == month]
+    return pd.DataFrame(rows, columns=["매도일", "종목명", "매도가", "수량", "내 평균매수가", "실현손익(원)", "수익률(%)"])
+
+
+# ---- 매매 목록 월별 보기 ----
+def trade_months(t: dict) -> set:
+    """매수일·매도일이 속한 달('YYYY-MM') 모음."""
+    return {x["date"][:7] for x in (t.get("buys") or []) + (t.get("sells") or []) if x.get("date")}
+
+
+def trade_month_options(trades: list) -> list:
+    """일지에 나오는 달 목록(최근 달 먼저)."""
+    return sorted({m for t in trades for m in trade_months(t)}, reverse=True)
+
+
+def filter_trades_by_month(trades: list, month: str) -> list:
+    """그 달에 매수나 매도가 하나라도 있는 매매. 두 달에 걸친 매매는 양쪽 달에 모두 나온다."""
+    return [t for t in trades if month in trade_months(t)]
+
+
 SIGNAL_COMPARE_COLUMNS = [
     ("name", "종목명"), ("type_label", "신호"), ("signal_date", "신호일"), ("timing", "내 매수 시점"), ("status", "상태"),
     ("signal_close", "신호일종가"), ("entry_open", "다음날시가"), ("my_avg_buy", "내 평균매수가"),
@@ -1992,6 +2067,57 @@ def render_journal_tab():
     st.caption(f"기록은 비공개 저장소 {cfg['repo']}의 {cfg['path']}에 저장됩니다. 화면의 값은 최대 1분 전 내용일 수 있습니다. "
                "수익률은 입력한 수수료·세금까지 뺀 실현손익 기준입니다.")
 
+    # ---- 실현 손익 (월별 / 당월) ----
+    st.markdown("##### 💰 실현 손익")
+    pnl_lots = realized_lots(trades)
+    this_month = current_month()
+    if not pnl_lots:
+        st.info("아직 매도 내역이 없어서 실현 손익이 없습니다. 매도까지 기록하면 월별·당월 실현 손익을 이곳에서 볼 수 있어요.")
+    else:
+        past_months = [m for m in sorted({l["month"] for l in pnl_lots}, reverse=True) if m != this_month]
+        pnl_keys = ["__this__", "__all__"] + past_months
+        pnl_pick = st.selectbox(
+            "실현 손익 기간", pnl_keys, key=f"jn_pnl_pick_{st.session_state.get('journal_nonce', 0)}",
+            format_func=lambda k: f"당월 ({this_month})" if k == "__this__" else "월별 전체" if k == "__all__" else k)
+        money = lambda v: f"{v:+,.0f}"
+        pct1 = lambda v: f"{v:+.2f}"
+        if pnl_pick == "__all__":
+            mdf = monthly_realized(pnl_lots)
+            total = mdf["실현손익(원)"].sum()
+            mm = st.columns(3)
+            mm[0].metric("누적 실현 손익", f"{total:+,.0f}원")
+            mm[1].metric("수익 낸 달", f"{int((mdf['실현손익(원)'] > 0).sum())} / {len(mdf)}개월")
+            mm[2].metric("월 평균 실현 손익", f"{mdf['실현손익(원)'].mean():+,.0f}원")
+            shown = mdf.iloc[::-1].reset_index(drop=True)                     # 최근 달이 위로
+            st.dataframe(
+                safe_styler(shown, {"실현손익(원)": money, "수익률(%)": pct1, "매도금액(원)": lambda v: f"{v:,.0f}",
+                                    "수수료·세금(원)": lambda v: f"{v:,.0f}", "매매 수": lambda v: f"{int(v)}",
+                                    "수익 매매": lambda v: f"{int(v)}", "손실 매매": lambda v: f"{int(v)}",
+                                    "승률(%)": lambda v: f"{v:.0f}", "누적 실현손익(원)": money},
+                            signed_cols=["실현손익(원)", "수익률(%)", "누적 실현손익(원)"]),
+                use_container_width=True, hide_index=True)
+            st.bar_chart(mdf.set_index("월")["실현손익(원)"])
+        else:
+            month = this_month if pnl_pick == "__this__" else pnl_pick
+            ms = month_summary(pnl_lots, month)
+            if ms["n_lots"] == 0:
+                st.info(f"{month}에는 매도 내역이 없습니다.")
+            else:
+                mm = st.columns(4)
+                mm[0].metric(f"{month} 실현 손익", f"{ms['net']:+,.0f}원")
+                mm[1].metric("수익률 (매수 원가 기준)", f"{ms['ret_pct']:+.2f}%" if ms["ret_pct"] is not None else "—")
+                mm[2].metric("매도 건수", f"{ms['n_lots']}건", delta=f"{ms['n_trades']}개 매매", delta_color="off")
+                mm[3].metric("승률", f"{ms['win_rate']:.0f}%", delta=f"수익 {ms['wins']} · 손실 {ms['losses']}", delta_color="off")
+                ldf = month_lots_dataframe(pnl_lots, month)
+                st.dataframe(
+                    safe_styler(ldf, {"매도가": lambda v: f"{v:,.0f}", "수량": lambda v: f"{int(v):,}", "내 평균매수가": lambda v: f"{v:,.0f}",
+                                      "실현손익(원)": money, "수익률(%)": pct1}, signed_cols=["실현손익(원)", "수익률(%)"]),
+                    use_container_width=True, hide_index=True)
+        st.caption("실현 손익은 매도한 날이 속한 달에 넣어요(같은 매매를 두 달에 나눠 팔았으면 각 달에 따로). 매도 한 건의 손익 = (매도가 − 그 매매의 "
+                   "평균 매수가) × 수량이고, 입력한 수수료·세금 합계는 매도 수량 비율로 나눠 뺍니다(매수 때 낸 수수료도 합계에 들어 있을 수 있어요). "
+                   "수익률은 그 기간에 판 수량의 매수 원가 대비, 승률은 그 기간 실현 손익이 +인 매매의 비율이에요. 아직 팔지 않은 보유 수량의 "
+                   "미실현 손익은 포함하지 않습니다.")
+
     # ---- 통계 (마감된 매매만) ----
     st.markdown("##### 📊 마감된 매매 통계")
     stats = summarize_trades(trades)
@@ -2017,9 +2143,19 @@ def render_journal_tab():
     if not trades:
         st.info("아직 기록이 없습니다. 아래에서 첫 매매를 기록해 보세요.")
     else:
-        st.dataframe(style_journal_table(build_journal_table(trades)), use_container_width=True, hide_index=True)
+        list_keys = ["__all__", "__this__"] + [m for m in trade_month_options(trades) if m != this_month]
+        list_pick = st.selectbox(
+            "매매 목록 기간", list_keys, key=f"jn_list_pick_{st.session_state.get('journal_nonce', 0)}",
+            format_func=lambda k: "전체" if k == "__all__" else f"당월 ({this_month})" if k == "__this__" else k)
+        list_trades = trades if list_pick == "__all__" else filter_trades_by_month(trades, this_month if list_pick == "__this__" else list_pick)
+        if not list_trades:
+            st.info("이 기간에는 매수나 매도 기록이 없습니다.")
+        else:
+            st.caption(f"{len(list_trades)}건 표시 (전체 {len(trades)}건). 선택한 달에 매수나 매도가 있는 매매를 보여줘요 — "
+                       "두 달에 걸친 매매는 양쪽 달에 모두 나옵니다.")
+            st.dataframe(style_journal_table(build_journal_table(list_trades)), use_container_width=True, hide_index=True)
         with st.expander("매수·매도 이유와 메모 보기"):
-            for t in sorted(trades, key=lambda x: compute_trade(x)["first_buy"] or "", reverse=True):
+            for t in sorted(list_trades, key=lambda x: compute_trade(x)["first_buy"] or "", reverse=True):
                 c = compute_trade(t)
                 ret = f"{c['ret_pct']:+.2f}%" if c["ret_pct"] is not None else "미정"
                 st.markdown(f"**{t['name']}** · {c['first_buy']} · {c['status']} · {ret}")
