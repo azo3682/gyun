@@ -211,9 +211,21 @@ def fetch_volume_rank() -> tuple[list[dict], dict]:
 # 일봉 데이터 + 기술적 분석
 # ============================================================
 
-@st.cache_data(ttl=1800)
-def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
-    """최근 약 4개월 일봉 데이터. 실패하면 빈 DataFrame.
+def _retry(fn, *args, attempts: int = 2, delay: float = 0.7, default=None):
+    """fn(*args)를 시도해 성공하면 그 값을 돌려주고, 예외가 나면 잠깐 쉬었다 다시 시도한다. 끝내 실패하면 default.
+    st.cache_data는 예외가 난 호출을 캐시하지 않는다 — 그래서 '실패'를 예외로 알리는 함수를 캐시에 넣고 이 헬퍼로 감싸면
+    일시적인 조회 실패(호출 한도 초과 등)가 몇 분~몇 시간 동안 화면에 그대로 남는 일이 없다."""
+    for i in range(attempts):
+        try:
+            return fn(*args)
+        except Exception:
+            if i < attempts - 1:
+                time.sleep(delay)
+    return default
+
+
+def _fetch_daily_ohlcv_raw(stock_code: str) -> pd.DataFrame:
+    """최근 약 4개월 일봉 데이터. 실패하면(빈 응답 포함) 예외를 던진다 — 캐시에 실패가 남지 않게 하려는 것.
 
     [확인 필요] output2 필드 구조는 여러 공개 예제에서 일관되게
     확인했지만(stck_bsop_date/stck_clpr/stck_oprc/stck_hgpr/stck_lwpr/acml_vol),
@@ -231,25 +243,41 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         "fid_org_adj_prc": "0",
     }
     time.sleep(0.15)  # 초당 호출 제한 방지용 간격
+    resp = requests.get(
+        f"{BASE_URL}{DAILY_CHART_API_PATH}",
+        headers=kis_headers(DAILY_CHART_TR_ID),
+        params=params, timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") not in (None, "0"):
+        raise RuntimeError(data.get("msg1") or "일봉 조회 실패")
+    rows = data.get("output2", [])
+    if not rows:
+        raise RuntimeError("일봉 응답이 비어 있음")
+    df = pd.DataFrame(rows)
+    df = df[df["stck_bsop_date"] != ""]
+    for col in ["stck_clpr", "stck_oprc", "stck_hgpr", "stck_lwpr", "acml_vol"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df.sort_values("stck_bsop_date").reset_index(drop=True)
+
+
+_fetch_daily_ohlcv_cached = st.cache_data(ttl=1800)(_fetch_daily_ohlcv_raw)
+
+
+def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
+    """최근 약 4개월 일봉. 성공한 결과만 30분 캐시하고 실패는 한 번 더 시도한다. 끝내 실패하면 빈 DataFrame."""
+    return _retry(_fetch_daily_ohlcv_cached, stock_code, default=pd.DataFrame())
+
+
+def _fetch_daily_ohlcv_uncached(stock_code: str) -> pd.DataFrame:
     try:
-        resp = requests.get(
-            f"{BASE_URL}{DAILY_CHART_API_PATH}",
-            headers=kis_headers(DAILY_CHART_TR_ID),
-            params=params, timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        rows = data.get("output2", [])
-        if not rows:
-            return pd.DataFrame()
-        df = pd.DataFrame(rows)
-        df = df[df["stck_bsop_date"] != ""]
-        for col in ["stck_clpr", "stck_oprc", "stck_hgpr", "stck_lwpr", "acml_vol"]:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-        df = df.sort_values("stck_bsop_date").reset_index(drop=True)
-        return df
+        return _fetch_daily_ohlcv_raw(stock_code)
     except Exception:
         return pd.DataFrame()
+
+
+fetch_daily_ohlcv.__wrapped__ = _fetch_daily_ohlcv_uncached   # 호출부의 '캐시 우회 재시도'(스윙 후보 스크리닝)가 그대로 동작하도록
 
 
 # 거래소가 실시간으로 매기는 종목상태코드 — DART 공시보다 먼저, 더 확실하게 위험을 알려준다
@@ -276,112 +304,126 @@ def market_risk_flags(stat_code: str, warn_code: str, halted: bool, mktcap_eok: 
     return flags
 
 
-@st.cache_data(ttl=30)
-def fetch_current_price(stock_code: str):
-    """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트) 반환. 실패하면 (None, None, [])."""
+def _fetch_current_price_raw(stock_code: str):
+    """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트). 실패하거나 응답이 비어 있으면 예외를 던진다."""
+    resp = requests.get(
+        f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
+        headers=kis_headers(CURRENT_PRICE_TR_ID),
+        params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(data.get("msg1") or "현재가 조회 실패")
+    output = data.get("output") or {}
+    price = float(output.get("stck_prpr", 0) or 0)
+    if price <= 0:
+        # 값이 전부 0으로 오는 응답을 정상으로 취급하면 '시가총액 0억' 같은 가짜 관리종목 경고가 뜬다
+        raise RuntimeError("현재가가 비어 있음")
+    pct = float(output.get("prdy_ctrt", 0) or 0)
+    mktcap_eok = None
     try:
-        resp = requests.get(
-            f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
-            headers=kis_headers(CURRENT_PRICE_TR_ID),
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("rt_cd") != "0":
-            return None, None, []
-        output = data.get("output", {})
-        price = float(output.get("stck_prpr", 0) or 0)
-        pct = float(output.get("prdy_ctrt", 0) or 0)
-        mktcap_eok = None
-        try:
-            if output.get("hts_avls") not in (None, ""):
-                mktcap_eok = float(output["hts_avls"])
-        except (TypeError, ValueError):
-            pass
-        flags = market_risk_flags(
-            str(output.get("iscd_stat_cls_code") or ""),
-            str(output.get("mrkt_warn_cls_code") or ""),
-            str(output.get("temp_stop_yn") or "") == "Y",
-            mktcap_eok,
-        )
-        return price, pct, flags
-    except Exception:
-        return None, None, []
+        if output.get("hts_avls") not in (None, ""):
+            mktcap_eok = float(output["hts_avls"])
+    except (TypeError, ValueError):
+        pass
+    flags = market_risk_flags(
+        str(output.get("iscd_stat_cls_code") or ""),
+        str(output.get("mrkt_warn_cls_code") or ""),
+        str(output.get("temp_stop_yn") or "") == "Y",
+        mktcap_eok,
+    )
+    return price, pct, flags
 
 
-@st.cache_data(ttl=30)
-def fetch_valuation(stock_code: str):
-    """(PER, PBR, EPS, BPS, 원본응답) 반환. 실패하면 전부 None / {}.
+_fetch_current_price_cached = st.cache_data(ttl=30)(_fetch_current_price_raw)
+
+
+def fetch_current_price(stock_code: str):
+    """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트) 반환. 실패하면 (None, None, []). 실패는 캐시하지 않는다."""
+    return _retry(_fetch_current_price_cached, stock_code, default=(None, None, []))
+
+
+def _fetch_valuation_raw(stock_code: str):
+    """(PER, PBR, EPS, BPS, 원본응답). 실패하거나 응답이 비어 있으면 예외를 던진다.
     같은 현재가 조회 API 안에 들어있는 값이라 별도 엔드포인트 승인 없이 바로 씀.
     필드명이 실제와 다를 수 있어 원본 응답도 같이 반환 — 화면에서 검증용으로 보여줌."""
-    try:
-        resp = requests.get(
-            f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
-            headers=kis_headers(CURRENT_PRICE_TR_ID),
-            params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("rt_cd") != "0":
-            return None, None, None, None, {}
-        output = data.get("output", {})
+    resp = requests.get(
+        f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
+        headers=kis_headers(CURRENT_PRICE_TR_ID),
+        params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(data.get("msg1") or "밸류에이션 조회 실패")
+    output = data.get("output") or {}
+    if not output:
+        raise RuntimeError("응답이 비어 있음")
 
-        def to_float(key):
-            v = output.get(key)
-            try:
-                return float(v) if v not in (None, "") else None
-            except (TypeError, ValueError):
-                return None
+    def to_float(key):
+        v = output.get(key)
+        try:
+            return float(v) if v not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
 
-        per = to_float("per")
-        pbr = to_float("pbr")
-        eps = to_float("eps")
-        bps = to_float("bps")
-        return per, pbr, eps, bps, output
-    except Exception:
-        return None, None, None, None, {}
+    return to_float("per"), to_float("pbr"), to_float("eps"), to_float("bps"), output
 
 
-@st.cache_data(ttl=6 * 3600)
-def fetch_financial_ratio(stock_code: str, period: str = "0"):
-    """KIS 국내주식 재무비율(v1_국내주식-080, 실전 전용) — 최근 결산 기준 정식 재무비율 dict, 실패하면 None.
-    ROE(roe_val)·부채비율(lblt_rate)·매출/영업이익/순이익 증가율. 결산 데이터라 6시간 캐시.
+_fetch_valuation_cached = st.cache_data(ttl=30)(_fetch_valuation_raw)
+
+
+def fetch_valuation(stock_code: str):
+    """(PER, PBR, EPS, BPS, 원본응답) 반환. 실패하면 전부 None / {}. 실패는 캐시하지 않는다."""
+    return _retry(_fetch_valuation_cached, stock_code, default=(None, None, None, None, {}))
+
+
+def _fetch_financial_ratio_raw(stock_code: str, period: str = "0"):
+    """KIS 국내주식 재무비율(v1_국내주식-080, 실전 전용) — 최근 결산 기준 정식 재무비율 dict.
+    실패하거나 데이터가 없으면 예외를 던진다(캐시에 실패가 6시간 남지 않게). ETF·신규상장은 데이터가 없어 이 경로로 빠진다.
+    ROE(roe_val)·부채비율(lblt_rate)·매출/영업이익/순이익 증가율. 결산 데이터라 성공한 값은 6시간 캐시.
     output은 결산년월별 배열이라 이번 달 이하 중 가장 최근 결산을 고른다. 'raw'는 필드명 검증용.
     영업이익 증가율(bsop_prfi_inrt)은 적자지속/흑자전환/적자전환이면 0으로 오므로 0을 '성장 없음'으로 보면 안 된다."""
-    try:
-        resp = requests.get(
-            f"{BASE_URL}/uapi/domestic-stock/v1/finance/financial-ratio",
-            headers=kis_headers("FHKST66430300"),
-            params={"FID_DIV_CLS_CODE": period, "fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("rt_cd") != "0":
-            return None
-        rows = data.get("output") or []
-        if isinstance(rows, dict):
-            rows = [rows]
-        rows = [r for r in rows if isinstance(r, dict) and r.get("stac_yymm")]
-        if not rows:
-            return None
-        cutoff = datetime.now(KST).strftime("%Y%m")
-        latest = max([r for r in rows if r["stac_yymm"] <= cutoff] or rows, key=lambda r: r["stac_yymm"])
+    resp = requests.get(
+        f"{BASE_URL}/uapi/domestic-stock/v1/finance/financial-ratio",
+        headers=kis_headers("FHKST66430300"),
+        params={"FID_DIV_CLS_CODE": period, "fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(data.get("msg1") or "재무비율 조회 실패")
+    rows = data.get("output") or []
+    if isinstance(rows, dict):
+        rows = [rows]
+    rows = [r for r in rows if isinstance(r, dict) and r.get("stac_yymm")]
+    if not rows:
+        raise RuntimeError("재무비율 데이터 없음")
+    cutoff = datetime.now(KST).strftime("%Y%m")
+    latest = max([r for r in rows if r["stac_yymm"] <= cutoff] or rows, key=lambda r: r["stac_yymm"])
 
-        def f(key):
-            v = latest.get(key)
-            try:
-                return float(v) if v not in (None, "") else None
-            except (TypeError, ValueError):
-                return None
+    def f(key):
+        v = latest.get(key)
+        try:
+            return float(v) if v not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
 
-        return {"stac_yymm": latest.get("stac_yymm"), "roe": f("roe_val"), "debt_ratio": f("lblt_rate"),
-                "sales_growth": f("grs"), "op_growth": f("bsop_prfi_inrt"), "ni_growth": f("ntin_inrt"),
-                "eps": f("eps"), "bps": f("bps"), "rsrv_rate": f("rsrv_rate"), "raw": latest}
-    except Exception:
-        return None
+    return {"stac_yymm": latest.get("stac_yymm"), "roe": f("roe_val"), "debt_ratio": f("lblt_rate"),
+            "sales_growth": f("grs"), "op_growth": f("bsop_prfi_inrt"), "ni_growth": f("ntin_inrt"),
+            "eps": f("eps"), "bps": f("bps"), "rsrv_rate": f("rsrv_rate"), "raw": latest}
+
+
+_fetch_financial_ratio_cached = st.cache_data(ttl=6 * 3600)(_fetch_financial_ratio_raw)
+
+
+def fetch_financial_ratio(stock_code: str, period: str = "0"):
+    """최근 결산 기준 정식 재무비율 dict, 실패하거나 데이터가 없으면 None. 실패는 캐시하지 않는다."""
+    return _retry(_fetch_financial_ratio_cached, stock_code, period, default=None)
 
 
 def compute_rsi(closes: pd.Series, period: int = 14):
@@ -1140,6 +1182,191 @@ def style_summary(df: pd.DataFrame):
     styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:.0f}", subset=["승률(%)", "지수 이긴 비율(%)"])
     styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:.2f}", subset=["손익비"])
     return styler.format(lambda v: f"{int(v)}", subset=["표본 수", "지수 비교 표본"])
+
+
+# ============================================================
+# 수급 (외국인 · 기관 · 개인) — 종목 조회 탭
+#   - 일별: KIS '주식현재가 투자자'(v1_국내주식-012, FHKST01010900) — 개인·외국인·기관 순매수 수량(주) 일별.
+#     명세: 당일 데이터는 장 종료 후 제공. 외국인 = 외국인(투자등록 고유번호가 있는 경우) + 기타 외국인.
+#   - 장중: KIS '종목별 외인기관 추정가집계'(v1_국내주식-046, HHPTJ04160200, 실전 전용) — 외국인·기관만(개인 없음).
+#     증권사 직원이 장중에 집계·입력한 값의 단순 누계. 입력 시각은 외국인 09:30·11:20·13:20·14:30, 기관 10:00·11:20·13:20·14:30.
+#     응답에 날짜가 없다.
+# ============================================================
+INVESTOR_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor"
+INVESTOR_DAILY_TR_ID = "FHKST01010900"
+INVESTOR_EST_PATH = "/uapi/domestic-stock/v1/quotations/investor-trend-estimate"
+INVESTOR_EST_TR_ID = "HHPTJ04160200"
+EST_SLOT_LABELS = {"1": "09:30", "2": "10:00", "3": "11:20", "4": "13:20", "5": "14:30"}
+
+
+def _to_int(v):
+    try:
+        t = str(v).replace(",", "").strip()
+        return int(float(t)) if t not in ("", "None") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_investor_daily(output) -> list:
+    """주식현재가 투자자 응답의 output 배열 → [{date, close, prsn, frgn, orgn}] 최신순. 날짜가 없는 행은 버린다.
+    prsn=개인, frgn=외국인, orgn=기관계 순매수 수량(주, 음수면 순매도)."""
+    if isinstance(output, dict):
+        output = [output]
+    rows = []
+    for r in output or []:
+        if not isinstance(r, dict):
+            continue
+        d = str(r.get("stck_bsop_date") or "").strip()
+        if len(d) != 8:
+            continue
+        rows.append({"date": d, "close": _to_int(r.get("stck_clpr")), "prsn": _to_int(r.get("prsn_ntby_qty")),
+                     "frgn": _to_int(r.get("frgn_ntby_qty")), "orgn": _to_int(r.get("orgn_ntby_qty"))})
+    rows.sort(key=lambda x: x["date"], reverse=True)
+    return rows
+
+
+def parse_investor_estimate(output2) -> list:
+    """추정가집계 응답의 output2 배열 → [{slot, time, frgn, orgn, sum}] 입력 순서대로(09:30→14:30)."""
+    if isinstance(output2, dict):
+        output2 = [output2]
+    rows = []
+    for r in output2 or []:
+        if not isinstance(r, dict):
+            continue
+        gb = str(r.get("bsop_hour_gb") or "").strip()
+        if gb not in EST_SLOT_LABELS:
+            continue
+        rows.append({"slot": gb, "time": EST_SLOT_LABELS[gb], "frgn": _to_int(r.get("frgn_fake_ntby_qty")),
+                     "orgn": _to_int(r.get("orgn_fake_ntby_qty")), "sum": _to_int(r.get("sum_fake_ntby_qty"))})
+    rows.sort(key=lambda x: x["slot"])
+    return rows
+
+
+def investor_row_pending(row: dict, today: str) -> bool:
+    """오늘 행인데 세 투자자 값이 모두 비었거나 0이면 아직 마감 후 제공 전인 행으로 본다."""
+    return row["date"] == today and all(row.get(k) in (None, 0) for k in ("prsn", "frgn", "orgn"))
+
+
+def investor_streak(rows: list, key: str) -> int:
+    """rows(최신순, 미확정 행 제외)에서 key 투자자의 연속 순매수(+n) / 순매도(-n) 일수. 값이 없거나 0이면 0."""
+    streak = 0
+    for r in rows:
+        v = r.get(key)
+        if v is None or v == 0:
+            break
+        sign = 1 if v > 0 else -1
+        if streak == 0:
+            streak = sign
+        elif (streak > 0) == (sign > 0):
+            streak += sign
+        else:
+            break
+    return streak
+
+
+def investor_recent_sum(rows: list, key: str, n: int = 5):
+    vals = [r[key] for r in rows[:n] if r.get(key) is not None]
+    return sum(vals) if vals else None
+
+
+def _investor_daily_raw(stock_code: str) -> list:
+    resp = requests.get(f"{BASE_URL}{INVESTOR_DAILY_PATH}", headers=kis_headers(INVESTOR_DAILY_TR_ID),
+                        params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code}, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(data.get("msg1") or "수급 조회 실패")
+    rows = parse_investor_daily(data.get("output"))
+    if not rows:
+        raise RuntimeError("수급 데이터가 비어 있음")
+    return rows
+
+
+def _investor_estimate_raw(stock_code: str) -> list:
+    resp = requests.get(f"{BASE_URL}{INVESTOR_EST_PATH}", headers=kis_headers(INVESTOR_EST_TR_ID),
+                        params={"MKSC_SHRN_ISCD": stock_code}, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(data.get("msg1") or "장중 추정 수급 조회 실패")
+    return parse_investor_estimate(data.get("output2"))      # 아직 입력 전이면 빈 목록(정상)
+
+
+_investor_daily_cached = st.cache_data(ttl=300)(_investor_daily_raw)
+_investor_estimate_cached = st.cache_data(ttl=120)(_investor_estimate_raw)
+
+
+def fetch_investor_daily(stock_code: str):
+    """일별 개인·외국인·기관 순매수 목록(최신순). 실패하면 None. 실패는 캐시하지 않는다."""
+    return _retry(_investor_daily_cached, stock_code, default=None)
+
+
+def fetch_investor_estimate(stock_code: str):
+    """장중 외국인·기관 추정 집계 목록(입력 순서). 아직 입력이 없으면 [], 실패하면 None."""
+    return _retry(_investor_estimate_cached, stock_code, default=None)
+
+
+def _streak_text(n: int) -> str:
+    return "—" if not n else f"{abs(n)}일 연속 {'순매수' if n > 0 else '순매도'}"
+
+
+def _qty_style(df: pd.DataFrame, cols: list):
+    styler = df.style.map(_signed_style, subset=cols)
+    return styler.format(lambda v: "—" if pd.isna(v) else fmt_shares(v), subset=cols)
+
+
+def render_investor_section(est, inv):
+    """종목 조회 탭의 수급 섹션. est=fetch_investor_estimate 결과, inv=fetch_investor_daily 결과."""
+    now = datetime.now(KST)
+    today = now.strftime("%Y%m%d")
+    st.markdown("**수급 (외국인 · 기관 · 개인)**")
+
+    # ---- 오늘 장중 추정 (외국인·기관) ----
+    st.markdown("오늘 장중 추정 — 외국인·기관")
+    if est is None:
+        st.caption("장중 추정 수급을 가져오지 못했습니다 (일시적인 조회 실패일 수 있어요 — 잠시 후 다시 시도하세요).")
+    elif not est:
+        st.caption("아직 입력된 추정 집계가 없습니다 (첫 입력은 09:30 무렵).")
+    else:
+        edf = pd.DataFrame([{"입력 시각": r["time"], "외국인(주)": r["frgn"], "기관(주)": r["orgn"], "합산(주)": r["sum"]}
+                            for r in est])
+        edf[["외국인(주)", "기관(주)", "합산(주)"]] = edf[["외국인(주)", "기관(주)", "합산(주)"]].apply(pd.to_numeric, errors="coerce")
+        st.dataframe(_qty_style(edf, ["외국인(주)", "기관(주)", "합산(주)"]), use_container_width=True, hide_index=True)
+    st.caption("증권사 직원이 장중에 집계·입력한 값을 단순 누계한 추정치입니다. 입력 시각은 외국인 09:30·11:20·13:20·14:30, "
+               "기관 10:00·11:20·13:20·14:30이고 사정에 따라 바뀔 수 있어요. 개인은 제공되지 않습니다. "
+               "응답에 날짜가 없어서 이른 시간에는 전일 값이 보일 수 있고, 0은 아직 입력 전일 수 있습니다.")
+
+    # ---- 일별 (개인·외국인·기관) ----
+    st.markdown("일별 순매수 — 개인·외국인·기관")
+    if inv is None:
+        st.caption("일별 수급을 가져오지 못했습니다 (일시적인 조회 실패일 수 있어요 — 잠시 후 다시 시도하세요).")
+        return
+    valid = [r for r in inv if not investor_row_pending(r, today)]
+    pending_today = any(investor_row_pending(r, today) for r in inv)
+    m = st.columns(5)
+    m[0].metric("외국인", _streak_text(investor_streak(valid, "frgn")))
+    m[1].metric("기관", _streak_text(investor_streak(valid, "orgn")))
+    m[2].metric("개인", _streak_text(investor_streak(valid, "prsn")))
+    n_recent = min(5, len(valid))
+    for col, label, key in ((m[3], "외국인", "frgn"), (m[4], "기관", "orgn")):
+        total = investor_recent_sum(valid, key, 5)
+        col.metric(f"{label} 최근 {n_recent}일 누적", fmt_shares(total) if total is not None else "—")
+    rows = []
+    for r in inv[:10]:
+        pend = investor_row_pending(r, today)
+        d = f"{r['date'][:4]}-{r['date'][4:6]}-{r['date'][6:]}"
+        rows.append({"일자": d + (" (마감 후 제공)" if pend else ""), "종가": r["close"],
+                     "개인(주)": None if pend else r["prsn"], "외국인(주)": None if pend else r["frgn"],
+                     "기관(주)": None if pend else r["orgn"]})
+    ddf = pd.DataFrame(rows)
+    ddf[["종가", "개인(주)", "외국인(주)", "기관(주)"]] = ddf[["종가", "개인(주)", "외국인(주)", "기관(주)"]].apply(pd.to_numeric, errors="coerce")
+    styler = _qty_style(ddf, ["개인(주)", "외국인(주)", "기관(주)"]).format(
+        lambda v: "" if pd.isna(v) else f"{v:,.0f}", subset=["종가"])
+    st.dataframe(styler, use_container_width=True, hide_index=True)
+    st.caption("KIS '주식현재가 투자자' 기준 순매수 수량(주)이며, 빨강은 순매수·파랑은 순매도입니다. 외국인은 외국인(투자등록 고유번호가 있는 경우)과 "
+               "기타 외국인을 합친 값이고, 연속 일수는 마감이 확정된 날만 셉니다. "
+               + ("오늘 값은 장 종료 후 제공돼서 지금은 어제까지의 값입니다." if pending_today else
+                  "당일 데이터는 장 종료 후 제공됩니다."))
 
 
 def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_msg: str):
@@ -2156,6 +2383,8 @@ with tab_lookup:
             lookup_risky = check_disclosure_risk(lookup_code)
             lookup_per, lookup_pbr, lookup_eps, lookup_bps, lookup_val_raw = fetch_valuation(lookup_code)
             lookup_fin = fetch_financial_ratio(lookup_code)
+            lookup_est = fetch_investor_estimate(lookup_code)
+            lookup_inv = fetch_investor_daily(lookup_code)
 
         if lookup_price is not None:
             st.markdown(f"### {lookup_price:,.0f}원 &nbsp; {colored_pct_html(lookup_pct)}", unsafe_allow_html=True)
@@ -2164,7 +2393,7 @@ with tab_lookup:
                 st.error("🚨 거래소 지정 상태: " + " · ".join(lookup_flags) +
                          " — 아래 전환신호·국면 판단은 이 상태를 반영하지 않으니 근거로 쓰지 마세요.")
         else:
-            st.warning("현재가 조회 실패 — 종목코드를 확인해주세요.")
+            st.warning("현재가 조회 실패 — 종목코드를 확인하거나 잠시 후 다시 시도해 주세요 (일시적인 조회 실패일 수 있습니다).")
 
         st.markdown("**밸류에이션 (PER · PBR)**")
         if lookup_per is not None or lookup_pbr is not None:
@@ -2210,6 +2439,8 @@ with tab_lookup:
                 st.json(lookup_fin.get("raw", {}))
         else:
             st.caption("재무비율 조회 실패 (ETF·신규상장·결산 미공시 종목은 제공되지 않을 수 있습니다).")
+
+        render_investor_section(lookup_est, lookup_inv)
 
         lookup_transition = compute_transition_signal(lookup_df)
         if lookup_transition:
