@@ -1878,11 +1878,58 @@ def monthly_realized(lots: list) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=MONTHLY_COLUMNS)
 
 
-def month_lots_dataframe(lots: list, month: str) -> pd.DataFrame:
-    rows = [{"매도일": l["date"], "종목명": l["name"], "매도가": l["price"], "수량": l["qty"], "내 평균매수가": l["avg_buy"],
-             "실현손익(원)": l["net"], "수익률(%)": (l["net"] / l["basis"] * 100) if l["basis"] else None}
-            for l in lots if l["month"] == month]
-    return pd.DataFrame(rows, columns=["매도일", "종목명", "매도가", "수량", "내 평균매수가", "실현손익(원)", "수익률(%)"])
+MONTH_SUMMARY_COLUMNS = ["종목명", "매도일", "체결 수(건)", "총 수량(주)", "평균 매수가", "평균 매도가", "매도가 범위", "실현손익(원)", "수익률(%)"]
+
+
+def month_trade_summary(lots: list, month: str, sort: str = "pnl_desc") -> pd.DataFrame:
+    """그 달 실현 손익을 종목(이름)별로 합친 요약표 + 마지막에 '합계' 행. 체결(분할 매도) 여러 건은 한 줄로 합친다.
+    평균 매수가·매도가는 수량 가중 평균, 수익률은 합친 실현 손익 ÷ 합친 매수 원가. 같은 종목을 매매 여러 건으로 나눠 기록했어도 합쳐진다.
+    합계 행의 수량·평균가는 종목이 섞여 의미가 없어 비운다. sort: pnl_desc(실현손익 큰 순) / pnl_asc / date_desc(매도일 최신순)."""
+    groups = {}
+    for l in lots:
+        if l["month"] == month:
+            groups.setdefault(l["name"], []).append(l)
+    rows = []
+    for name, ls in groups.items():
+        qty, basis = sum(l["qty"] for l in ls), sum(l["basis"] for l in ls)
+        net, proceeds = sum(l["net"] for l in ls), sum(l["proceeds"] for l in ls)
+        dates, prices = sorted(l["date"] for l in ls), [l["price"] for l in ls]
+        rows.append({"종목명": name, "매도일": dates[0][5:] if dates[0] == dates[-1] else f"{dates[0][5:]}~{dates[-1][5:]}",
+                     "체결 수(건)": len(ls), "총 수량(주)": qty, "평균 매수가": basis / qty, "평균 매도가": proceeds / qty,
+                     "매도가 범위": f"{min(prices):,.0f}" if min(prices) == max(prices) else f"{min(prices):,.0f}~{max(prices):,.0f}",
+                     "실현손익(원)": net, "수익률(%)": (net / basis * 100) if basis else None, "_last": dates[-1]})
+    if sort == "pnl_asc":
+        rows.sort(key=lambda r: (r["실현손익(원)"], r["종목명"]))
+    elif sort == "date_desc":
+        rows.sort(key=lambda r: (r["_last"], r["실현손익(원)"]), reverse=True)
+    else:
+        rows.sort(key=lambda r: (-r["실현손익(원)"], r["종목명"]))
+    ml = [l for l in lots if l["month"] == month]
+    tb, tn = sum(l["basis"] for l in ml), sum(l["net"] for l in ml)
+    if rows:
+        rows.append({"종목명": "합계", "매도일": None, "체결 수(건)": len(ml), "총 수량(주)": None, "평균 매수가": None,
+                     "평균 매도가": None, "매도가 범위": None, "실현손익(원)": tn, "수익률(%)": (tn / tb * 100) if tb else None, "_last": ""})
+    df = pd.DataFrame(rows, columns=MONTH_SUMMARY_COLUMNS + ["_last"]).drop(columns="_last")
+    num = ["체결 수(건)", "총 수량(주)", "평균 매수가", "평균 매도가", "실현손익(원)", "수익률(%)"]
+    df[num] = df[num].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+MONTH_LOTS_COLUMNS = ["종목명", "매도일", "매도가", "수량", "수량 비중(%)", "내 평균매수가", "실현손익(원)", "수익률(%)"]
+
+
+def month_lots_dataframe(lots: list, month: str, name_order=None) -> pd.DataFrame:
+    """체결(분할 매도) 한 건씩의 상세. 종목별로 묶어 매도일·매도가 순. 수량 비중 = 그 종목의 그 달 매도 수량 중 이 체결의 몫."""
+    ml = [l for l in lots if l["month"] == month]
+    totals = {}
+    for l in ml:
+        totals[l["name"]] = totals.get(l["name"], 0) + l["qty"]
+    order = {n: i for i, n in enumerate(name_order or [])}
+    ml.sort(key=lambda l: (order.get(l["name"], len(order)), l["name"], l["date"], -l["price"]))
+    rows = [{"종목명": l["name"], "매도일": l["date"], "매도가": l["price"], "수량": l["qty"],
+             "수량 비중(%)": l["qty"] / totals[l["name"]] * 100, "내 평균매수가": l["avg_buy"], "실현손익(원)": l["net"],
+             "수익률(%)": (l["net"] / l["basis"] * 100) if l["basis"] else None} for l in ml]
+    return pd.DataFrame(rows, columns=MONTH_LOTS_COLUMNS)
 
 
 # ---- 매매 목록 월별 보기 ----
@@ -2108,11 +2155,32 @@ def render_journal_tab():
                 mm[1].metric("수익률 (매수 원가 기준)", f"{ms['ret_pct']:+.2f}%" if ms["ret_pct"] is not None else "—")
                 mm[2].metric("매도 건수", f"{ms['n_lots']}건", delta=f"{ms['n_trades']}개 매매", delta_color="off")
                 mm[3].metric("승률", f"{ms['win_rate']:.0f}%", delta=f"수익 {ms['wins']} · 손실 {ms['losses']}", delta_color="off")
-                ldf = month_lots_dataframe(pnl_lots, month)
+                price1 = lambda v: f"{v:,.0f}"
+                sort_labels = {"pnl_desc": "실현손익 큰 순", "pnl_asc": "실현손익 작은 순", "date_desc": "매도일 최신순"}
+                sort_pick = st.selectbox("종목 정렬", list(sort_labels), format_func=lambda k: sort_labels[k],
+                                         key=f"jn_pnl_sort_{st.session_state.get('journal_nonce', 0)}")
+                sdf = month_trade_summary(pnl_lots, month, sort_pick)
                 st.dataframe(
-                    safe_styler(ldf, {"매도가": lambda v: f"{v:,.0f}", "수량": lambda v: f"{int(v):,}", "내 평균매수가": lambda v: f"{v:,.0f}",
-                                      "실현손익(원)": money, "수익률(%)": pct1}, signed_cols=["실현손익(원)", "수익률(%)"]),
+                    safe_styler(sdf, {"체결 수(건)": lambda v: f"{int(v)}", "총 수량(주)": lambda v: f"{int(v):,}", "평균 매수가": price1,
+                                      "평균 매도가": price1, "실현손익(원)": money, "수익률(%)": pct1},
+                                signed_cols=["실현손익(원)", "수익률(%)"],
+                                row_styles=[""] * (len(sdf) - 1) + ["font-weight: 700; background-color: rgba(148, 163, 184, 0.18);"]),
                     use_container_width=True, hide_index=True)
+                st.caption("같은 종목의 체결(분할 매도)은 한 줄로 합쳤어요. 평균 매수가·매도가는 수량 가중 평균, 수익률은 합친 실현 손익 ÷ 합친 매수 원가이고, "
+                           "'매도가 범위'는 가장 낮은 체결가~가장 높은 체결가예요.")
+                with st.expander("체결 상세 보기 (분할 매도 한 건씩)"):
+                    ldf = month_lots_dataframe(pnl_lots, month, [n for n in sdf["종목명"] if n != "합계"])
+                    zebra, prev_name, group = [], None, -1
+                    for nm in ldf["종목명"]:                  # 종목이 바뀔 때마다 배경을 번갈아 바꿔 묶음이 보이게 한다
+                        if nm != prev_name:
+                            group, prev_name = group + 1, nm
+                        zebra.append("background-color: rgba(148, 163, 184, 0.10);" if group % 2 else "")
+                    st.dataframe(
+                        safe_styler(ldf, {"매도가": price1, "수량": lambda v: f"{int(v):,}", "수량 비중(%)": lambda v: f"{v:.0f}",
+                                          "내 평균매수가": price1, "실현손익(원)": money, "수익률(%)": pct1},
+                                    signed_cols=["실현손익(원)", "수익률(%)"], row_styles=zebra),
+                        use_container_width=True, hide_index=True)
+                    st.caption("'수량 비중'은 그 종목의 이 달 매도 수량 중 이 체결이 차지하는 몫이에요. 큰 수량이 낮은 가격에 체결됐는지 같은 분포를 볼 때 쓰세요.")
         st.caption("실현 손익은 매도한 날이 속한 달에 넣어요(같은 매매를 두 달에 나눠 팔았으면 각 달에 따로). 매도 한 건의 손익 = (매도가 − 그 매매의 "
                    "평균 매수가) × 수량이고, 입력한 수수료·세금 합계는 매도 수량 비율로 나눠 뺍니다(매수 때 낸 수수료도 합계에 들어 있을 수 있어요). "
                    "수익률은 그 기간에 판 수량의 매수 원가 대비, 승률은 그 기간 실현 손익이 +인 매매의 비율이에요. 아직 팔지 않은 보유 수량의 "
