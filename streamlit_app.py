@@ -2466,8 +2466,49 @@ JOURNAL_PASSWORD = "정한 비밀번호"
 """
 
 
-tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지",
+# ============================================================
+# 🤖 AI 분석용 리포트 — scripts/ai_report.py(GitHub Actions)가 평일에 7번 만들어 data/에 올리는 파일을 보여 주고,
+#   ChatGPT 같은 AI에 붙여넣거나 파일로 올릴 수 있게 복사·다운로드를 제공한다. (매매 일지·API 키는 리포트에 들어가지 않는다)
+# ============================================================
+AI_REPORT_MD_PATH = "data/ai_report.md"
+AI_REPORT_SHORT_PATH = "data/ai_report_short.md"
+AI_REPORT_JSON_PATH = "data/ai_report.json"
+AI_REPORT_RAW_BASE = _secret("AI_REPORT_RAW_BASE", "https://raw.githubusercontent.com/azo3682/gyun/main/data")
+
+
+@st.cache_data(ttl=60)
+def load_ai_report() -> dict:
+    """{'md', 'short', 'json'}: 파일이 없거나 깨졌으면 해당 값은 None."""
+    out = {"md": None, "short": None, "json": None}
+    for key, path in (("md", AI_REPORT_MD_PATH), ("short", AI_REPORT_SHORT_PATH)):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                out[key] = f.read()
+        except OSError:
+            pass
+    try:
+        with open(AI_REPORT_JSON_PATH, "r", encoding="utf-8") as f:
+            out["json"] = json.load(f)
+    except Exception:
+        pass
+    return out
+
+
+def ai_report_table(payload: dict) -> pd.DataFrame:
+    rows = []
+    for s in (payload or {}).get("stocks", []):
+        sc, pr, tc = s["scores"]["swing_check"], s["price"], s["technical"]
+        rows.append({"종목명": s["name"], "코드": s["code"], "순매수 순위": s["ranking"].get("buy_rank"),
+                     "현재가": pr.get("current"), "등락(%)": pr.get("change_pct"), "전환신호": "O" if tc.get("transition") else "X",
+                     "RSI": tc.get("rsi"), "추세": tc.get("trend"), "스윙 체크": f"{sc['total']}/{sc['max']}",
+                     "앱 종합": s["scores"].get("app_composite")})
+    df = pd.DataFrame(rows, columns=["종목명", "코드", "순매수 순위", "현재가", "등락(%)", "전환신호", "RSI", "추세", "스윙 체크", "앱 종합"])
+    df[["순매수 순위", "현재가", "등락(%)", "RSI", "앱 종합"]] = df[["순매수 순위", "현재가", "등락(%)", "RSI", "앱 종합"]].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용",
 ])
 
 # ---------------- 📊 순매수 상위 ----------------
@@ -3117,6 +3158,57 @@ with tab_journal:
         st.caption("매매 일지는 비밀번호를 입력해야 볼 수 있습니다.")
     else:
         render_journal_tab()
+
+# ---------------- 🤖 AI 분석용 ----------------
+with tab_ai:
+    st.subheader("🤖 AI 분석용 리포트")
+    _rep = load_ai_report()
+    if not _rep["md"]:
+        st.info("아직 리포트가 없습니다. GitHub의 Actions 탭에서 'AI Report'를 한 번 실행(Run workflow)하면 만들어져요. "
+                "이후에는 평일 08:30 · 09:50 · 10:20 · 11:40 · 13:40 · 14:50 · 15:55에 자동으로 갱신됩니다.")
+    else:
+        _payload = _rep["json"] or {}
+        _meta = _payload.get("meta", {})
+        _stocks = _payload.get("stocks", [])
+        _gen = _meta.get("generated_at")
+        mc = st.columns(3)
+        mc[0].metric("생성 시각", _gen or "—")
+        mc[1].metric("포함 종목", f"{len(_stocks)}개")
+        mc[2].metric("분량", f"짧은 {len(_rep['short'] or ''):,}자 / 전체 {len(_rep['md']):,}자")
+        try:
+            _age_h = (datetime.now(KST) - datetime.strptime(_gen, "%Y-%m-%d %H:%M").replace(tzinfo=KST)).total_seconds() / 3600
+            st.caption(f"데이터 기준: {_meta.get('phase', '—')} · 생성된 지 약 {_age_h:.0f}시간 지났어요.")
+            if _age_h > 24:
+                st.warning("리포트가 하루 넘게 갱신되지 않았습니다. 휴장일이 아니라면 Actions의 'AI Report' 실행 기록을 확인하세요.")
+        except Exception:
+            st.caption(f"데이터 기준: {_meta.get('phase', '—')}")
+        for _n in _meta.get("notes", []):
+            st.warning(_n)
+        if _stocks:
+            _pct = lambda v: f"{v:+.2f}"
+            st.dataframe(
+                safe_styler(ai_report_table(_payload), {"순매수 순위": lambda v: f"{int(v)}위", "현재가": lambda v: f"{v:,.0f}", "등락(%)": _pct,
+                                                        "RSI": lambda v: f"{v:.1f}", "앱 종합": lambda v: f"{v:.0f}"}, signed_cols=["등락(%)"]),
+                use_container_width=True, hide_index=True)
+        st.markdown("##### ChatGPT에 쓰는 방법")
+        st.markdown("1. **가장 확실한 방법 — 붙여넣기**: 아래 '짧은 버전'의 복사 버튼을 눌러 ChatGPT 입력창에 붙여넣고 보내세요. 맨 위에 분석 지시문이 들어 있어 그대로 분석을 시작해요.\n"
+                    "2. **주소로 읽히기**: 아래 주소를 알려 주면 ChatGPT가 열 수 있는 환경에서는 스스로 읽어요. 열 수 있는지는 환경마다 달라서, "
+                    "먼저 \"이 주소 내용의 첫 부분을 알려 줘\"로 확인하고 이상하면 1번을 쓰세요. 새로 올라간 파일이 주소에 반영되기까지 몇 분 걸릴 수 있어요.\n"
+                    "3. **파일로 올리기**: 파일 첨부가 되는 환경이면 아래 다운로드 버튼으로 받아 올리세요.")
+        st.code(f"{AI_REPORT_RAW_BASE}/ai_report_short.md\n{AI_REPORT_RAW_BASE}/ai_report.md", language="text")
+        if _rep["short"]:
+            with st.expander("짧은 버전 (지시문 + 표) — 복사용"):
+                st.code(_rep["short"], language="markdown")
+            st.download_button("⬇ 짧은 버전 (.md)", _rep["short"], file_name="ai_report_short.md", mime="text/markdown", key="ai_dl_short")
+        with st.expander("전체 버전 (종목별 상세 포함) — 복사용"):
+            st.code(_rep["md"], language="markdown")
+        st.download_button("⬇ 전체 버전 (.md)", _rep["md"], file_name="ai_report.md", mime="text/markdown", key="ai_dl_full")
+        if _rep["json"]:
+            st.download_button("⬇ 구조화 데이터 (.json)", json.dumps(_rep["json"], ensure_ascii=False, indent=1), file_name="ai_report.json",
+                               mime="application/json", key="ai_dl_json")
+        st.caption("이 주소와 리포트는 공개 저장소에 올라가므로 누구나 볼 수 있어요. 시세·수급·점수만 들어 있고 매매 일지, API 키, 비밀번호는 들어 있지 않습니다. "
+                   "스윙 체크 점수와 앱 종합점수는 임의 기준이라 검증되지 않았고, 투자 자문이 아닙니다. 관심 종목을 넣으려면 저장소의 data/watch_codes.txt에 "
+                   "한 줄에 종목코드 하나씩 적어 두세요(예: 098460 고영).")
 
 st.divider()
 if st.button("지금 새로고침"):
