@@ -1,6 +1,26 @@
 {
-  "checked_at": "2026-10-01T10:27:56+09:00",
-  "kept": [
+  "checked_at": "2026-10-01T11:42:34+09:00",
+  "kept": [],
+  "excluded": [
+    {
+      "stock_code": "093370",
+      "stock_name": "후성",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 71.2
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 15680.0,
+      "day_pct": 4.53,
+      "reason": "순매수 상위 10에서 이탈"
+    },
     {
       "stock_code": "018880",
       "stock_name": "한온시스템",
@@ -10,34 +30,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 53.6
+        "RSI값": 54.1
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3605.0,
-      "day_pct": 2.41
-    }
-  ],
-  "excluded": [
-    {
-      "stock_code": "093370",
-      "stock_name": "후성",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 71.6
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 15740.0,
-      "day_pct": 4.93,
+      "current_price": 3620.0,
+      "day_pct": 2.84,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -49,14 +49,14 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 76.8
+        "RSI값": 72.1
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1482.0,
-      "day_pct": -0.07,
+      "current_price": 1444.0,
+      "day_pct": -2.63,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
@@ -70,32 +70,50 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 79.9
+        "RSI값": 79.7
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 9090.0,
-      "day_pct": 14.34
+      "current_price": 9050.0,
+      "day_pct": 13.84
     },
     {
-      "stock_code": "003160",
-      "stock_name": "디아이",
+      "stock_code": "098460",
+      "stock_name": "고영",
       "tech": {
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 77.7
+        "RSI값": 77.3
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 39200.0,
-      "day_pct": 6.81
+      "current_price": 33675.0,
+      "day_pct": 8.8
+    },
+    {
+      "stock_code": "248070",
+      "stock_name": "솔루엠",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 79.9
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 14490.0,
+      "day_pct": 8.05
     }
   ]
 }
