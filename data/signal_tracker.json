@@ -14,17 +14,31 @@
         "risk_flags": []
       },
       "signal_close_first": 15000,
-      "closes": {},
+      "closes": {
+        "2026-10-01": 15730
+      },
       "active": true,
       "recorded_at": "2026-09-30T15:55:39+09:00",
-      "last_updated": "2026-09-30",
+      "last_updated": "2026-10-01",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": 5.71
+        },
+        "ret_from_close": {
+          "1": 4.87
+        },
+        "idx_ret": {
+          "1": 2.3
+        },
+        "excess": {
+          "1": 3.41
+        },
+        "gap_pct": -0.8,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-01",
+      "entry_open": 14880
     },
     {
       "code": "018880",
@@ -40,17 +54,31 @@
         "risk_flags": []
       },
       "signal_close_first": 3520,
-      "closes": {},
+      "closes": {
+        "2026-10-01": 3670
+      },
       "active": true,
       "recorded_at": "2026-09-30T15:55:39+09:00",
-      "last_updated": "2026-09-30",
+      "last_updated": "2026-10-01",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": 4.71
+        },
+        "ret_from_close": {
+          "1": 4.26
+        },
+        "idx_ret": {
+          "1": 2.3
+        },
+        "excess": {
+          "1": 2.41
+        },
+        "gap_pct": -0.43,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-01",
+      "entry_open": 3505
     },
     {
       "code": "018880",
@@ -66,17 +94,31 @@
         "risk_flags": []
       },
       "signal_close_first": 3520,
-      "closes": {},
+      "closes": {
+        "2026-10-01": 3670
+      },
       "active": true,
       "recorded_at": "2026-09-30T15:55:39+09:00",
-      "last_updated": "2026-09-30",
+      "last_updated": "2026-10-01",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": 4.71
+        },
+        "ret_from_close": {
+          "1": 4.26
+        },
+        "idx_ret": {
+          "1": 2.3
+        },
+        "excess": {
+          "1": 2.41
+        },
+        "gap_pct": -0.43,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-01",
+      "entry_open": 3505
     },
     {
       "code": "008970",
@@ -92,17 +134,31 @@
         "risk_flags": []
       },
       "signal_close_first": 1483,
-      "closes": {},
+      "closes": {
+        "2026-10-01": 1450
+      },
       "active": true,
       "recorded_at": "2026-09-30T15:55:39+09:00",
-      "last_updated": "2026-09-30",
+      "last_updated": "2026-10-01",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": -14.45
+        },
+        "ret_from_close": {
+          "1": -2.23
+        },
+        "idx_ret": {
+          "1": 2.3
+        },
+        "excess": {
+          "1": -16.76
+        },
+        "gap_pct": 14.3,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-01",
+      "entry_open": 1695
     },
     {
       "code": "008970",
@@ -118,10 +174,152 @@
         "risk_flags": []
       },
       "signal_close_first": 1483,
-      "closes": {},
+      "closes": {
+        "2026-10-01": 1450
+      },
       "active": true,
       "recorded_at": "2026-09-30T15:55:39+09:00",
-      "last_updated": "2026-09-30",
+      "last_updated": "2026-10-01",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {
+          "1": -14.45
+        },
+        "ret_from_close": {
+          "1": -2.23
+        },
+        "idx_ret": {
+          "1": 2.3
+        },
+        "excess": {
+          "1": -16.76
+        },
+        "gap_pct": 14.3,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-01",
+      "entry_open": 1695
+    },
+    {
+      "code": "192650",
+      "name": "드림텍",
+      "signal_date": "2026-10-01",
+      "signal_close": 9110,
+      "day_pct": 14.59,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 4,
+        "volume_rank": null,
+        "overlap": false,
+        "risk_flags": []
+      },
+      "signal_close_first": 9110,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-10-01T16:00:29+09:00",
+      "last_updated": "2026-10-01",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "098460",
+      "name": "고영",
+      "signal_date": "2026-10-01",
+      "signal_close": 33950,
+      "day_pct": 9.85,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 6,
+        "volume_rank": null,
+        "overlap": false,
+        "risk_flags": []
+      },
+      "signal_close_first": 34000,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-10-01T16:00:29+09:00",
+      "last_updated": "2026-10-01",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "403870",
+      "name": "HPSP",
+      "signal_date": "2026-10-01",
+      "signal_close": 69200,
+      "day_pct": 9.26,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 8,
+        "volume_rank": null,
+        "overlap": false,
+        "risk_flags": []
+      },
+      "signal_close_first": 69600,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-10-01T16:00:29+09:00",
+      "last_updated": "2026-10-01",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "248070",
+      "name": "솔루엠",
+      "signal_date": "2026-10-01",
+      "signal_close": 15430,
+      "day_pct": 15.06,
+      "type": "transition",
+      "conditions": {
+        "buy_rank": 7,
+        "volume_rank": null,
+        "overlap": false,
+        "risk_flags": []
+      },
+      "signal_close_first": 15430,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-10-01T16:00:29+09:00",
+      "last_updated": "2026-10-01",
+      "index_key": "KOSPI",
+      "perf": {
+        "ret": {},
+        "ret_from_close": {},
+        "idx_ret": {},
+        "excess": {}
+      }
+    },
+    {
+      "code": "005930",
+      "name": "삼성전자",
+      "signal_date": "2026-10-01",
+      "signal_close": 275000,
+      "day_pct": 2.79,
+      "type": "volume_supply",
+      "conditions": {
+        "buy_rank": 1,
+        "volume_rank": 9,
+        "overlap": false,
+        "risk_flags": []
+      },
+      "signal_close_first": 276000,
+      "closes": {},
+      "active": true,
+      "recorded_at": "2026-10-01T16:00:29+09:00",
+      "last_updated": "2026-10-01",
       "index_key": "KOSPI",
       "perf": {
         "ret": {},
@@ -136,5 +334,5 @@
     "volume_supply": "순매수 상위 10과 거래량 상위에 같은 날 함께 오른 종목",
     "track_days": 40
   },
-  "updated_at": "2026-09-30T15:55:43+09:00"
+  "updated_at": "2026-10-01T16:00:40+09:00"
 }
