@@ -1589,6 +1589,279 @@ def build_journal_table(trades: list) -> pd.DataFrame:
     return df
 
 
+# ---- 일지 ↔ 신호 추적 연결 ----
+# 일지의 매매 하나에 신호 추적의 신호 기록(종목코드 + 신호 종류 + 신호일)을 연결해 두면,
+# 신호 다음 거래일 시가·D+n 성과와 내가 실제로 한 매매를 나란히 비교할 수 있다.
+SIGNAL_TYPE_LABELS = {"transition": "전환신호", "volume_supply": "거래량·수급 동시"}
+SIGNAL_TAG_BY_TYPE = {"transition": "전환신호", "volume_supply": "동시 등장"}     # 연결한 신호 종류 → '매수 근거 신호' 태그
+
+
+def signal_ref_key(code, typ, date) -> str:
+    return f"{code}|{typ}|{date}"
+
+
+def parse_signal_ref_key(key):
+    parts = str(key).split("|")
+    if len(parts) != 3 or not all(parts):
+        return None
+    return {"code": parts[0], "type": parts[1], "signal_date": parts[2]}
+
+
+@st.cache_data(ttl=60)
+def load_tracker_signals() -> list:
+    """신호 추적 파일(data/signal_tracker.json)의 신호 목록. 파일이 없거나 깨졌으면 빈 목록."""
+    if not os.path.exists(TRACKER_PATH):
+        return []
+    try:
+        with open(TRACKER_PATH, "r", encoding="utf-8") as f:
+            sigs = json.load(f).get("signals")
+        return sigs if isinstance(sigs, list) else []
+    except Exception:
+        return []
+
+
+def signal_candidates(signals: list, name: str = "", code: str = "", limit: int = 30) -> list:
+    """연결할 수 있는 신호 후보. 종목코드가 맞는 기록을 먼저 보고, 없으면 종목명으로 찾는다.
+    코드·종목명이 둘 다 비었으면 최근 신호를 보여 준다. 신호일 최신순."""
+    code, name = (code or "").strip(), (name or "").strip()
+    rows = [s for s in signals if code and s.get("code") == code]
+    if not rows and name:
+        rows = [s for s in signals if s.get("name") == name]
+    if not rows and not code and not name:
+        rows = list(signals)
+    rows.sort(key=lambda s: (s.get("signal_date", ""), s.get("type", "")), reverse=True)
+    return rows[:limit]
+
+
+def find_signal(signals: list, ref: dict):
+    for s in signals:
+        if (s.get("code") == ref.get("code") and s.get("type") == ref.get("type")
+                and s.get("signal_date") == ref.get("signal_date")):
+            return s
+    return None
+
+
+def _pct_change(a, b):
+    return (a / b - 1) * 100 if (a and b) else None
+
+
+def compare_trade_with_signal(t: dict, sig, today=None) -> dict:
+    """내 매매 하나를 연결된 신호 기록과 비교한다. 계산할 수 없는 값은 None.
+    - buy_vs_open / buy_vs_close: 내 평균 매수가가 신호 다음날 시가 / 신호일 종가보다 몇 % 높았나(음수면 더 싸게 산 것)
+    - my_ret: 내 실현 수익률(수수료·세금 반영, 매도한 수량 기준)
+    - sig_ret_exit: 신호 다음날 시가에 사서 '내가 마지막으로 판 날'의 종가에 팔았다면의 수익률(비용 미반영)
+    - diff: my_ret - sig_ret_exit (%p). 내 매도가는 장중 체결가라 종가와 다를 수 있고, 두 수익률의 비용 처리도 달라 근사 비교다."""
+    c = compute_trade(t, today)
+    out = {"name": t.get("name", ""), "status": c["status"], "my_avg_buy": c["avg_buy"], "my_ret": c["ret_pct"],
+           "signal_found": sig is not None, "type_label": "", "signal_date": "", "timing": "", "signal_close": None,
+           "entry_open": None, "buy_vs_open": None, "buy_vs_close": None, "sig_ret_exit": None, "diff": None,
+           "sig_latest_ret": None, "d1": None, "d3": None, "d5": None, "d10": None, "note": ""}
+    if sig is None:
+        out["note"] = "신호 추적에 기록 없음"
+        return out
+    sdate, entry_date = sig.get("signal_date", ""), sig.get("entry_date")
+    entry_open, closes = sig.get("entry_open"), sig.get("closes") or {}
+    out.update(type_label=SIGNAL_TYPE_LABELS.get(sig.get("type"), sig.get("type", "")), signal_date=sdate,
+               signal_close=sig.get("signal_close"), entry_open=entry_open)
+    fb = c["first_buy"]
+    if fb:
+        out["timing"] = ("신호 전" if fb < sdate else "신호일" if fb == sdate else
+                         "다음 거래일" if (entry_date and fb == entry_date) else "그 이후")
+    out["buy_vs_open"] = _pct_change(c["avg_buy"], entry_open)
+    out["buy_vs_close"] = _pct_change(c["avg_buy"], sig.get("signal_close"))
+    if entry_open and c["last_sell"] and c["last_sell"] in closes:
+        out["sig_ret_exit"] = _pct_change(closes[c["last_sell"]], entry_open)
+        if out["my_ret"] is not None and out["sig_ret_exit"] is not None:
+            out["diff"] = out["my_ret"] - out["sig_ret_exit"]
+    if entry_open and closes:
+        out["sig_latest_ret"] = _pct_change(closes[max(closes)], entry_open)
+    perf_ret = (sig.get("perf") or {}).get("ret") or {}
+    for n in (1, 3, 5, 10):
+        out[f"d{n}"] = perf_ret.get(str(n))
+    notes = []
+    if not entry_open:
+        notes.append("다음날 시가 대기 중 (신호 다음 거래일 15:40 이후 채워져요)")
+    elif c["status"] == "보유 중":
+        notes.append("아직 매도 전" + (f" · 신호 기준 현재 {out['sig_latest_ret']:+.2f}%" if out["sig_latest_ret"] is not None else ""))
+    elif c["last_sell"] and out["sig_ret_exit"] is None:
+        notes.append("내 매도일 종가 대기 중 (15:40 이후 채워져요)")
+    out["note"] = " · ".join(notes)
+    return out
+
+
+def build_signal_compare_rows(trades: list, signals: list, today=None) -> list:
+    """신호를 연결한 매매마다, 연결한 신호 하나당 한 줄. 최근 매수일 순."""
+    rows = []
+    for t in sorted(trades, key=lambda x: min((b["date"] for b in x.get("buys") or []), default=""), reverse=True):
+        for ref in t.get("signal_refs") or []:
+            rows.append(compare_trade_with_signal(t, find_signal(signals, ref), today))
+            if rows[-1]["signal_date"] == "":
+                rows[-1]["signal_date"] = ref.get("signal_date", "")
+                rows[-1]["type_label"] = SIGNAL_TYPE_LABELS.get(ref.get("type"), ref.get("type", ""))
+    return rows
+
+
+def summarize_signal_comparison(rows: list) -> dict:
+    avg = lambda xs: (sum(xs) / len(xs)) if xs else None
+    both = [r for r in rows if r["diff"] is not None]
+    return {
+        "n_rows": len(rows), "n_signal_found": sum(1 for r in rows if r["signal_found"]),
+        "avg_buy_vs_open": avg([r["buy_vs_open"] for r in rows if r["buy_vs_open"] is not None]),
+        "n_both": len(both), "avg_my_ret": avg([r["my_ret"] for r in both]),
+        "avg_sig_ret": avg([r["sig_ret_exit"] for r in both]), "avg_diff": avg([r["diff"] for r in both]),
+        "n_better": sum(1 for r in both if r["diff"] > 0),
+    }
+
+
+# ---- 내 매매 이후 가격 추이 ----
+# 일지에서 매매를 고르면 내 매수가·매도가와, 첫 매수일부터 이후 영업일별 가격(시가·고가·저가·종가)을 한 표로 보여 준다.
+WEEKDAYS_KO = "월화수목금토일"
+
+
+def resolve_trade_code(trade: dict, trades: list, signals: list) -> str:
+    """종목코드 찾기: 일지에 적은 코드 → 연결한 신호의 코드 → 같은 이름의 다른 매매에 적은 코드 → 신호 추적의 같은 이름 기록."""
+    code = (trade.get("code") or "").strip()
+    if code:
+        return code
+    for ref in trade.get("signal_refs") or []:
+        if ref.get("code"):
+            return ref["code"]
+    name = trade.get("name", "")
+    for other in trades:
+        if other.get("name") == name and (other.get("code") or "").strip():
+            return other["code"].strip()
+    for s in signals:
+        if s.get("name") == name and s.get("code"):
+            return s["code"]
+    return ""
+
+
+def _nz(v):
+    try:
+        f = float(v)
+        return None if f != f else f
+    except (TypeError, ValueError):
+        return None
+
+
+def ohlcv_rows_from_df(df) -> list:
+    """일봉 DataFrame(stck_bsop_date·stck_clpr 등) → [{date, open, high, low, close}] 날짜 오름차순. 비어 있으면 []."""
+    if df is None or len(df) == 0 or "stck_bsop_date" not in df.columns:
+        return []
+    rows = []
+    for _, r in df.iterrows():
+        d = str(r["stck_bsop_date"]).strip()
+        if len(d) != 8:
+            continue
+        rows.append({"date": f"{d[:4]}-{d[4:6]}-{d[6:]}", "open": _nz(r.get("stck_oprc")), "high": _nz(r.get("stck_hgpr")),
+                     "low": _nz(r.get("stck_lwpr")), "close": _nz(r.get("stck_clpr"))})
+    rows.sort(key=lambda x: x["date"])
+    return rows
+
+
+def trade_price_path(trade: dict, ohlcv: list, now=None) -> dict:
+    """선택한 매매의 첫 매수일부터 이후 영업일별 가격 표와 요약.
+    - rows: 영업일마다 시가·고가·저가·종가, 전일대비, 종가↔내 평균매수가(%), 종가↔내 평균매도가(%, 첫 매도일부터), 그날 내 체결
+    - after_buy: 첫 매수일 이후 종가의 최고·최저(내 평균매수가 대비)
+    - after_sell: 마지막 매도일 이후(그날 제외)의 최고·최저·최근 종가(내 평균매도가 대비), 매도가보다 종가가 높았던 날 수
+    - data_gap: 첫 매수일이 받은 일봉 범위보다 앞이면 True (앞부분이 비어 있다는 뜻)"""
+    now = now or datetime.now(KST)
+    c = compute_trade(trade, now.date())
+    avg_buy, avg_sell, first_buy, last_sell = c["avg_buy"], c["avg_sell"], c["first_buy"], c["last_sell"]
+    first_sell = min((s["date"] for s in trade.get("sells") or []), default=None)
+    events = {}
+    for kind, items in (("매수", trade.get("buys") or []), ("매도", trade.get("sells") or [])):
+        for it in items:
+            events.setdefault(it["date"], []).append(f"{kind} {it['price']:,.0f}원 × {it['qty']:,}주")
+    rows = []
+    for i, r in enumerate(ohlcv):
+        d = r["date"]
+        if not first_buy or d < first_buy:
+            continue
+        ev = events.get(d, [])
+        kinds = {e.split()[0] for e in ev}
+        rows.append({
+            "date": d, "label": f"{d[5:]}({WEEKDAYS_KO[datetime.fromisoformat(d).weekday()]})",
+            "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"],
+            "day_pct": _pct_change(r["close"], ohlcv[i - 1]["close"]) if i > 0 else None,
+            "vs_buy": _pct_change(r["close"], avg_buy),
+            "vs_sell": _pct_change(r["close"], avg_sell) if (avg_sell and first_sell and d >= first_sell) else None,
+            "events": " · ".join(ev), "kind": "매수+매도" if len(kinds) == 2 else (next(iter(kinds)) if kinds else ""),
+            "partial": d == now.date().isoformat() and (now.hour, now.minute) < (15, 40),
+        })
+    priced = [r for r in rows if r["close"]]
+
+    def extremes(rs, base):
+        if not rs or not base:
+            return None
+        hi, lo = max(rs, key=lambda x: x["close"]), min(rs, key=lambda x: x["close"])
+        return {"hi_date": hi["date"], "hi_close": hi["close"], "hi_pct": _pct_change(hi["close"], base),
+                "lo_date": lo["date"], "lo_close": lo["close"], "lo_pct": _pct_change(lo["close"], base)}
+
+    after_buy = extremes(priced, avg_buy)
+    after_sell = None
+    if last_sell and c["status"] != "보유 중":
+        later = [r for r in priced if r["date"] > last_sell]
+        if later:
+            after_sell = extremes(later, avg_sell)
+            after_sell.update(n=len(later), latest_close=later[-1]["close"], latest_pct=_pct_change(later[-1]["close"], avg_sell),
+                              days_higher=sum(1 for r in later if r["close"] > avg_sell))
+    return {"rows": rows, "avg_buy": avg_buy, "avg_sell": avg_sell, "status": c["status"], "ret_pct": c["ret_pct"],
+            "buy_qty": c["buy_qty"], "sell_qty": c["sell_qty"], "after_buy": after_buy, "after_sell": after_sell,
+            "latest": priced[-1] if priced else None, "first_buy": first_buy, "last_sell": last_sell,
+            "data_start": ohlcv[0]["date"] if ohlcv else None,
+            "data_gap": bool(first_buy and ohlcv and first_buy < ohlcv[0]["date"])}
+
+
+PATH_TABLE_COLUMNS = [("label", "날짜"), ("open", "시가"), ("high", "고가"), ("low", "저가"), ("close", "종가"),
+                      ("day_pct", "전일대비(%)"), ("vs_buy", "종가↔내 평균매수가(%)"), ("vs_sell", "종가↔내 평균매도가(%)"),
+                      ("events", "내 체결")]
+
+
+def path_dataframe(rows: list) -> pd.DataFrame:
+    df = pd.DataFrame([{label: (r["label"] + (" 장중" if r.get("partial") else "") if key == "label" else r.get(key))
+                        for key, label in PATH_TABLE_COLUMNS} for r in rows], columns=[label for _, label in PATH_TABLE_COLUMNS])
+    num = [label for key, label in PATH_TABLE_COLUMNS if key not in ("label", "events")]
+    df[num] = df[num].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+SIGNAL_COMPARE_COLUMNS = [
+    ("name", "종목명"), ("type_label", "신호"), ("signal_date", "신호일"), ("timing", "내 매수 시점"), ("status", "상태"),
+    ("signal_close", "신호일종가"), ("entry_open", "다음날시가"), ("my_avg_buy", "내 평균매수가"),
+    ("buy_vs_open", "매수가↔다음날시가(%)"), ("buy_vs_close", "매수가↔신호일종가(%)"),
+    ("my_ret", "내 수익률(%)"), ("sig_ret_exit", "신호 기준 수익률(%)"), ("diff", "차이(%p)"),
+    ("d1", "신호 D+1(%)"), ("d3", "신호 D+3(%)"), ("d5", "신호 D+5(%)"), ("d10", "신호 D+10(%)"), ("note", "비고"),
+]
+
+
+def signal_compare_dataframe(rows: list) -> pd.DataFrame:
+    df = pd.DataFrame([{label: r.get(key) for key, label in SIGNAL_COMPARE_COLUMNS} for r in rows],
+                      columns=[label for _, label in SIGNAL_COMPARE_COLUMNS])
+    num = [label for key, label in SIGNAL_COMPARE_COLUMNS if key not in ("name", "type_label", "signal_date", "timing", "status", "note")]
+    df[num] = df[num].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+def safe_styler(df: pd.DataFrame, formats: dict, signed_cols=(), row_styles=None):
+    """값이 없는 칸이 화면에서 'None'으로 보이지 않게, 표시용 문자열 표를 따로 만들고 색은 숫자 값으로 계산해서 입힌다.
+    (Streamlit은 Styler.format으로 바꾼 값이 아니라 빈 값을 'None'으로 그린다.)
+    formats: {열 이름: 값 → 문자열}. 포맷이 없는 열은 그대로 문자열로 바꾼다. signed_cols: 양수 빨강·음수 파랑으로 칠할 열.
+    row_styles: 행마다 모든 칸에 덧입힐 CSS 목록(길이 = 행 수, 없으면 빈 문자열)."""
+    disp = pd.DataFrame(index=df.index)
+    styles = pd.DataFrame("", index=df.index, columns=df.columns)
+    for col in df.columns:
+        fmt = formats.get(col)
+        disp[col] = ["—" if (v is None or (not isinstance(v, str) and pd.isna(v)) or v == "") else (fmt(v) if fmt else str(v))
+                     for v in df[col]]
+    for col in signed_cols:
+        styles[col] = [_signed_style(v) for v in df[col]]
+    if row_styles:
+        for col in df.columns:
+            styles[col] = [(a + " " + b).strip() for a, b in zip(styles[col], row_styles)]
+    return disp.style.apply(lambda _: styles, axis=None)
+
+
 # ---- GitHub 저장 (Contents API) ----
 class JournalConflict(RuntimeError):
     pass
@@ -1753,6 +2026,109 @@ def render_journal_tab():
                 st.markdown(f"- 매수 이유: {t.get('buy_reason') or '—'}\n- 매도 이유: {t.get('sell_reason') or '—'}"
                             + (f"\n- 메모: {t['memo']}" if t.get("memo") else ""))
 
+    # ---- 내 매매 이후 가격 추이 ----
+    st.markdown("##### 📈 내 매매 이후 가격 추이")
+    if not trades:
+        st.info("아직 기록이 없습니다. 매매를 기록하면 이곳에서 선택해 매수·매도가와 이후 영업일별 가격을 볼 수 있어요.")
+    else:
+        _nonce = st.session_state.get("journal_nonce", 0)
+        _order = sorted(range(len(trades)), key=lambda i: compute_trade(trades[i])["first_buy"] or "", reverse=True)
+        pi = st.selectbox(
+            "추이를 볼 매매 선택", _order, key=f"jn_path_pick_{_nonce}",
+            format_func=lambda i: f"{trades[i]['name']} · {compute_trade(trades[i])['first_buy']} · {compute_trade(trades[i])['status']}")
+        pt = trades[pi]
+        fills = ([{"구분": "매수", "날짜": b["date"], "가격(원)": b["price"], "수량(주)": b["qty"], "금액(원)": b["price"] * b["qty"]}
+                  for b in pt.get("buys") or []] +
+                 [{"구분": "매도", "날짜": x["date"], "가격(원)": x["price"], "수량(주)": x["qty"], "금액(원)": x["price"] * x["qty"]}
+                  for x in pt.get("sells") or []])
+        fdf = pd.DataFrame(fills).sort_values(["날짜", "구분"], ascending=[True, True], ignore_index=True)
+        pcode = resolve_trade_code(pt, trades, load_tracker_signals())
+        ohlcv = ohlcv_rows_from_df(fetch_daily_ohlcv(pcode)) if pcode else []
+        path = trade_price_path(pt, ohlcv)
+        pm = st.columns(5)
+        pm[0].metric("평균 매수가", f"{path['avg_buy']:,.0f}원", delta=f"{path['buy_qty']:,}주", delta_color="off")
+        pm[1].metric("평균 매도가", f"{path['avg_sell']:,.0f}원" if path["avg_sell"] else "보유 중",
+                     delta=(f"{path['sell_qty']:,}주" if path["avg_sell"] else None), delta_color="off")
+        pm[2].metric("실현 수익률", f"{path['ret_pct']:+.2f}%" if path["ret_pct"] is not None else "—",
+                     delta="수수료·세금 반영", delta_color="off")
+        asl, ab = path["after_sell"], path["after_buy"]
+        if asl:
+            pm[3].metric(f"매도 후 {asl['n']}영업일 최고 종가", f"{asl['hi_close']:,.0f}원",
+                         delta=f"내 매도가 대비 {asl['hi_pct']:+.2f}%", delta_color="off")
+            pm[4].metric("최근 종가 (내 매도가 대비)", f"{asl['latest_close']:,.0f}원",
+                         delta=f"{asl['latest_pct']:+.2f}% · 종가가 매도가보다 높았던 날 {asl['days_higher']}/{asl['n']}일", delta_color="off")
+        elif path["latest"] and ab:
+            pm[3].metric("첫 매수 후 최고 종가", f"{ab['hi_close']:,.0f}원", delta=f"내 매수가 대비 {ab['hi_pct']:+.2f}%", delta_color="off")
+            pm[4].metric("최근 종가 (내 매수가 대비)", f"{path['latest']['close']:,.0f}원",
+                         delta=f"{_pct_change(path['latest']['close'], path['avg_buy']):+.2f}%", delta_color="off")
+        st.markdown("**내 체결 내역**")
+        st.dataframe(safe_styler(fdf, {"가격(원)": lambda v: f"{v:,.0f}", "수량(주)": lambda v: f"{v:,.0f}", "금액(원)": lambda v: f"{v:,.0f}"}),
+                     use_container_width=True, hide_index=True)
+        st.markdown("**이후 영업일별 가격**")
+        if not pcode:
+            st.info("이 매매의 종목코드를 알 수 없어서 가격을 불러오지 못했습니다. 아래 입력 폼에서 이 매매를 골라 종목코드를 넣고 저장해 주세요.")
+        elif not ohlcv:
+            st.warning(f"{pcode}의 일봉을 가져오지 못했습니다 (일시적인 조회 실패일 수 있어요 — 잠시 후 다시 시도하세요).")
+        elif not path["rows"]:
+            st.info("받은 일봉 범위(최근 약 4개월)에 이 매매의 매수일 이후 데이터가 없습니다.")
+        else:
+            if path["data_gap"]:
+                st.caption(f"⚠ 첫 매수일({path['first_buy']})이 받은 일봉 범위(최근 약 4개월, {path['data_start']}부터)보다 앞이라 앞부분이 비어 있어요.")
+            pdf = path_dataframe(path["rows"])
+            pct = lambda v: f"{v:+.2f}"
+            price = lambda v: f"{v:,.0f}"
+            hl = ["background-color: rgba(250, 204, 21, 0.16);" if r["kind"] else "" for r in path["rows"]]
+            st.dataframe(
+                safe_styler(pdf, {"시가": price, "고가": price, "저가": price, "종가": price, "전일대비(%)": pct,
+                                  "종가↔내 평균매수가(%)": pct, "종가↔내 평균매도가(%)": pct},
+                            signed_cols=["전일대비(%)", "종가↔내 평균매수가(%)", "종가↔내 평균매도가(%)"], row_styles=hl),
+                use_container_width=True, hide_index=True)
+            if asl:
+                st.caption(f"매도 후 {asl['n']}영업일 동안 종가는 최고 {asl['hi_close']:,.0f}원({asl['hi_date']}, 내 매도가 대비 {asl['hi_pct']:+.2f}%), "
+                           f"최저 {asl['lo_close']:,.0f}원({asl['lo_date']}, {asl['lo_pct']:+.2f}%)였어요. 내 매도가보다 종가가 높았던 날은 "
+                           f"{asl['days_higher']}/{asl['n']}일입니다. 파랑(마이너스)이면 판 뒤에 내려간 것, 빨강이면 판 뒤에 더 오른 거예요.")
+            if ab:
+                st.caption(f"첫 매수 이후 종가는 최고 {ab['hi_close']:,.0f}원({ab['hi_date']}, 내 평균 매수가 대비 {ab['hi_pct']:+.2f}%), "
+                           f"최저 {ab['lo_close']:,.0f}원({ab['lo_date']}, {ab['lo_pct']:+.2f}%)였어요.")
+            st.caption("노란 배경은 내가 체결한 날이에요. 내 체결가는 장중 가격이라 그날 종가와 다르고, 일봉은 수정주가 기준이라 액면분할 등이 있으면 "
+                       "과거 값이 조정될 수 있어요. 오늘 행이 '장중'이면 현재가이고 마감(15:30) 뒤에 종가로 바뀝니다. 같은 값을 신호 기록과 "
+                       "비교하려면 아래 '신호 vs 내 매매'를 보세요.")
+
+    # ---- 신호 vs 내 매매 ----
+    st.markdown("##### 🔗 신호 vs 내 매매")
+    linked = [t for t in trades if t.get("signal_refs")]
+    if not linked:
+        st.info("아직 신호를 연결한 매매가 없습니다. 아래 입력 폼의 '연결할 신호 기록'에서 연결하면, 신호 다음 날 시가·D+n 성과와 "
+                "내 매매를 이곳에서 비교할 수 있어요.")
+    else:
+        cmp_rows = build_signal_compare_rows(linked, load_tracker_signals())
+        sm = summarize_signal_comparison(cmp_rows)
+        mc = st.columns(5)
+        mc[0].metric("연결한 신호", f"{sm['n_rows']}건", delta=f"기록 확인 {sm['n_signal_found']}건", delta_color="off")
+        mc[1].metric("내 매수가 vs 다음날 시가", f"{sm['avg_buy_vs_open']:+.2f}%" if sm["avg_buy_vs_open"] is not None else "—")
+        mc[2].metric("내 평균 수익률", f"{sm['avg_my_ret']:+.2f}%" if sm["avg_my_ret"] is not None else "—")
+        mc[3].metric("신호 기준 평균 수익률", f"{sm['avg_sig_ret']:+.2f}%" if sm["avg_sig_ret"] is not None else "—")
+        mc[4].metric("평균 차이(내 − 신호)", f"{sm['avg_diff']:+.2f}%p" if sm["avg_diff"] is not None else "—",
+                     delta=(f"내가 나은 건 {sm['n_better']}/{sm['n_both']}건" if sm["n_both"] else None), delta_color="off")
+        pct = lambda v: f"{v:+.2f}"
+        price = lambda v: f"{v:,.0f}"
+        cdf = signal_compare_dataframe(cmp_rows)
+        st.dataframe(
+            safe_styler(cdf, {"신호일종가": price, "다음날시가": price, "내 평균매수가": price, "매수가↔다음날시가(%)": pct,
+                              "매수가↔신호일종가(%)": pct, "내 수익률(%)": pct, "신호 기준 수익률(%)": pct, "차이(%p)": pct,
+                              "신호 D+1(%)": pct, "신호 D+3(%)": pct, "신호 D+5(%)": pct, "신호 D+10(%)": pct},
+                        signed_cols=["내 수익률(%)", "신호 기준 수익률(%)", "차이(%p)", "신호 D+1(%)", "신호 D+3(%)",
+                                     "신호 D+5(%)", "신호 D+10(%)"]),
+            use_container_width=True, hide_index=True)
+        if sm["n_both"] == 0:
+            st.info("아직 내 매도일의 종가까지 채워진 연결 신호가 없어 수익률 비교는 비어 있습니다. 신호 추적은 매 거래일 15:40 이후 갱신돼요.")
+        elif sm["n_both"] < 30:
+            st.warning(f"비교할 수 있는 매매가 {sm['n_both']}건뿐입니다. 30건 미만이면 평균과 '내가 나았다/못했다'는 우연에 크게 좌우돼요.")
+        st.caption("'신호 기준 수익률'은 신호 다음 거래일 시가에 사서 내가 마지막으로 판 날의 종가에 팔았다면의 수익률이에요. "
+                   "내 매도가는 장중 체결가라 종가와 다를 수 있고, 내 수익률은 수수료·세금을 뺀 값인데 신호 기준 값은 비용을 빼지 않아서 "
+                   "정확히 같은 조건의 비교는 아니에요(근사치). '매수가↔다음날시가'가 음수면 신호 다음 날 시가보다 싸게 산 거예요. "
+                   "같은 종목을 재진입으로 여러 번 기록했다면 매매마다 같은 신호에 연결해 한 줄씩 비교됩니다.")
+
     # ---- 입력 / 수정 ----
     st.markdown("##### ✍️ 매매 기록하기 / 수정하기")
     nonce = st.session_state.get("journal_nonce", 0)
@@ -1776,6 +2152,29 @@ def render_journal_tab():
                             step=100.0, key=f"jn_costs_{ks}")
     signals = st.multiselect("매수 근거가 된 앱 신호", JOURNAL_SIGNAL_OPTIONS,
                              default=[s for s in e.get("signals", []) if s in JOURNAL_SIGNAL_OPTIONS], key=f"jn_sig_{ks}")
+    tracker_signals = load_tracker_signals()
+    sig_by_key = {signal_ref_key(x.get("code"), x.get("type"), x.get("signal_date")): x for x in tracker_signals}
+    default_keys = [signal_ref_key(r.get("code"), r.get("type"), r.get("signal_date")) for r in e.get("signal_refs") or []]
+    cand_keys = [signal_ref_key(x.get("code"), x.get("type"), x.get("signal_date")) for x in signal_candidates(tracker_signals, name, code)]
+    # 이미 고른 값이 후보에서 빠져도 선택이 사라지거나 오류가 나지 않게 옵션에 함께 넣는다
+    ref_options = list(dict.fromkeys(cand_keys + default_keys + list(st.session_state.get(f"jn_sigref_{ks}") or [])))
+
+    def _fmt_ref(k):
+        x = sig_by_key.get(k)
+        if not x:
+            return f"{k} (신호 추적에 기록 없음)"
+        return (f"{x.get('name')}({x.get('code')}) · {SIGNAL_TYPE_LABELS.get(x.get('type'), x.get('type'))} · "
+                f"신호일 {x.get('signal_date')} · 신호일 종가 {x.get('signal_close', 0):,.0f}원")
+
+    if ref_options:
+        sig_ref_sel = st.multiselect("연결할 신호 기록 (신호 추적)", ref_options, format_func=_fmt_ref, key=f"jn_sigref_{ks}",
+                                     default=[k for k in default_keys if k in ref_options])
+    else:
+        sig_ref_sel = []
+        st.caption("연결할 신호 기록이 없습니다 — 종목코드(또는 종목명)를 입력하면 신호 추적에 기록된 그 종목의 신호가 나옵니다. "
+                   "신호는 매 거래일 15:40 이후 기록돼요.")
+    st.caption("연결하면 아래 '🔗 신호 vs 내 매매' 표에서 신호 다음 날 시가·D+n 성과와 내 매매를 비교할 수 있어요. "
+               "연결한 신호의 종류는 위 '매수 근거 신호' 태그에도 자동으로 반영됩니다.")
     exit_type = st.selectbox("청산 유형", JOURNAL_EXIT_TYPES, key=f"jn_exit_{ks}",
                              index=JOURNAL_EXIT_TYPES.index(e["exit_type"]) if e.get("exit_type") in JOURNAL_EXIT_TYPES else 0)
     buy_reason = st.text_area("매수 이유", value=e.get("buy_reason", ""), key=f"jn_br_{ks}", height=80)
@@ -1810,9 +2209,16 @@ def render_journal_tab():
 
     if st.button("💾 저장", key=f"jn_save_{ks}", disabled=(not typed or bool(errors))):
         now = datetime.now(KST).isoformat(timespec="seconds")
+        refs = [r for r in (parse_signal_ref_key(k) for k in sig_ref_sel) if r]
+        tags = list(signals)
+        for r in refs:                                   # 연결한 신호 종류를 '매수 근거 신호' 태그에도 반영
+            tag = SIGNAL_TAG_BY_TYPE.get(r["type"])
+            if tag and tag not in tags:
+                tags.append(tag)
         trade = {
             "id": e.get("id") or f"{datetime.now(KST):%Y%m%d%H%M%S}-{uuid.uuid4().hex[:6]}",
-            "name": name.strip(), "code": code.strip(), "signals": signals, "buys": buys, "sells": sells,
+            "name": name.strip(), "code": code.strip() or (refs[0]["code"] if refs else ""), "signals": tags,
+            "signal_refs": refs, "buys": buys, "sells": sells,
             "costs": costs, "exit_type": "" if exit_type == JOURNAL_EXIT_TYPES[0] else exit_type,
             "buy_reason": buy_reason.strip(), "sell_reason": sell_reason.strip(), "memo": memo.strip(),
             "created_at": e.get("created_at") or now, "updated_at": now,
