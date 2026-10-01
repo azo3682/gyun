@@ -1,0 +1,64 @@
+name: AI Report
+
+# ChatGPT 같은 외부 AI가 읽을 수 있는 리포트(data/ai_report*.md, .json)를 평일에 7번 갱신한다.
+#  - 시각은 기존 '장중 재점검'(09:40, 10:10, 11:30, 13:30, 14:40)과 겹치지 않게 10분씩 어긋나 있다 (같은 저장소에 동시에 푸시하면 충돌하기 쉬움).
+#  - 수급 가집계는 외국인 09:30·11:20·13:20·14:30 / 기관 10:00·11:20·13:20·14:30에만 바뀌므로, 그 직후 시각에 맞췄다.
+#  - 15:55는 EOD 스냅샷(15:40) 이후, 오늘 가격이 확정된 뒤의 리포트다.
+on:
+  schedule:
+    - cron: "30 23 * * 0-4"   # 08:30 KST (월~금 장 시작 전, 전일 마감 기준) — UTC로는 일~목 23:30
+    - cron: "50 0 * * 1-5"    # 09:50 KST
+    - cron: "20 1 * * 1-5"    # 10:20 KST
+    - cron: "40 2 * * 1-5"    # 11:40 KST
+    - cron: "40 4 * * 1-5"    # 13:40 KST
+    - cron: "50 5 * * 1-5"    # 14:50 KST
+    - cron: "55 6 * * 1-5"    # 15:55 KST
+  workflow_dispatch: {}       # 수동 실행 버튼
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-actions.txt
+      - name: Restore KIS token cache
+        uses: actions/cache@v4
+        with:
+          path: .kis_token_cache
+          key: kis-token-${{ github.run_id }}
+          restore-keys: |
+            kis-token-
+      - name: Build AI report
+        env:
+          KIS_APP_KEY: ${{ secrets.KIS_APP_KEY }}
+          KIS_APP_SECRET: ${{ secrets.KIS_APP_SECRET }}
+          KIS_TOKEN_CACHE: ${{ github.workspace }}/.kis_token_cache/token.json
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: |
+          cd scripts
+          python ai_report.py
+      - name: Commit report
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/ai_report.md data/ai_report_short.md data/ai_report.json 2>/dev/null || true
+          git commit -m "Update AI report [skip ci]" || { echo "no changes"; exit 0; }
+          # 다른 워크플로가 먼저 푸시했으면 최신 상태 위로 다시 얹어서 올린다 (최대 3번)
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 5
+          done
+          echo "push failed after 3 attempts"
+          exit 1
