@@ -1965,11 +1965,12 @@ def signal_compare_dataframe(rows: list) -> pd.DataFrame:
     return df
 
 
-def safe_styler(df: pd.DataFrame, formats: dict, signed_cols=(), row_styles=None):
+def safe_styler(df: pd.DataFrame, formats: dict, signed_cols=(), row_styles=None, col_style_fns=None):
     """값이 없는 칸이 화면에서 'None'으로 보이지 않게, 표시용 문자열 표를 따로 만들고 색은 숫자 값으로 계산해서 입힌다.
     (Streamlit은 Styler.format으로 바꾼 값이 아니라 빈 값을 'None'으로 그린다.)
     formats: {열 이름: 값 → 문자열}. 포맷이 없는 열은 그대로 문자열로 바꾼다. signed_cols: 양수 빨강·음수 파랑으로 칠할 열.
-    row_styles: 행마다 모든 칸에 덧입힐 CSS 목록(길이 = 행 수, 없으면 빈 문자열)."""
+    row_styles: 행마다 모든 칸에 덧입힐 CSS 목록(길이 = 행 수, 없으면 빈 문자열).
+    col_style_fns: {열 이름: 값 → CSS 문자열}. 열마다 셀 값에 따라 색을 입힌다(예: 점수 높낮이)."""
     disp = pd.DataFrame(index=df.index)
     styles = pd.DataFrame("", index=df.index, columns=df.columns)
     for col in df.columns:
@@ -1981,6 +1982,9 @@ def safe_styler(df: pd.DataFrame, formats: dict, signed_cols=(), row_styles=None
     if row_styles:
         for col in df.columns:
             styles[col] = [(a + " " + b).strip() for a, b in zip(styles[col], row_styles)]
+    for col, fn in (col_style_fns or {}).items():
+        if col in df.columns:
+            styles[col] = [(a + " " + fn(v)).strip() for a, v in zip(styles[col], df[col])]
     return disp.style.apply(lambda _: styles, axis=None)
 
 
@@ -2474,19 +2478,20 @@ AI_REPORT_MD_PATH = "data/ai_report.md"
 AI_REPORT_SHORT_PATH = "data/ai_report_short.md"
 AI_REPORT_JSON_PATH = "data/ai_report.json"
 AI_REPORT_STATUS_PATH = "data/ai_report_status.json"
+AI_REPORT_BLIND_PATH = "data/ai_report_blind.md"
 AI_REPORT_RAW_BASE = _secret("AI_REPORT_RAW_BASE", "https://raw.githubusercontent.com/azo3682/gyun/main/data")
 
 
 @st.cache_data(ttl=60)
 def load_ai_report() -> dict:
     """{'md', 'short', 'json', 'status'}: 파일이 없거나 깨졌으면 해당 값은 None. status = 마지막 실행 결과(성공/실패 사유)."""
-    out = {"md": None, "short": None, "json": None, "status": None}
+    out = {"md": None, "short": None, "json": None, "status": None, "blind": None}
     try:
         with open(AI_REPORT_STATUS_PATH, "r", encoding="utf-8") as f:
             out["status"] = json.load(f)
     except Exception:
         pass
-    for key, path in (("md", AI_REPORT_MD_PATH), ("short", AI_REPORT_SHORT_PATH)):
+    for key, path in (("md", AI_REPORT_MD_PATH), ("short", AI_REPORT_SHORT_PATH), ("blind", AI_REPORT_BLIND_PATH)):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 out[key] = f.read()
@@ -2513,8 +2518,185 @@ def ai_report_table(payload: dict) -> pd.DataFrame:
     return df
 
 
-tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용",
+# ============================================================
+# 📊 AI 점수 비교 — 같은 '점수 매기기용 리포트'를 여러 AI에게 주고 받은 JSON 점수를 나란히 놓고 비교한다.
+#   목적은 서로를 비판하게 하는 게 아니라, 같은 기준(수급·신호·추세·가격부담·재무 각 0~20점)으로 매긴 결과를 한눈에 비교하는 것이다.
+#   일치한다고 맞는 게 아니다(같은 데이터에 같은 식으로 반응했을 수 있다). 규칙 기반 점수는 기준선으로만 보여 준다.
+# ============================================================
+# ---- AI 점수 비교 helpers begin
+SCORE_DIMS = ["수급", "신호", "추세", "가격부담", "재무"]
+DISAGREE_SCORE_GAP = 20      # AI들의 총점 차이(최대-최소)가 이 값 이상이면 '의견 갈림' (임의 기준)
+DISAGREE_RANK_GAP = 4        # 순위 차이가 이 값 이상이어도 '의견 갈림' (임의 기준)
+BASELINE_NAME = "규칙 기반"
+RESERVED_NAMES = {"종목명", "코드", BASELINE_NAME, "AI 평균", "점수 편차", "평균 순위", "순위 차", "판정"}
+
+
+def extract_json_object(text):
+    """AI 답변에서 'scores' 목록이 있는 JSON 객체를 꺼낸다. 코드 블록이나 앞뒤 설명 문장이 있어도 된다. 없으면 None."""
+    src = (text or "").replace("\u201c", '"').replace("\u201d", '"')
+    dec, i = json.JSONDecoder(), src.find("{")
+    while i != -1:
+        try:
+            obj, _ = dec.raw_decode(src[i:])
+            if isinstance(obj, dict) and isinstance(obj.get("scores"), list):
+                return obj
+        except ValueError:
+            pass
+        i = src.find("{", i + 1)
+    return None
+
+
+def _score_num(v):
+    try:
+        x = float(str(v).replace(",", "").strip())
+        return None if x != x else x
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_ai_scores(text, universe) -> dict:
+    """AI가 돌려준 JSON을 검증해서 읽는다. universe = [{'code','name'}, ...](리포트 순서).
+    항목 점수는 0~20으로 맞추고, 총점은 항목 합으로 다시 계산한다(AI가 적은 총점이 다르면 경고). 문제는 warnings에 모은다."""
+    out = {"ok": False, "error": None, "ai": None, "as_of": None, "scores": {}, "warnings": []}
+    obj = extract_json_object(text)
+    if obj is None:
+        out["error"] = "JSON을 찾지 못했어요. AI가 출력한 JSON 전체({ 로 시작해서 } 로 끝나는 부분)를 붙여넣어 주세요."
+        return out
+    by_code, by_name = {u["code"]: u for u in universe}, {u["name"]: u for u in universe}
+    out["ai"], out["as_of"] = obj.get("ai"), obj.get("as_of")
+    for item in obj["scores"]:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get("code", "")).strip()
+        code = code.zfill(6) if code.isdigit() else code
+        u = by_code.get(code) or by_name.get(str(item.get("name", "")).strip())
+        if not u:
+            out["warnings"].append(f"리포트에 없는 종목은 무시했어요: {item.get('name') or code}")
+            continue
+        rec = {}
+        for d in SCORE_DIMS:
+            v = _score_num(item.get(d))
+            if v is None:
+                out["warnings"].append(f"{u['name']}: '{d}' 점수가 없거나 숫자가 아니에요")
+                rec[d] = None
+                continue
+            if v < 0 or v > 20:
+                out["warnings"].append(f"{u['name']}: '{d}' {v:g}점이 0~20 범위를 벗어나 {min(max(v, 0), 20):g}점으로 바꿨어요")
+                v = min(max(v, 0), 20)
+            rec[d] = v
+        dims, given = [rec[d] for d in SCORE_DIMS], _score_num(item.get("총점"))
+        if all(x is not None for x in dims):
+            total = sum(dims)
+            if given is not None and abs(given - total) > 1:
+                out["warnings"].append(f"{u['name']}: 총점({given:g})이 항목 합({total:g})과 달라 항목 합으로 계산했어요")
+        else:
+            total = min(max(given, 0), 100) if given is not None else None
+        conf = _score_num(item.get("확신도"))
+        rec.update(total=total, conf=int(min(max(conf, 1), 5)) if conf is not None else None, note=str(item.get("한줄", ""))[:80])
+        if u["code"] in out["scores"]:
+            out["warnings"].append(f"{u['name']}: 같은 종목이 두 번 나와 뒤의 값을 썼어요")
+        out["scores"][u["code"]] = rec
+    missing = [u["name"] for u in universe if u["code"] not in out["scores"]]
+    if missing:
+        out["warnings"].append("점수가 빠진 종목: " + ", ".join(missing))
+    out["ok"] = bool(out["scores"])
+    if not out["ok"]:
+        out["error"] = out["error"] or "리포트의 종목과 맞는 점수가 하나도 없어요."
+    return out
+
+
+def baseline_scores(stocks) -> dict:
+    """리포트 JSON의 규칙 기반 스윙 체크 점수 → {code: {항목..., total(100점 환산)}}. 재무가 비어 80점 만점인 종목은 100점으로 환산한다."""
+    out = {}
+    for s_ in stocks or []:
+        sc = s_["scores"]["swing_check"]
+        rec = {d: sc["parts"].get(d) for d in SCORE_DIMS}
+        rec["total"] = sc["total"] / sc["max"] * 100 if sc.get("max") else None
+        out[s_["code"]] = rec
+    return out
+
+
+def _rank_map(values: dict) -> dict:
+    """{code: 점수} → {code: 순위}. 1이 가장 높은 점수, 동점은 같은 순위."""
+    ser = pd.Series({k: v for k, v in values.items() if v is not None}, dtype=float)
+    return ser.rank(ascending=False, method="min").astype(int).to_dict() if len(ser) else {}
+
+
+def compare_scores(universe, baseline: dict, ais: dict) -> pd.DataFrame:
+    """종목마다 AI별 총점·순위, 규칙 기반 점수, AI 평균·편차·평균 순위·순위 차, 판정(일치/의견 갈림).
+    ais = {AI 이름: parse_ai_scores 결과}. 편차·순위 차는 AI가 둘 이상 점수를 매긴 종목에만 계산한다."""
+    names = list(ais)
+    totals = {n: {c: r["total"] for c, r in ais[n]["scores"].items()} for n in names}
+    ranks = {n: _rank_map(totals[n]) for n in names}
+    rows = []
+    for u in universe:
+        c = u["code"]
+        row = {"종목명": u["name"], "코드": c}
+        vals, rks = [], []
+        for n in names:
+            v = totals[n].get(c)
+            row[n], row[f"{n} 순위"] = v, ranks[n].get(c)
+            if v is not None:
+                vals.append(v)
+            if ranks[n].get(c) is not None:
+                rks.append(ranks[n][c])
+        row[BASELINE_NAME] = (baseline or {}).get(c, {}).get("total")
+        row["AI 평균"] = sum(vals) / len(vals) if vals else None
+        row["점수 편차"] = (max(vals) - min(vals)) if len(vals) >= 2 else None
+        row["평균 순위"] = sum(rks) / len(rks) if rks else None
+        row["순위 차"] = (max(rks) - min(rks)) if len(rks) >= 2 else None
+        split = (row["점수 편차"] is not None and row["점수 편차"] >= DISAGREE_SCORE_GAP) or (row["순위 차"] is not None and row["순위 차"] >= DISAGREE_RANK_GAP)
+        row["판정"] = "⚠ 의견 갈림" if split else ("일치" if len(vals) >= 2 else "—")
+        rows.append(row)
+    cols = (["종목명", "코드"] + names + [BASELINE_NAME, "AI 평균", "점수 편차"] + [f"{n} 순위" for n in names] + ["평균 순위", "순위 차", "판정"])
+    return pd.DataFrame(rows, columns=cols)
+
+
+def agreement_summary(ais: dict, top_n: int = 3) -> list:
+    """AI 쌍마다 순위 상관(스피어먼, -1~1)과 상위 N개 겹침. 공통 종목이 3개 미만이면 상관은 None."""
+    names, rows = list(ais), []
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            a, b = names[i], names[j]
+            ta = {c: r["total"] for c, r in ais[a]["scores"].items() if r["total"] is not None}
+            tb = {c: r["total"] for c, r in ais[b]["scores"].items() if r["total"] is not None}
+            common = [c for c in ta if c in tb]
+            rho = None
+            if len(common) >= 3:
+                ra = pd.Series({c: ta[c] for c in common}).rank(ascending=False, method="average")
+                rb = pd.Series({c: tb[c] for c in common}).rank(ascending=False, method="average")
+                r_ = ra.corr(rb)
+                rho = None if pd.isna(r_) else float(r_)
+            overlap = None
+            if len(common) >= top_n:
+                overlap = len(set(sorted(common, key=lambda c: -ta[c])[:top_n]) & set(sorted(common, key=lambda c: -tb[c])[:top_n]))
+            rows.append({"AI 쌍": f"{a} ↔ {b}", "공통 종목": len(common), "순위 상관(-1~1)": rho, f"상위 {top_n} 겹침": overlap})
+    return rows
+
+
+def dimension_frame(code: str, baseline: dict, ais: dict) -> pd.DataFrame:
+    """한 종목의 항목별 점수. 행 = 수급·신호·추세·가격부담·재무, 열 = AI들 + 규칙 기반."""
+    data = {n: [ais[n]["scores"].get(code, {}).get(d) for d in SCORE_DIMS] for n in ais}
+    data[BASELINE_NAME] = [(baseline or {}).get(code, {}).get(d) for d in SCORE_DIMS]
+    return pd.DataFrame(data, index=SCORE_DIMS, dtype=float)
+
+
+def score_cell_style(v) -> str:
+    """총점(0~100) 높낮이 색: 50을 기준으로 높으면 빨강, 낮으면 파랑(앱의 다른 표와 같은 색 규칙), 멀수록 진하게."""
+    if v is None or (isinstance(v, float) and v != v):
+        return ""
+    t = max(-1.0, min(1.0, (v - 50) / 50))
+    rgb = "224, 49, 49" if t >= 0 else "25, 113, 194"
+    return f"background-color: rgba({rgb}, {0.10 + 0.40 * abs(t):.2f});"
+
+
+def split_style(v) -> str:
+    return "background-color: rgba(250, 204, 21, 0.25); font-weight: 700;" if isinstance(v, str) and v.startswith("⚠") else ""
+# ---- AI 점수 비교 helpers end
+
+
+tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
 ])
 
 # ---------------- 📊 순매수 상위 ----------------
@@ -3227,6 +3409,99 @@ with tab_ai:
         st.caption("이 주소와 리포트는 공개 저장소에 올라가므로 누구나 볼 수 있어요. 시세·수급·점수만 들어 있고 매매 일지, API 키, 비밀번호는 들어 있지 않습니다. "
                    "스윙 체크 점수와 앱 종합점수는 임의 기준이라 검증되지 않았고, 투자 자문이 아닙니다. 관심 종목을 넣으려면 저장소의 data/watch_codes.txt에 "
                    "한 줄에 종목코드 하나씩 적어 두세요(예: 098460 고영).")
+
+# ---------------- 📊 AI 점수 비교 ----------------
+with tab_cmp:
+    st.subheader("📊 AI 점수 비교")
+    _crep = load_ai_report()
+    _cpay = _crep.get("json") or {}
+    _cstocks = _cpay.get("stocks", [])
+    if not _cstocks or not _crep.get("blind"):
+        st.info("점수 매기기용 리포트가 아직 없습니다. 'AI Report' 워크플로가 한 번 실행되면 만들어져요 (🤖 AI 분석용 탭 안내 참고).")
+    else:
+        _cmeta = _cpay.get("meta", {})
+        _gen = _cmeta.get("generated_at", "—")
+        _universe = [{"code": x["code"], "name": x["name"]} for x in _cstocks]
+        st.markdown("같은 리포트를 여러 AI에게 주고, 돌려받은 점수를 나란히 비교해 보는 화면이에요. 서로를 비판시키지 않고 **같은 기준으로 매긴 결과**만 봅니다.\n\n"
+                    "1. 아래 '점수 매기기용 리포트'를 복사해서 **AI마다 새 대화에, 같은 내용으로** 보내세요. (다른 AI의 점수는 보여주지 마세요 — 독립 채점이어야 비교가 의미 있어요.)\n"
+                    "2. AI가 돌려준 JSON을 아래 칸에 붙여넣으세요. 이 대화의 Claude 결과도 같은 방식으로 붙여넣으면 돼요.\n"
+                    "3. 점수표, 의견이 갈린 종목, 항목별 그래프를 보고 사용자님이 판단하세요.")
+        st.caption(f"리포트 생성 시각: {_gen} · 이 리포트에는 규칙 기반 점수(스윙 체크·앱 종합)가 들어 있지 않아요. AI들이 그 점수를 따라 쓰는 걸 막으려는 거예요.")
+        with st.expander("① 점수 매기기용 리포트 — 복사용"):
+            st.code(_crep["blind"], language="markdown")
+        st.download_button("⬇ 점수 매기기용 리포트 (.md)", _crep["blind"], file_name="ai_report_blind.md", mime="text/markdown", key="cmp_dl_blind")
+        st.markdown("##### ② AI 결과 붙여넣기")
+        _defaults, _slots = ["Claude", "GPT", ""], []
+        for _i, _col in enumerate(st.columns(3)):
+            with _col:
+                _nm = st.text_input(f"AI {_i + 1} 이름", value=_defaults[_i], key=f"cmp_name_{_i}")
+                _tx = st.text_area(f"AI {_i + 1} 결과 JSON", value="", height=170, key=f"cmp_text_{_i}", placeholder='{"ai": "...", "scores": [...]}')
+            _slots.append((_nm.strip(), _tx))
+        _ais, _used = {}, set(RESERVED_NAMES)
+        for _i, (_nm, _tx) in enumerate(_slots):
+            if not _tx.strip():
+                continue
+            _res = parse_ai_scores(_tx, _universe)
+            _label = _nm or _res.get("ai") or f"AI {_i + 1}"
+            while _label in _used:
+                _label += " (2)"
+            _used.add(_label)
+            if not _res["ok"]:
+                st.error(f"{_label}: {_res['error']}")
+                continue
+            _ais[_label] = _res
+            _warns = list(_res["warnings"])
+            if _res.get("as_of") and _gen != "—" and _gen not in str(_res["as_of"]):
+                _warns.insert(0, f"리포트 생성 시각({_gen})과 다른 시각({_res['as_of']}) 기준으로 매긴 점수예요. 같은 리포트로 매겼는지 확인하세요.")
+            st.success(f"{_label}: {len(_res['scores'])}/{len(_universe)}종목 점수를 읽었어요" + (f" (확인할 점 {len(_warns)}개)" if _warns else ""))
+            if _warns:
+                with st.expander(f"{_label} — 확인할 점"):
+                    for _w in _warns:
+                        st.write("- " + _w)
+        if _ais:
+            _base = baseline_scores(_cstocks)
+            _cmp = compare_scores(_universe, _base, _ais)
+            _sort_labels = {"avg": "AI 평균 높은 순", "split": "의견 갈림 큰 순", "order": "리포트 순서"}
+            _sk = st.selectbox("정렬", list(_sort_labels), format_func=lambda k: _sort_labels[k], key="cmp_sort")
+            if _sk == "avg":
+                _cmp = _cmp.sort_values("AI 평균", ascending=False, na_position="last", ignore_index=True)
+            elif _sk == "split":
+                _cmp = _cmp.sort_values("점수 편차", ascending=False, na_position="last", ignore_index=True)
+            _n_split = int(_cmp["판정"].astype(str).str.startswith("⚠").sum())
+            _top = _cmp.dropna(subset=["AI 평균"]).sort_values("AI 평균", ascending=False)
+            mc = st.columns(3)
+            mc[0].metric("비교한 AI", f"{len(_ais)}개")
+            mc[1].metric("의견 갈린 종목", f"{_n_split}개" if len(_ais) >= 2 else "—")
+            mc[2].metric("AI 평균 1위", _top.iloc[0]["종목명"] if len(_top) else "—",
+                         delta=(f"{_top.iloc[0]['AI 평균']:.0f}점" if len(_top) else None), delta_color="off")
+            _rank_cols = [f"{n} 순위" for n in _ais]
+            _score_cols = list(_ais) + [BASELINE_NAME, "AI 평균"]
+            _fmt = {c: (lambda v: f"{v:.0f}") for c in _score_cols}
+            _fmt.update({"점수 편차": lambda v: f"{v:.0f}", "평균 순위": lambda v: f"{v:.1f}", "순위 차": lambda v: f"{int(v)}"})
+            _fmt.update({c: (lambda v: f"{int(v)}위") for c in _rank_cols})
+            st.dataframe(safe_styler(_cmp, _fmt, col_style_fns={**{c: score_cell_style for c in _score_cols}, "판정": split_style}),
+                         use_container_width=True, hide_index=True)
+            st.caption(f"색: 빨강은 높은 점수, 파랑은 낮은 점수예요(50점 기준). '{BASELINE_NAME}'은 앱의 규칙 기반 스윙 체크 점수를 100점으로 환산한 기준선이에요(검증 안 됨). "
+                       f"'의견 갈림'은 AI 간 총점 차이가 {DISAGREE_SCORE_GAP}점 이상이거나 순위 차이가 {DISAGREE_RANK_GAP} 이상일 때 표시해요(임의 기준). "
+                       "AI마다 후하고 박한 정도가 달라서 절대 점수보다 순위와 항목별 차이를 보는 게 더 의미 있어요.")
+            st.markdown("##### 총점 비교")
+            st.bar_chart(_cmp.set_index("종목명")[list(_ais) + [BASELINE_NAME]])
+            if len(_ais) >= 2:
+                st.markdown("##### AI 간 일치도")
+                _agree = pd.DataFrame(agreement_summary(_ais))
+                st.dataframe(safe_styler(_agree, {"공통 종목": lambda v: f"{int(v)}", "순위 상관(-1~1)": lambda v: f"{v:+.2f}", "상위 3 겹침": lambda v: f"{int(v)}/3"}),
+                             use_container_width=True, hide_index=True)
+                st.caption("순위 상관이 1에 가까우면 두 AI가 종목 순서를 비슷하게 매긴 거고, 0 근처면 거의 무관해요. 일치한다고 맞는 건 아니에요 — 같은 데이터에 같은 식으로 반응했을 수 있어요.")
+            st.markdown("##### 항목별로 보기")
+            _pick = st.selectbox("종목", [u["code"] for u in _universe], format_func=lambda c: next(u["name"] for u in _universe if u["code"] == c), key="cmp_dim_pick")
+            _dim = dimension_frame(_pick, _base, _ais)
+            st.bar_chart(_dim)
+            _notes = [{"AI": n, "총점": r["scores"].get(_pick, {}).get("total"), "확신도": r["scores"].get(_pick, {}).get("conf"),
+                       "한줄": r["scores"].get(_pick, {}).get("note", "")} for n, r in _ais.items()]
+            st.dataframe(safe_styler(pd.DataFrame(_notes), {"총점": lambda v: f"{v:.0f}", "확신도": lambda v: f"{int(v)}"}),
+                         use_container_width=True, hide_index=True)
+            st.download_button("⬇ 비교표 (.csv)", _cmp.to_csv(index=False).encode("utf-8-sig"), file_name="ai_score_compare.csv", mime="text/csv", key="cmp_dl_csv")
+        st.caption("붙여넣은 내용은 이 브라우저 세션에만 있고 저장되지 않아요. 점수는 모두 검증되지 않은 참고용이고, 투자 자문이 아닙니다.")
 
 st.divider()
 if st.button("지금 새로고침"):
