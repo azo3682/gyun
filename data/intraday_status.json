@@ -1,101 +1,63 @@
 {
-  "checked_at": "2026-10-01T14:58:23+09:00",
+  "checked_at": "2026-10-02T09:58:27+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "093370",
-      "stock_name": "후성",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 70.3
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 15520.0,
-      "day_pct": 3.47,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "018880",
-      "stock_name": "한온시스템",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 55.7
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 3665.0,
-      "day_pct": 4.12,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "008970",
-      "stock_name": "KBI동양철관",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 76.3
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 1480.0,
-      "day_pct": -0.2,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "192650",
       "stock_name": "드림텍",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 79.9
+        "RSI값": 80.9
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 9080.0,
-      "day_pct": 14.21
+      "current_price": 9400.0,
+      "day_pct": 3.18,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "098460",
       "stock_name": "고영",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 77.6
+        "RSI값": 75.1
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 33850.0,
-      "day_pct": 9.37
+      "current_price": 34250.0,
+      "day_pct": 0.59,
+      "reason": "순매수 상위 10에서 이탈"
+    },
+    {
+      "stock_code": "403870",
+      "stock_name": "HPSP",
+      "tech": {
+        "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 78.8
+      },
+      "transition": false,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 68600.0,
+      "day_pct": -0.58,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "248070",
@@ -106,32 +68,107 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 84.4
+        "RSI값": 88.4
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15340.0,
-      "day_pct": 14.39
+      "current_price": 16880.0,
+      "day_pct": 9.4,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "018880",
+      "stock_name": "한온시스템",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 59.7
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 3830.0,
+      "day_pct": 4.22
     },
     {
-      "stock_code": "403870",
-      "stock_name": "HPSP",
+      "stock_code": "041190",
+      "stock_name": "우리기술투자",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 63.8
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 6440.0,
+      "day_pct": 7.69
+    },
+    {
+      "stock_code": "100590",
+      "stock_name": "머큐리",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 68.8
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 6250.0,
+      "day_pct": 29.8
+    },
+    {
+      "stock_code": "101670",
+      "stock_name": "하이드로리튬",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 59.6
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 535.0,
+      "day_pct": 12.39
+    },
+    {
+      "stock_code": "217590",
+      "stock_name": "티엠씨",
       "tech": {
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 78.9
+        "RSI값": 85.9
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 69100.0,
-      "day_pct": 8.48
+      "current_price": 17980.0,
+      "day_pct": 26.71
     }
   ]
 }
