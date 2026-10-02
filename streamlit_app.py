@@ -2473,13 +2473,19 @@ JOURNAL_PASSWORD = "정한 비밀번호"
 AI_REPORT_MD_PATH = "data/ai_report.md"
 AI_REPORT_SHORT_PATH = "data/ai_report_short.md"
 AI_REPORT_JSON_PATH = "data/ai_report.json"
+AI_REPORT_STATUS_PATH = "data/ai_report_status.json"
 AI_REPORT_RAW_BASE = _secret("AI_REPORT_RAW_BASE", "https://raw.githubusercontent.com/azo3682/gyun/main/data")
 
 
 @st.cache_data(ttl=60)
 def load_ai_report() -> dict:
-    """{'md', 'short', 'json'}: 파일이 없거나 깨졌으면 해당 값은 None."""
-    out = {"md": None, "short": None, "json": None}
+    """{'md', 'short', 'json', 'status'}: 파일이 없거나 깨졌으면 해당 값은 None. status = 마지막 실행 결과(성공/실패 사유)."""
+    out = {"md": None, "short": None, "json": None, "status": None}
+    try:
+        with open(AI_REPORT_STATUS_PATH, "r", encoding="utf-8") as f:
+            out["status"] = json.load(f)
+    except Exception:
+        pass
     for key, path in (("md", AI_REPORT_MD_PATH), ("short", AI_REPORT_SHORT_PATH)):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -3163,10 +3169,22 @@ with tab_journal:
 with tab_ai:
     st.subheader("🤖 AI 분석용 리포트")
     _rep = load_ai_report()
+    _status = _rep.get("status") or {}
+
+    def _status_text(stt: dict) -> str:
+        why = ", ".join(f"{k}×{v.get('count')}({v.get('msg')})" for k, v in (stt.get("fail_reasons") or {}).items())
+        return f"마지막 실행 {stt.get('at', '—')} — {stt.get('message', '—')}" + (f" [실패 사유 코드: {why}]" if why and not stt.get("ok") else "")
+
     if not _rep["md"]:
         st.info("아직 리포트가 없습니다. GitHub의 Actions 탭에서 'AI Report'를 한 번 실행(Run workflow)하면 만들어져요. "
                 "이후에는 평일 08:30 · 09:50 · 10:20 · 11:40 · 13:40 · 14:50 · 15:55에 자동으로 갱신됩니다.")
+        if _status:
+            (st.warning if not _status.get("ok") else st.caption)(_status_text(_status))
+            if not _status.get("ok"):
+                st.caption("증권사 연결이 안 되는 시간대(점검 등)였거나 일시적인 오류일 수 있어요. 장중에 한 번 더 실행해 보세요.")
     else:
+        if _status and not _status.get("ok"):
+            st.warning("가장 최근 실행이 실패해서 이전 리포트를 보여 주고 있어요. " + _status_text(_status))
         _payload = _rep["json"] or {}
         _meta = _payload.get("meta", {})
         _stocks = _payload.get("stocks", [])
