@@ -7,6 +7,8 @@ ChatGPT 같은 외부 AI가 읽고 분석할 수 있는 리포트를 만든다.
   data/ai_report.md        — 분석 지시문 + 종목 표 + 종목별 상세 (AI에게 이 파일 주소를 주거나 내용을 붙여넣는다)
   data/ai_report_short.md  — 지시문 + 표만 (한 번에 읽는 분량이 작은 무료 AI용)
   data/ai_report.json      — 같은 내용을 구조화한 것 (앱의 'AI 분석용' 탭이 읽는다)
+  (종목별 상세와 JSON에는 시가·고가·저가·전일 고가·VWAP·거래량(전일 대비·5일/20일 평균)·20일 고저 대비 위치가 들어간다.
+   요약 표에는 이 중 파생값 4개 — 당일 범위 내 위치, VWAP 대비, 거래량 배수, 20일 고점 대비 — 만 넣는다. 추가 API 호출은 없다.)
 
 어떤 종목을 넣나
   1) 지금 순매수 상위 10   2) 신호 추적에 최근 기록된 종목   3) data/watch_codes.txt 의 관심 종목(선택)
@@ -81,6 +83,11 @@ FIELD_GUIDE = """## 필드 설명
 - 재무: 한국투자증권 재무비율의 최근 결산(기준월 표시). 6월 기준이면 반기 누적이고 ROE는 연환산입니다. 영업이익 증가율 0은 적자 지속·흑자전환·적자전환일 수 있어 점수에서 제외합니다.
 - 스윙 체크 점수(100): 수급 20(순매수 상위 10에 있으면 10, 거래량 상위에도 있으면 +10) · 신호 20 · 추세 20(정배열 20, 상승추세 속 조정 14, 그 외 0) · 가격부담 20(오늘 +7% -6, +10% -10 / RSI 70 -5, 80 -10 / 볼린저 상단 1.5% 이내·돌파 -5) · 재무 20(매출·영업이익 증가율 플러스, ROE 10% 이상, 부채비율 150% 이하 각 5). 재무 값이 비어 있으면 재무 없이 80점 만점으로 표시합니다.
 - 앱 종합점수(100): ROE·부채비율·성장률·PER/PBR 가중합. 재무 값이 비면 신뢰도가 낮다고 표시합니다.
+- 기준일: 가장 최근 거래일. 장 시작 전·휴장일이면 직전 거래일이고, 장중이면 오늘입니다. 시가·고가·저가·거래량은 기준일 값이며 장중이면 지금까지의 값(잠정)입니다. 전일은 그 직전 거래일입니다.
+- 당일 범위 내 위치(%): (현재가-저가)÷(고가-저가)×100. 100에 가까우면 그날 고가 부근, 0에 가까우면 저가 부근입니다.
+- VWAP: 증권사가 주는 거래량 가중 평균가(누적거래대금÷누적거래량에 해당, KRX 기준). 'VWAP 대비'가 +면 현재가가 오늘 거래된 평균가보다 위입니다.
+- 거래량 배수: 오늘 누적 거래량 ÷ 최근 20일 평균(오늘 제외). '전일 대비 %'는 증권사 값으로 '오늘 지금까지 ÷ 전일 하루 전체'라서 장중 오전에는 작게 나옵니다(시간 보정 없음).
+- 20일 고점·저점 대비: 최근 20거래일(기준일 포함)의 가장 높은 고가·가장 낮은 저가에 대한 현재가의 %입니다.
 """
 
 
@@ -176,6 +183,75 @@ def bollinger(df: pd.DataFrame, period: int = 20, num_std: float = 2.0):
     close = df["stck_clpr"]
     mid, std = close.rolling(period).mean().iloc[-1], close.rolling(period).std().iloc[-1]
     return mid + num_std * std, mid, mid - num_std * std
+
+
+def _f(v):
+    """NaN/None/숫자 아님 → None, 아니면 float."""
+    try:
+        x = float(v)
+        return None if x != x else x
+    except (TypeError, ValueError):
+        return None
+
+
+def _pos(v):
+    """0 이하(조회 전 0으로 오는 값)나 없는 값은 None."""
+    x = _f(v)
+    return x if (x is not None and x > 0) else None
+
+
+def _pct(a, b):
+    return (a / b - 1) * 100 if (a is not None and b) else None
+
+
+def compute_structure(df, detail: dict, price) -> tuple:
+    """(가격 구조 dict, 거래량 dict). df = 일봉(오름차순). 최신 봉이 '기준일'이다(장중이면 오늘 진행 중인 봉, 장 시작 전·휴장일이면 직전 거래일).
+    시가·고가·저가·누적거래량·VWAP은 현재가 응답을 우선하고, 0이거나 비어 있으면 최신 봉 값으로 대신한다.
+    5일·20일 평균 거래량은 기준일을 뺀 직전 봉들의 평균(전환신호의 거래량급증 기준과 같다)."""
+    d = detail or {}
+    has = df is not None and not df.empty
+    last = df.iloc[-1] if has else None
+    prev = df.iloc[-2] if has and len(df) >= 2 else None
+    cur = _pos(price) or (_f(last["stck_clpr"]) if has else None)
+    o = _pos(d.get("stck_oprc")) or (_pos(last["stck_oprc"]) if has else None)
+    h = _pos(d.get("stck_hgpr")) or (_pos(last["stck_hgpr"]) if has else None)
+    lo = _pos(d.get("stck_lwpr")) or (_pos(last["stck_lwpr"]) if has else None)
+    prev_close = _f(prev["stck_clpr"]) if prev is not None else None
+    prev_high = _f(prev["stck_hgpr"]) if prev is not None else None
+    vwap = _pos(d.get("wghn_avrg_stck_prc"))
+    if vwap is None and _pos(d.get("acml_tr_pbmn")) and _pos(d.get("acml_vol")):
+        vwap = _pos(d.get("acml_tr_pbmn")) / _pos(d.get("acml_vol"))
+    high20 = low20 = None
+    if has and len(df) >= 20:
+        win = df.iloc[-20:]
+        high20 = max([x for x in (_f(win["stck_hgpr"].max()), h) if x is not None], default=None)
+        low20 = min([x for x in (_f(win["stck_lwpr"].min()), lo) if x is not None], default=None)
+    structure = {
+        "session_date": (f"{str(last['stck_bsop_date'])[:4]}-{str(last['stck_bsop_date'])[4:6]}-{str(last['stck_bsop_date'])[6:]}" if has else None),
+        "prev_close": prev_close, "prev_high": prev_high, "open": o, "high": h, "low": lo,
+        "gap_pct": _pct(o, prev_close),
+        "range_pos_pct": ((cur - lo) / (h - lo) * 100) if (cur is not None and h is not None and lo is not None and h > lo) else None,
+        "vs_prev_high_pct": _pct(cur, prev_high),
+        "vwap": vwap, "vs_vwap_pct": _pct(cur, vwap),
+        "high20": high20, "low20": low20, "from_high20_pct": _pct(cur, high20), "from_low20_pct": _pct(cur, low20),
+    }
+    today_vol = _pos(d.get("acml_vol")) or (_pos(last["acml_vol"]) if has else None)
+    prev_vol = _pos(prev["acml_vol"]) if prev is not None else None
+    vols = df["acml_vol"].astype(float) if has else None
+    avg5 = _f(vols.iloc[-6:-1].mean()) if (has and len(vols) >= 6) else None
+    avg20 = _f(vols.iloc[-21:-1].mean()) if (has and len(vols) >= 21) else None
+    vs_prev = _pos(d.get("prdy_vrss_vol_rate"))
+    if vs_prev is None and today_vol and prev_vol:
+        vs_prev = today_vol / prev_vol * 100
+    volume = {"today": today_vol, "prev_day": prev_vol, "vs_prev_pct": vs_prev, "avg5": avg5, "avg20": avg20,
+              "vs_avg20_x": (today_vol / avg20) if (today_vol and avg20) else None}
+    return structure, volume
+
+
+def fmt_vol(v) -> str:
+    if v is None:
+        return "—"
+    return f"{v / 10000:,.1f}만주" if v >= 10000 else f"{v:,.0f}주"
 
 
 # ---------------------------------------------------------------- 수급 (주식현재가 투자자 / 외인기관 추정가집계)
@@ -413,6 +489,7 @@ def collect_stock(item: dict, now: datetime) -> dict:
         issues.append("공시 조회 실패")
     per, pbr = _to_float(detail.get("per")), _to_float(detail.get("pbr"))
     app_score = composite_score(per, pbr, fin) if not fin_is_empty(fin) else {"score": None, "parts": {}, "coverage": 0, "notes": []}
+    structure, volume = compute_structure(df, detail, price)
     rsi = tech.get("RSI값")
     swing = swing_check_score(in_top10=item.get("buy_rank") is not None, in_volume=item.get("volume_rank") is not None,
                               transition=transition, trend=trend, day_pct=day_pct, rsi=rsi, price=price, bb_upper=up, fin=fin)
@@ -429,6 +506,7 @@ def collect_stock(item: dict, now: datetime) -> dict:
                       "bb_upper": up, "bb_mid": mid, "bb_lower": low,
                       "to_upper_pct": ((up / price - 1) * 100) if (up and price) else None,
                       "vs_mid_pct": ((price / mid - 1) * 100) if (mid and price) else None},
+        "structure": structure, "volume": volume,
         "financial": fin, "flow": flow, "disclosures": disclosures,
         "scores": {"app_composite": app_score.get("score"), "app_notes": app_score.get("notes", []), "swing_check": swing},
         "data_issues": issues,
@@ -467,6 +545,7 @@ def _score_text(sc: dict) -> str:
 
 def _table_row(s: dict) -> str:
     pr, tc, fin = s["price"], s["technical"], s["financial"]
+    sr, vo = s["structure"], s["volume"]
     flow = s["flow"]["streak"]
     fl = lambda n: "—" if not n else f"{'+' if n > 0 else '-'}{abs(n)}"
     rk = s["ranking"]
@@ -477,6 +556,10 @@ def _table_row(s: dict) -> str:
         f"{rk['volume_rank']}위" if rk["volume_rank"] else "—",
         "O" if tc["transition"] else "X",
         fmt_num(tc["rsi"], 1), fmt_num(tc["to_upper_pct"], 1, True) + "%" if tc["to_upper_pct"] is not None else "—",
+        (f"{sr['range_pos_pct']:.0f}" if sr["range_pos_pct"] is not None else "—"),
+        (fmt_num(sr["vs_vwap_pct"], 1, True) + "%" if sr["vs_vwap_pct"] is not None else "—"),
+        (f"{vo['vs_avg20_x']:.1f}배" if vo["vs_avg20_x"] is not None else "—"),
+        (fmt_num(sr["from_high20_pct"], 1, True) + "%" if sr["from_high20_pct"] is not None else "—"),
         tc["trend"],
         f"{fl(flow.get('외국인'))}/{fl(flow.get('기관'))}/{fl(flow.get('개인'))}",
         (f"{fmt_num(fin.get('roe'), 1)}/{fmt_num(fin.get('debt_ratio'), 0)}/{fmt_num(fin.get('sales_growth'), 1, True)}/{fmt_num(fin.get('op_growth'), 1, True)}"
@@ -487,9 +570,10 @@ def _table_row(s: dict) -> str:
     return "| " + " | ".join(str(c) for c in cells) + " |"
 
 
-TABLE_HEADER = ("| 종목 | 코드 | 현재가 | 등락 | 순매수 순위 | 외국인/기관 순매수 | 거래량 순위 | 전환신호 | RSI | 볼린저 상단까지 | 추세 | "
+TABLE_HEADER = ("| 종목 | 코드 | 현재가 | 등락 | 순매수 순위 | 외국인/기관 순매수 | 거래량 순위 | 전환신호 | RSI | 볼린저 상단까지 | "
+                "당일 범위 내 위치(%) | VWAP 대비 | 거래량 배수(20일 평균 대비) | 20일 고점 대비 | 추세 | "
                 "연속(외/기/개) | 재무(ROE/부채/매출/영업이익 증가율) | 앱 종합 | 스윙 체크 |\n"
-                "|" + "---|" * 15)
+                "|" + "---|" * 19)
 
 
 def _detail_block(s: dict) -> str:
@@ -502,6 +586,14 @@ def _detail_block(s: dict) -> str:
     lines.append(f"- 기술: 추세 '{tc['trend']}', 전환신호 {'O' if tc['transition'] else 'X'}, 정배열 {tc['aligned']}, 거래량급증 {tc['volume_surge']}, "
                  f"20일모멘텀 {tc['momentum_20d']}, RSI {fmt_num(tc['rsi'], 1)}, 볼린저 하/중/상 {fmt_num(tc['bb_lower'])}/{fmt_num(tc['bb_mid'])}/{fmt_num(tc['bb_upper'])} "
                  f"(중심선 대비 {fmt_num(tc['vs_mid_pct'], 1, True)}%)")
+    sr, vo = s["structure"], s["volume"]
+    lines.append(f"- 가격 구조(기준일 {sr['session_date'] or '—'}): 시가 {fmt_num(sr['open'])}원(전일 종가 {fmt_num(sr['prev_close'])}원 대비 {fmt_num(sr['gap_pct'], 1, True)}%) / "
+                 f"고가 {fmt_num(sr['high'])} / 저가 {fmt_num(sr['low'])}, 범위 내 위치 {fmt_num(sr['range_pos_pct'], 0)}%, "
+                 f"전일 고가 {fmt_num(sr['prev_high'])}원(현재가 {fmt_num(sr['vs_prev_high_pct'], 1, True)}%), "
+                 f"20일 고점 {fmt_num(sr['high20'])}원({fmt_num(sr['from_high20_pct'], 1, True)}%) / 저점 {fmt_num(sr['low20'])}원({fmt_num(sr['from_low20_pct'], 1, True)}%), "
+                 f"VWAP {fmt_num(sr['vwap'])}원(현재가 {fmt_num(sr['vs_vwap_pct'], 1, True)}%)")
+    lines.append(f"- 거래량: 기준일 누적 {fmt_vol(vo['today'])} (전일 {fmt_vol(vo['prev_day'])} 대비 {fmt_num(vo['vs_prev_pct'], 0)}%[증권사 값, 시간 보정 없음], "
+                 f"20일 평균의 {fmt_num(vo['vs_avg20_x'], 1)}배), 5일 평균 {fmt_vol(vo['avg5'])}, 20일 평균 {fmt_vol(vo['avg20'])} (기준일 제외)")
     lines.append(f"- 수급: {_flow_text(s)}")
     lines.append(f"- 오늘 장중 추정: {_est_text(s)}")
     if fin and not fin_is_empty(fin):
