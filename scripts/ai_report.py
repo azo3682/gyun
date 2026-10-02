@@ -6,6 +6,9 @@ ChatGPT 같은 외부 AI가 읽고 분석할 수 있는 리포트를 만든다.
 출력
   data/ai_report.md        — 분석 지시문 + 종목 표 + 종목별 상세 (AI에게 이 파일 주소를 주거나 내용을 붙여넣는다)
   data/ai_report_short.md  — 지시문 + 표만 (한 번에 읽는 분량이 작은 무료 AI용)
+  data/ai_report_blind.md  — '점수 매기기용': 규칙 기반 점수(스윙 체크·앱 종합)를 뺀 표 + 점수 매기기 지시문.
+                             여러 AI에게 같은 기준으로 독립 채점을 시킨 뒤 앱의 'AI 점수 비교' 탭에서 나란히 보기 위한 것이다.
+                             점수가 들어 있으면 AI들이 그 점수를 따라 쓰기 때문에 일부러 뺀다.
   data/ai_report.json      — 같은 내용을 구조화한 것 (앱의 'AI 분석용' 탭이 읽는다)
   (종목별 상세와 JSON에는 시가·고가·저가·전일 고가·VWAP·거래량(전일 대비·5일/20일 평균)·20일 고저 대비 위치가 들어간다.
    요약 표에는 이 중 파생값 4개 — 당일 범위 내 위치, VWAP 대비, 거래량 배수, 20일 고점 대비 — 만 넣는다. 추가 API 호출은 없다.)
@@ -41,6 +44,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 REPORT_MD_PATH = os.path.join(DATA_DIR, "ai_report.md")
 REPORT_JSON_PATH = os.path.join(DATA_DIR, "ai_report.json")
 REPORT_SHORT_PATH = os.path.join(DATA_DIR, "ai_report_short.md")
+REPORT_BLIND_PATH = os.path.join(DATA_DIR, "ai_report_blind.md")
 STATUS_PATH = os.path.join(DATA_DIR, "ai_report_status.json")
 WATCH_PATH = os.path.join(DATA_DIR, "watch_codes.txt")
 TRACKER_PATH = os.path.join(DATA_DIR, "signal_tracker.json")
@@ -72,6 +76,32 @@ PROMPT = """## 분석 지시문 (이 부분부터 읽고 따라 주세요)
 - 후보를 비교하는 표(과열 정도, 수급 지속성, 재무, 추세)와, 점수가 아닌 이유 중심의 근거 강도 순서를 보여 주세요.
 - 진입을 생각한다면 제가 미리 정해야 할 항목(손절 기준, 투입 금액, 보유 기간, 재진입 규칙)의 체크리스트를 주세요. 값은 제가 정합니다.
 - 제가 따로 질문을 하면 그 질문을 우선하세요.
+"""
+
+SCORE_DIMS = ["수급", "신호", "추세", "가격부담", "재무"]
+
+SCORING_PROMPT = """## 점수 매기기 지시문 (이 부분부터 읽고 따라 주세요)
+당신은 한국 주식 스윙 매매(며칠~몇 주 보유) 후보를 점검하는 분석 보조입니다. 아래 표의 모든 종목에 대해 '스윙 진입 관점의 매력도'를 점수로 매겨 주세요. 이 점수는 제가 여러 AI의 결과를 나란히 놓고 비교하려는 용도이므로, 다른 AI의 점수나 다른 점수를 참고하지 말고 이 표의 값만 근거로 독립적으로 판단하세요.
+
+점수 기준 (각 항목 0~20점, 총점 100점. 20=매우 우호적, 10=중립, 0=매우 불리)
+- 수급: 외국인·기관 매수의 크기와 지속성(순매수 순위, 오늘 순매수, 연속 일수). 매도 우위이거나 개인만 사는 경우는 낮게.
+- 신호: 전환신호(눌림 뒤 거래량이 터지며 오른 날) 여부와 거래량 배수의 질. 신호가 없거나 거래량이 약하면 낮게.
+- 추세: 추세 상태와 20일 고점 대비 위치. 정배열 상승이면 높게, 하락추세면 낮게.
+- 가격부담: 높을수록 '부담이 적다'는 뜻입니다(추격 위험이 낮음). 오늘 많이 올랐거나 RSI 과열, 볼린저 상단 돌파·근접, VWAP 위로 크게 벗어남, 20일 고점 부근이면 낮게.
+- 재무: ROE·부채비율·매출/영업이익 성장. '없음'이면 10(중립)으로 두고 확신도를 낮추세요.
+
+규칙
+1. 표에 없는 정보(뉴스, 업종, 실적 전망)는 쓰지 말고, 모르면 중립(10)으로 두고 확신도를 낮추세요.
+2. 한 종목도 빠뜨리지 말고, 총점은 5개 항목의 합과 같아야 합니다.
+3. 투자 자문이 아니며 점수는 제 판단을 돕는 참고용입니다. 매수·매도를 지시하지 마세요.
+4. 장중 값(가격·거래량·수급)은 잠정치라는 점을 감안하세요.
+
+출력 형식: 설명 문장 없이 아래 JSON 하나만 코드 블록으로 출력하세요. 확신도는 1(낮음)~5(높음), 한줄은 40자 이내입니다.
+```json
+{"ai": "<당신의 AI 이름>", "as_of": "<이 리포트의 생성 시각>", "scores": [
+  {"code": "종목코드", "name": "종목명", "수급": 0, "신호": 0, "추세": 0, "가격부담": 0, "재무": 0, "총점": 0, "확신도": 3, "한줄": "이유"}
+]}
+```
 """
 
 FIELD_GUIDE = """## 필드 설명
@@ -543,7 +573,7 @@ def _score_text(sc: dict) -> str:
     return f"{sc['total']}/{sc['max']} ({seg})"
 
 
-def _table_row(s: dict) -> str:
+def _table_row(s: dict, with_scores: bool = True) -> str:
     pr, tc, fin = s["price"], s["technical"], s["financial"]
     sr, vo = s["structure"], s["volume"]
     flow = s["flow"]["streak"]
@@ -567,6 +597,8 @@ def _table_row(s: dict) -> str:
         fmt_num(s["scores"]["app_composite"]) if s["scores"]["app_composite"] is not None else "N/A",
         f"{s['scores']['swing_check']['total']}/{s['scores']['swing_check']['max']}",
     ]
+    if not with_scores:        # 점수 매기기용: 앱 종합·스윙 체크(마지막 두 열)를 뺀다
+        cells = cells[:-2]
     return "| " + " | ".join(str(c) for c in cells) + " |"
 
 
@@ -574,6 +606,10 @@ TABLE_HEADER = ("| 종목 | 코드 | 현재가 | 등락 | 순매수 순위 | 외
                 "당일 범위 내 위치(%) | VWAP 대비 | 거래량 배수(20일 평균 대비) | 20일 고점 대비 | 추세 | "
                 "연속(외/기/개) | 재무(ROE/부채/매출/영업이익 증가율) | 앱 종합 | 스윙 체크 |\n"
                 "|" + "---|" * 19)
+TABLE_HEADER_BLIND = ("| 종목 | 코드 | 현재가 | 등락 | 순매수 순위 | 외국인/기관 순매수 | 거래량 순위 | 전환신호 | RSI | 볼린저 상단까지 | "
+                      "당일 범위 내 위치(%) | VWAP 대비 | 거래량 배수(20일 평균 대비) | 20일 고점 대비 | 추세 | "
+                      "연속(외/기/개) | 재무(ROE/부채/매출/영업이익 증가율) |\n"
+                      "|" + "---|" * 17)
 
 
 def _detail_block(s: dict) -> str:
@@ -619,20 +655,22 @@ def _split_stocks(stocks: list) -> tuple:
     return top, [s for s in stocks if not s["ranking"]["buy_rank"]]
 
 
-def _header_and_tables(stocks: list, meta: dict, title: str) -> list:
+def _header_and_tables(stocks: list, meta: dict, title: str, blind: bool = False) -> list:
     top, others = _split_stocks(stocks)
     md = [title, "",
           f"- 생성 시각: {meta['generated_at']} (KST)",
           f"- 데이터 기준: {meta['phase']}",
           f"- 포함 종목: {len(stocks)}개 (순매수 상위 {len(top)}개 + 신호 추적·관심 종목 {len(others)}개)",
-          "- 출처: 한국투자증권 Open API(시세·수급·재무), 대시보드 자체 계산(신호·점수). 뉴스·사업 내용은 포함하지 않았습니다.",
+          ("- 출처: 한국투자증권 Open API(시세·수급·재무), 대시보드 자체 계산(전환신호·거래량 배수 등). 규칙 기반 점수는 독립 채점을 위해 일부러 뺐고, 뉴스·사업 내용은 포함하지 않았습니다."
+           if blind else "- 출처: 한국투자증권 Open API(시세·수급·재무), 대시보드 자체 계산(신호·점수). 뉴스·사업 내용은 포함하지 않았습니다."),
           "- 이 리포트는 투자 자문이 아니며 매매일지 등 개인 정보와 API 키는 포함하지 않습니다.", ""]
     if meta.get("notes"):
         md += [f"- 유의: {n}" for n in meta["notes"]] + [""]
-    md += [PROMPT, FIELD_GUIDE, "## 1. 오늘 순매수 상위 종목", TABLE_HEADER]
-    md += [_table_row(s) for s in top] or ["| (순매수 상위 데이터 없음 — 장 시작 전이거나 조회 실패) |"]
-    md += ["", "## 2. 최근 신호 · 관심 종목", TABLE_HEADER]
-    md += [_table_row(s) for s in others] or ["| (해당 종목 없음) |"]
+    prompt, guide, header = (SCORING_PROMPT, BLIND_FIELD_GUIDE, TABLE_HEADER_BLIND) if blind else (PROMPT, FIELD_GUIDE, TABLE_HEADER)
+    md += [prompt, guide, "## 1. 오늘 순매수 상위 종목", header]
+    md += [_table_row(s, not blind) for s in top] or ["| (순매수 상위 데이터 없음 — 장 시작 전이거나 조회 실패) |"]
+    md += ["", "## 2. 최근 신호 · 관심 종목", header]
+    md += [_table_row(s, not blind) for s in others] or ["| (해당 종목 없음) |"]
     return md
 
 
@@ -649,6 +687,18 @@ def build_report(stocks: list, meta: dict) -> tuple:
     md += [_detail_block(s) + "\n" for s in top + others]
     md += LIMITS
     return "\n".join(md), {"meta": meta, "stocks": stocks}
+
+
+BLIND_FIELD_GUIDE = "\n".join(l for l in FIELD_GUIDE.split("\n") if not (l.startswith("- 스윙 체크 점수") or l.startswith("- 앱 종합점수")))
+BLIND_LIMITS = ["## 데이터 한계", "- 수급 가집계는 하루 5번만 갱신되고, 일별 확정 수급은 보통 어제까지입니다.",
+                "- 같은 날 시장 전체가 오른 경우 개별 종목 신호와 구분하기 어렵습니다.", ""]
+
+
+def build_report_blind(stocks: list, meta: dict) -> str:
+    """점수 매기기용: 규칙 기반 점수를 뺀 표 + 점수 매기기 지시문. 여러 AI에게 같은 입력을 줘서 독립 채점을 받기 위한 것."""
+    md = _header_and_tables(stocks, meta, "# 스윙 후보 점수 매기기용 리포트 (규칙 기반 점수 제외)", blind=True)
+    md += [""] + BLIND_LIMITS
+    return "\n".join(md)
 
 
 def build_report_short(stocks: list, meta: dict) -> str:
@@ -704,9 +754,10 @@ def write_atomic(path: str, text: str):
 
 def run(now: datetime | None = None, md_path: str = REPORT_MD_PATH, json_path: str = REPORT_JSON_PATH,
         watch_path: str = WATCH_PATH, tracker_path: str = TRACKER_PATH, max_n: int = MAX_STOCKS, short_path: str | None = None,
-        status_path: str | None = None) -> dict:
+        status_path: str | None = None, blind_path: str | None = None) -> dict:
     now = now or datetime.now(KST)
     short_path = short_path or (REPORT_SHORT_PATH if md_path == REPORT_MD_PATH else md_path[:-3] + "_short.md")
+    blind_path = blind_path or (REPORT_BLIND_PATH if md_path == REPORT_MD_PATH else md_path[:-3] + "_blind.md")
     status_path = status_path or (STATUS_PATH if md_path == REPORT_MD_PATH else os.path.join(os.path.dirname(md_path), "ai_report_status.json"))
     t_start = time.time()
     ok_pre, pre_msg = preflight()
@@ -760,8 +811,10 @@ def run(now: datetime | None = None, md_path: str = REPORT_MD_PATH, json_path: s
         return {"written": False, "meta": meta}
     md, payload = build_report(stocks, meta)
     short = build_report_short(stocks, meta)
+    blind = build_report_blind(stocks, meta)
     write_atomic(md_path, md)
     write_atomic(short_path, short)
+    write_atomic(blind_path, blind)
     write_atomic(json_path, json.dumps(payload, ensure_ascii=False, indent=1))
     write_status(status_path, now, True, f"정상 — {len(stocks)}종목 ({meta['phase']})", stage="done", stocks_ok=len(ok),
                  stocks_total=len(universe), seconds=round(time.time() - t_start))
