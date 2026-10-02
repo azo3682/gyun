@@ -16,6 +16,8 @@ ChatGPT 같은 외부 AI가 읽고 분석할 수 있는 리포트를 만든다.
   - 스윙 체크 점수는 대화 중 임의로 정한 기준이다. 백테스트로 검증된 점수가 아니다. 리포트 지시문에도 그렇게 적는다.
   - 매매 일지(비공개 저장소)와 API 키·비밀번호는 절대 넣지 않는다.
   - 조회가 대부분 실패한 날(휴장일, API 장애)에는 직전 리포트를 덮어쓰지 않는다.
+  - 시작할 때 증권사 연결을 한 번 점검(preflight)해서 안 되면 바로 멈추고, 실패 사유를 data/ai_report_status.json과 로그에 남긴다.
+    (예전에는 실패한 조회를 종목마다 끝까지 재시도해서 8종목에 19분이 걸리고 사유도 남지 않았다.)
 """
 
 import json
@@ -30,19 +32,22 @@ import requests
 from common import (
     BASE_URL, KST, kis_headers, fetch_investor_ranking, fetch_volume_ranking, fetch_price_detail, market_risk_flags,
     _to_float, fetch_financial_ratio, strip_raw, composite_score, fetch_daily_ohlcv, analyze_technicals,
-    compute_transition_signal, check_disclosure_risk,
+    compute_transition_signal, check_disclosure_risk, get_access_token, FAIL_REASONS,
 )
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 REPORT_MD_PATH = os.path.join(DATA_DIR, "ai_report.md")
 REPORT_JSON_PATH = os.path.join(DATA_DIR, "ai_report.json")
 REPORT_SHORT_PATH = os.path.join(DATA_DIR, "ai_report_short.md")
+STATUS_PATH = os.path.join(DATA_DIR, "ai_report_status.json")
 WATCH_PATH = os.path.join(DATA_DIR, "watch_codes.txt")
 TRACKER_PATH = os.path.join(DATA_DIR, "signal_tracker.json")
 
 MAX_STOCKS = 14
 RECENT_SIGNAL_DATES = 3        # 신호 추적에서 최근 몇 개 신호일의 종목을 넣을지
 MIN_OK_STOCKS = 3              # 이보다 적게 조회되면 직전 리포트를 유지한다
+RUN_BUDGET_SEC = 480           # 전체 실행 시간 상한. 증권사 조회가 계속 지연되면 여기서 멈춘다 (실패 조회 하나가 10초 타임아웃이라 오래 걸릴 수 있음)
+PREFLIGHT_CODE = "005930"      # 시작할 때 증권사 연결을 점검하는 데 쓰는 종목(삼성전자)
 
 INVESTOR_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor"
 INVESTOR_DAILY_TR_ID = "FHKST01010900"
@@ -376,9 +381,8 @@ def collect_stock(item: dict, now: datetime) -> dict:
     code, name = item["code"], item["name"]
     issues = []
     detail = fetch_price_detail(code)
-    if detail is None:
-        issues.append("현재가 조회 실패")
-        detail = {}
+    if detail is None:      # 현재가가 안 되면 다른 조회도 거의 같은 이유로 막혀 있어, 타임아웃만 쌓이지 않게 여기서 끝낸다
+        return {"code": code, "name": name or code, "sources": item.get("sources", []), "failed": True, "data_issues": ["현재가 조회 실패"]}
     price = _to_float(detail.get("stck_prpr"))
     day_pct = _to_float(detail.get("prdy_ctrt"))
     name = name or detail.get("hts_kor_isnm") or code
@@ -572,6 +576,32 @@ def _load_json(path: str) -> dict:
         return {}
 
 
+def fail_summary() -> dict:
+    """common.FAIL_REASONS를 로그·상태 파일용으로 요약 (키·토큰이 들어갈 일 없는 사유 코드와 짧은 메시지만)."""
+    return {k: {"count": v.get("count"), "msg": str(v.get("msg", ""))[:60]} for k, v in list(FAIL_REASONS.items())[:8]}
+
+
+def preflight() -> tuple:
+    """(성공 여부, 설명). 접근토큰을 얻고 삼성전자 현재가를 한 번 조회해서 증권사 API가 지금 정상인지 본다."""
+    try:
+        get_access_token()
+    except Exception as e:
+        return False, f"접근토큰 발급 실패: {type(e).__name__}: {str(e)[:100]}"
+    t0 = time.time()
+    detail = fetch_price_detail(PREFLIGHT_CODE)
+    took = time.time() - t0
+    if detail is None:
+        why = "; ".join(f"{k}×{v['count']}({v['msg']})" for k, v in fail_summary().items()) or "사유 기록 없음"
+        return False, f"현재가 API 호출 실패(소요 {took:.0f}초): {why}"
+    return True, f"정상 (현재가 API {took:.1f}초)"
+
+
+def write_status(path: str, now: datetime, ok: bool, message: str, **extra):
+    """마지막 실행 결과를 남긴다. 앱이 리포트가 없거나 오래됐을 때 이유를 보여주는 데 쓴다."""
+    payload = {"at": now.strftime("%Y-%m-%d %H:%M"), "ok": ok, "message": message, "fail_reasons": fail_summary(), **extra}
+    write_atomic(path, json.dumps(payload, ensure_ascii=False, indent=1))
+
+
 def write_atomic(path: str, text: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
@@ -581,9 +611,18 @@ def write_atomic(path: str, text: str):
 
 
 def run(now: datetime | None = None, md_path: str = REPORT_MD_PATH, json_path: str = REPORT_JSON_PATH,
-        watch_path: str = WATCH_PATH, tracker_path: str = TRACKER_PATH, max_n: int = MAX_STOCKS, short_path: str | None = None) -> dict:
+        watch_path: str = WATCH_PATH, tracker_path: str = TRACKER_PATH, max_n: int = MAX_STOCKS, short_path: str | None = None,
+        status_path: str | None = None) -> dict:
     now = now or datetime.now(KST)
     short_path = short_path or (REPORT_SHORT_PATH if md_path == REPORT_MD_PATH else md_path[:-3] + "_short.md")
+    status_path = status_path or (STATUS_PATH if md_path == REPORT_MD_PATH else os.path.join(os.path.dirname(md_path), "ai_report_status.json"))
+    t_start = time.time()
+    ok_pre, pre_msg = preflight()
+    print(f"[preflight] {pre_msg}")
+    if not ok_pre:
+        write_status(status_path, now, False, f"증권사 API 연결 점검 실패 — {pre_msg}. 직전 리포트를 유지합니다.", stage="preflight")
+        print("증권사 API가 응답하지 않아 리포트를 만들지 않고 종료합니다 (직전 리포트 유지)")
+        return {"written": False, "meta": {"preflight": pre_msg}}
     notes = []
     try:
         top10 = fetch_investor_ranking("buy") or []
@@ -598,24 +637,43 @@ def run(now: datetime | None = None, md_path: str = REPORT_MD_PATH, json_path: s
     if not top10 and not notes:
         notes.append("순매수 상위가 비어 있음(장 시작 전·휴장일이거나 조회 실패)")
     universe = select_universe(top10, volume_rows, recent_signal_stocks(_load_json(tracker_path)), load_watch_codes(watch_path), max_n)
-    stocks = []
-    for item in universe:
+    stocks, failed = [], []
+    for i, item in enumerate(universe):
+        if time.time() - t_start > RUN_BUDGET_SEC:
+            notes.append(f"실행 시간 상한({RUN_BUDGET_SEC}초)에 도달해 {len(universe) - i}개 종목은 제외")
+            failed += [u["name"] or u["code"] for u in universe[i:]]
+            break
         try:
-            stocks.append(collect_stock(item, now))
+            st_ = collect_stock(item, now)
         except Exception as e:
-            notes.append(f"{item['name'] or item['code']} 수집 실패({str(e)[:40]})")
-    ok = [s for s in stocks if "현재가 조회 실패" not in s["data_issues"]]
+            print(f"[수집 예외] {item['code']} {type(e).__name__}: {str(e)[:100]}")
+            failed.append(item["name"] or item["code"])
+            continue
+        if st_.get("failed"):
+            failed.append(st_["name"])
+            print(f"[실패] {st_['code']} {st_['name']}: {', '.join(st_['data_issues'])}")
+        else:
+            stocks.append(st_)
+            if st_["data_issues"]:
+                print(f"[일부 실패] {st_['code']} {st_['name']}: {', '.join(st_['data_issues'])}")
+    if failed:
+        notes.append("조회 실패로 제외한 종목: " + ", ".join(failed))
+    ok = stocks
     meta = {"generated_at": now.strftime("%Y-%m-%d %H:%M"), "phase": market_phase(now), "notes": notes,
             "counts": {"universe": len(universe), "ok": len(ok)}}
     if len(ok) < MIN_OK_STOCKS:
-        print(f"조회 성공 종목이 {len(ok)}개뿐이라 직전 리포트를 유지합니다 (대상 {len(universe)}개)")
+        msg = f"조회에 성공한 종목이 {len(ok)}개뿐이라 직전 리포트를 유지합니다 (대상 {len(universe)}개)"
+        print(msg, "| 실패 사유:", fail_summary())
+        write_status(status_path, now, False, msg, stage="collect", stocks_ok=len(ok), stocks_total=len(universe))
         return {"written": False, "meta": meta}
     md, payload = build_report(stocks, meta)
     short = build_report_short(stocks, meta)
     write_atomic(md_path, md)
     write_atomic(short_path, short)
     write_atomic(json_path, json.dumps(payload, ensure_ascii=False, indent=1))
-    print(f"AI 리포트 저장: {md_path} ({len(stocks)}종목, 전체 {len(md):,}자 / 짧은 버전 {len(short):,}자) / {meta['phase']}")
+    write_status(status_path, now, True, f"정상 — {len(stocks)}종목 ({meta['phase']})", stage="done", stocks_ok=len(ok),
+                 stocks_total=len(universe), seconds=round(time.time() - t_start))
+    print(f"AI 리포트 저장: {md_path} ({len(stocks)}종목, 전체 {len(md):,}자 / 짧은 버전 {len(short):,}자) / {meta['phase']} / {time.time() - t_start:.0f}초")
     return {"written": True, "meta": meta, "chars": len(md), "short_chars": len(short)}
 
 
