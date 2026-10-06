@@ -31,10 +31,18 @@ eod_snapshot.py가 평일 15:40 KST에 이 모듈을 호출한다. 결과: data/
   - 지수는 yfinance(^KS11, ^KQ11)로 받아 data/index_history.json에 날짜별로 쌓는다. 비공식 데이터라 실패할 수 있고,
     실패한 날은 기존 값을 그대로 두고 다음 실행에서 채운다. 오늘자 지수 종가는 장 마감 직후엔 지연·미확정일 수 있어 다음 실행에서 덮어써진다.
 
+대조군(top10): 신호가 실제로 효과가 있는지 보려면 '신호가 없던 종목'과 비교해야 한다. 그래서 같은 날 순매수 상위 10 전체를
+신호 여부와 상관없이 data/top10_baseline.json에 따로 기록한다(type="top10", 신호 파일과 섞지 않는다).
+  - 진입가·D+n·지수 대비 계산은 신호와 똑같다. conditions에 is_transition / is_volume_supply를 남겨 앱이 집단별로 나눈다.
+  - 최대 BASELINE_TRACK_DAYS(10)거래일치만 추적한다 (HORIZONS의 최대가 D+10).
+  - 과거 날짜는 data/history/eod_candidates.csv(순매수 상위 10 + 전환신호 여부)로 소급해서 채운다. 이 CSV에는 거래량 순위가 없어서
+    소급분의 is_volume_supply는 None(알 수 없음)이다.
+
 주의: 전환신호는 2026-09-29에 '상승' 조건을 추가해 9/21 백테스트 이후 재검증되지 않았고,
 '거래량·수급 동시'는 매수 신호로 검증된 적이 없다(관심이 쏠렸다는 뜻일 뿐). 이 기록은 검증용 데이터를 쌓는 용도다.
 """
 
+import csv
 import json
 import os
 from datetime import datetime
@@ -43,6 +51,10 @@ from common import KST
 
 TRACKER_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "signal_tracker.json")
 INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "index_history.json")
+BASELINE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "top10_baseline.json")
+HISTORY_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "history", "eod_candidates.csv")
+BASELINE_TYPE = "top10"
+BASELINE_TRACK_DAYS = 10   # 대조군은 D+10까지만 필요하다
 TRACK_DAYS = 40            # 신호 이후 이만큼의 거래일 종가를 쌓으면 추적 종료
 HORIZONS = (1, 3, 5, 10)   # 성과를 계산할 보유 거래일 수 (D+n)
 INDEX_TICKERS = {"KOSPI": "^KS11", "KOSDAQ": "^KQ11"}
@@ -51,9 +63,11 @@ INDEX_KEEP_DAYS = 250      # 지수 이력에 남길 최대 일수
 SIGNAL_TYPES = {"transition": "전환신호", "volume_supply": "거래량·수급 동시"}
 
 
-def load_tracker(path: str = TRACKER_PATH) -> dict:
+def load_tracker(path: str = TRACKER_PATH, types=None, legacy_split: bool = True) -> dict:
     """저장된 추적 파일을 읽는다. 없거나 깨졌으면 빈 추적기.
-    종류(type)가 없는 예전 기록(세 조건을 모두 만족하던 버전)은 두 종류 모두에 해당하므로 각각 하나씩으로 나눈다."""
+    types: 인정할 종류(기본 SIGNAL_TYPES). 종류(type)가 없는 예전 기록(세 조건을 모두 만족하던 버전)은
+    legacy_split=True일 때 두 종류 모두에 해당하므로 각각 하나씩으로 나눈다. 대조군 파일은 legacy_split=False로 읽는다."""
+    types = types or SIGNAL_TYPES
     if not os.path.exists(path):
         return {"signals": []}
     try:
@@ -66,9 +80,9 @@ def load_tracker(path: str = TRACKER_PATH) -> dict:
         return {"signals": []}
     migrated = []
     for s in signals:
-        if s.get("type") in SIGNAL_TYPES:
+        if s.get("type") in types:
             migrated.append(s)
-        else:
+        elif legacy_split:
             for t in SIGNAL_TYPES:
                 copy = {**s, "type": t, "closes": dict(s.get("closes") or {})}
                 copy["conditions"] = {**(s.get("conditions") or {}), "overlap": True}
@@ -142,6 +156,66 @@ def record_signals(tracker: dict, signals: list) -> int:
     return added
 
 
+def find_top10_entries(buy_rows: list, volume_ok: bool = True) -> list:
+    """오늘의 순매수 상위 10 전체를 대조군으로 기록할 항목으로 바꾼다(신호 여부와 무관).
+    conditions.is_transition: 전환신호가 떴나 / is_volume_supply: 거래량 상위에도 올랐나(거래량 순위 조회가 실패한 날은 None=알 수 없음)."""
+    out = []
+    for r in buy_rows or []:
+        if not r.get("last_date") or not r.get("last_close"):
+            continue
+        day_pct = r.get("day_pct")
+        out.append({
+            "code": r["stock_code"], "name": r["stock_name"], "type": BASELINE_TYPE,
+            "signal_date": _fmt_date(r["last_date"]), "signal_close": _num(r["last_close"]),
+            "day_pct": round(day_pct * 100, 2) if day_pct is not None else None,
+            "conditions": {
+                "buy_rank": r.get("rank"), "volume_rank": r.get("volume_rank") if volume_ok else None,
+                "is_transition": r.get("transition") is True,
+                "is_volume_supply": bool(r.get("volume_rank")) if volume_ok else None,
+                "risk_flags": list(r.get("market_risk_flags") or []),
+            },
+        })
+    return out
+
+
+def backfill_top10_from_history(tracker: dict, csv_path) -> int:
+    """data/history/eod_candidates.csv(날짜별 순매수 상위 10 + 전환신호 여부)로 과거 날짜의 대조군을 채운다.
+    신호일 종가는 비워 두고, update_closes가 일봉에서 그 날짜 종가를 찾아 채운다(일봉 범위 밖이면 계속 빈다).
+    이 CSV에는 거래량 순위가 없어서 is_volume_supply는 None이다. 이미 있는 (종목, 날짜)는 건너뛴다. 추가한 개수를 반환."""
+    if not csv_path or not os.path.exists(csv_path):
+        return 0
+    seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
+    now = datetime.now(KST).isoformat(timespec="seconds")
+    added = 0
+    try:
+        with open(csv_path, "r", encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+    except Exception:
+        return 0
+    for r in rows:
+        date, code, name = (r.get("date") or "").strip(), (r.get("stock_code") or "").strip(), (r.get("stock_name") or "").strip()
+        if not (date and code and name) or (code, date, BASELINE_TYPE) in seen:
+            continue
+        try:
+            day_pct = round(float(r["day_pct"]) * 100, 2) if r.get("day_pct") not in (None, "") else None
+        except ValueError:
+            day_pct = None
+        try:
+            rank = int(float(r.get("rank")))
+        except (TypeError, ValueError):
+            rank = None
+        tracker["signals"].append({
+            "code": code, "name": name, "type": BASELINE_TYPE, "signal_date": date, "signal_close": None, "signal_close_first": None,
+            "day_pct": day_pct, "closes": {}, "active": True, "recorded_at": now, "backfilled": True,
+            "conditions": {"buy_rank": rank, "volume_rank": None, "is_transition": str(r.get("transition")) == "1",
+                           "is_volume_supply": None,
+                           "risk_flags": [x for x in (r.get("market_risk_flags") or "").split(";") if x]},
+        })
+        seen.add((code, date, BASELINE_TYPE))
+        added += 1
+    return added
+
+
 def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS):
     """진행 중인 신호마다 일봉을 읽어 신호일 이후 종가를 채운다. (갱신 수, 조회 실패 수) 반환.
     fetcher(code) -> 일봉 DataFrame (stck_bsop_date, stck_clpr 컬럼). 비어 있으면 실패로 센다.
@@ -174,7 +248,7 @@ def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS):
                 closes[d] = _num(c)
                 if o is not None and o == o and float(o) > 0:
                     opens[d] = _num(o)
-        s["closes"] = dict(sorted(closes.items()))
+        s["closes"] = dict(sorted(closes.items())[:track_days])     # track_days개까지만 저장 (소급·갭 이후 한꺼번에 쌓이는 것 방지)
         if s["closes"]:
             # 진입일 = 신호 다음 거래일. 시가는 이번에 받은 일봉에 있으면 갱신(수정주가 계열 유지), 없으면 기존 값 유지
             s["entry_date"] = min(s["closes"])
@@ -187,18 +261,39 @@ def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS):
     return updated, failed
 
 
+KOSDAQ_TOKENS = ("KOSDAQ", "코스닥", "KSQ", "KQ")
+KOSPI_TOKENS = ("KOSPI", "코스피", "유가증권", "KSP", "STK")
+
+
 def index_key_from_market(market_name) -> str:
-    """KIS 현재가 응답의 시장명(rprs_mrkt_kor_name)을 지수 키로. 알 수 없으면 ''(초과수익 비교 안 함)."""
+    """KIS 현재가 응답의 시장명(rprs_mrkt_kor_name)을 지수 키로. 알 수 없으면 ''(초과수익 비교 안 함).
+    코스닥 종목이 '—'로 남던 문제(2026-10)를 겪어, 코스닥 표기를 넓게 받는다(KOSDAQ GLOBAL, 코스닥150, KSQ 등)."""
     m = str(market_name or "").upper()
-    if "KOSDAQ" in m or "코스닥" in m:
+    if any(t in m for t in KOSDAQ_TOKENS):
         return "KOSDAQ"
-    if "KOSPI" in m or "코스피" in m or "유가증권" in m:
+    if any(t in m for t in KOSPI_TOKENS):
         return "KOSPI"
     return ""
 
 
-def ensure_index_keys(tracker: dict, market_lookup) -> int:
-    """지수 키가 없는 신호에 시장(코스피/코스닥)을 채운다. market_lookup(code) -> 시장명. 종목당 한 번만 조회."""
+def probe_market_yf(code: str) -> str:
+    """KIS 시장명으로 못 가린 종목의 대체 판별. yfinance에서 코드.KS(코스피)·코드.KQ(코스닥) 중 시세가 나오는 쪽을 시장으로 본다.
+    비공식 데이터라 실패할 수 있다 — 실패하면 ''(다음 실행에서 다시 시도)."""
+    import yfinance as yf
+    for suffix, key in ((".KS", "KOSPI"), (".KQ", "KOSDAQ")):
+        try:
+            hist = yf.Ticker(code + suffix).history(period="5d")
+        except Exception:
+            continue
+        if hist is not None and len(hist) > 0:
+            return key
+    return ""
+
+
+def ensure_index_keys(tracker: dict, market_lookup, market_probe=None) -> int:
+    """지수 키가 없는 신호에 시장(코스피/코스닥)을 채운다. market_lookup(code) -> 시장명, 종목당 한 번만 조회.
+    시장명으로 못 가리면 market_probe(code)(예: probe_market_yf)로 한 번 더 시도한다.
+    KIS가 준 원본 시장명은 market_raw에 남겨서, 못 가린 종목의 원인을 나중에 볼 수 있게 한다."""
     if market_lookup is None:
         return 0
     cache, filled = {}, 0
@@ -207,14 +302,35 @@ def ensure_index_keys(tracker: dict, market_lookup) -> int:
             continue
         code = s["code"]
         if code not in cache:
+            raw, key = None, ""
             try:
-                cache[code] = index_key_from_market(market_lookup(code))
+                raw = market_lookup(code)
+                key = index_key_from_market(raw)
             except Exception:
-                cache[code] = ""
-        if cache[code]:
-            s["index_key"] = cache[code]
+                key = ""
+            if not key and market_probe is not None:
+                try:
+                    key = market_probe(code) or ""
+                except Exception:
+                    key = ""
+            cache[code] = (key, raw)
+        key, raw = cache[code]
+        if raw is not None:
+            s["market_raw"] = str(raw)[:40]
+        if key:
+            s["index_key"] = key
             filled += 1
     return filled
+
+
+def unresolved_markets(tracker: dict) -> list:
+    """시장을 못 가린 신호의 (종목코드, 종목명, KIS 원본 시장명) 목록(종목당 한 줄)."""
+    seen, out = set(), []
+    for s in tracker["signals"]:
+        if not s.get("index_key") and s["code"] not in seen:
+            seen.add(s["code"])
+            out.append((s["code"], s["name"], s.get("market_raw")))
+    return out
 
 
 def fetch_index_yf(key: str, period: str = "4mo") -> dict:
@@ -299,8 +415,29 @@ def compute_performance(s: dict, index_history: dict) -> dict:
 
 
 def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRACK_DAYS,
-        market_lookup=None, index_fetcher=None, index_path: str = INDEX_PATH) -> dict:
-    """스냅샷에서 두 종류의 신호를 찾아 기록하고, 진행 중인 신호의 종가를 갱신해 저장한다. 요약 dict 반환."""
+        market_lookup=None, index_fetcher=None, index_path: str = INDEX_PATH,
+        baseline_path=None, history_csv=None, market_probe=None) -> dict:
+    """스냅샷에서 두 종류의 신호를 찾아 기록하고, 진행 중인 신호의 종가를 갱신해 저장한다. 요약 dict 반환.
+    같은 실행에서 순매수 상위 10 전체를 대조군(data/top10_baseline.json)으로도 기록한다.
+    baseline_path/history_csv를 안 주면, 기본 경로(TRACKER_PATH)일 때만 저장소의 대조군·히스토리 파일을 쓰고
+    다른 경로(테스트 등)일 때는 추적 파일 이름에 맞춘 별도 대조군 파일(<추적파일>_top10_baseline.json)을 쓰고 히스토리 소급은 하지 않는다.
+    일봉·시장 조회는 두 추적기가 한 번만 호출하도록 이 실행 안에서 공유한다."""
+    default_paths = os.path.abspath(path) == os.path.abspath(TRACKER_PATH)
+    baseline_path = baseline_path or (BASELINE_PATH if default_paths else os.path.splitext(os.path.abspath(path))[0] + "_top10_baseline.json")
+    history_csv = history_csv if history_csv is not None else (HISTORY_CSV_PATH if default_paths else None)
+    _memo, _market_memo = {}, {}
+
+    def shared_fetcher(code):
+        if code not in _memo:
+            _memo[code] = fetcher(code)
+        return _memo[code]
+
+    def shared_market(code):
+        if code not in _market_memo:
+            _market_memo[code] = market_lookup(code)
+        return _market_memo[code]
+
+    shared_lookup = shared_market if market_lookup is not None else None
     tracker = load_tracker(path)
     tracker["criteria"] = {
         "transition": "전환신호(VCP 눌림 후 거래량급증+상승)가 뜬 종목 (순매수 상위 10 안에서 계산)",
@@ -315,19 +452,34 @@ def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRA
         if (s["code"], s["signal_date"], s["type"]) not in seen_before:
             added_before[s["type"]] += 1
     record_signals(tracker, signals)
-    updated, failed = update_closes(tracker, fetcher, track_days)
-    ensure_index_keys(tracker, market_lookup)
+    updated, failed = update_closes(tracker, shared_fetcher, track_days)
+    ensure_index_keys(tracker, shared_lookup, market_probe)
+
+    # 대조군: 순매수 상위 10 전체 (신호 여부 무관). 오늘 스냅샷을 먼저 기록하고, 그 뒤 히스토리 CSV로 과거 날짜를 소급한다.
+    base = load_tracker(baseline_path, types={BASELINE_TYPE: "순매수 상위 10"}, legacy_split=False)
+    base["criteria"] = {"top10": "순매수 상위 10 전체(신호 여부와 무관) — 신호가 실제로 효과가 있는지 비교하는 대조군", "track_days": BASELINE_TRACK_DAYS}
+    base_added = record_signals(base, find_top10_entries(snapshot["buy_top10"], volume_ok))
+    base_backfilled = backfill_top10_from_history(base, history_csv)
+    base_updated, base_failed = update_closes(base, shared_fetcher, BASELINE_TRACK_DAYS)
+    ensure_index_keys(base, shared_lookup, market_probe)
+
     index_status = {}
     index_hist = load_index_history(index_path)
-    if tracker["signals"]:               # 신호가 하나도 없으면 지수를 받을 이유가 없다
+    if tracker["signals"] or base["signals"]:   # 추적할 게 하나도 없으면 지수를 받을 이유가 없다
         index_hist, index_status = update_index_history(index_path, index_fetcher)
-    for s in tracker["signals"]:
+    for s in tracker["signals"] + base["signals"]:
         s["perf"] = compute_performance(s, index_hist)
     save_tracker(tracker, path)
+    save_tracker(base, baseline_path)
     by_type = lambda f: {t: sum(1 for s in tracker["signals"] if s["type"] == t and f(s)) for t in SIGNAL_TYPES}
     return {
         "found": {t: sum(1 for s in signals if s["type"] == t) for t in SIGNAL_TYPES},
         "added": added_before, "active": by_type(lambda s: s.get("active", True)), "total": by_type(lambda s: True),
         "updated": updated, "failed": failed, "volume_ok": volume_ok, "index_status": index_status,
         "with_entry": sum(1 for s in tracker["signals"] if s.get("entry_open")),
+        "baseline": {"added": base_added, "backfilled": base_backfilled, "total": len(base["signals"]),
+                     "active": sum(1 for s in base["signals"] if s.get("active", True)),
+                     "with_entry": sum(1 for s in base["signals"] if s.get("entry_open")),
+                     "updated": base_updated, "failed": base_failed},
+        "unresolved_markets": unresolved_markets(tracker) + [u for u in unresolved_markets(base) if u[0] not in {x[0] for x in unresolved_markets(tracker)}],
     }
