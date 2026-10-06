@@ -2695,6 +2695,96 @@ def split_style(v) -> str:
 # ---- AI 점수 비교 helpers end
 
 
+# ============================================================
+# ⚖️ 신호 vs 대조군 — '📌 신호 추적' 탭의 하위 탭.
+#   대조군 = 같은 날 순매수 상위 10 전체(신호 여부와 무관). data/top10_baseline.json에 signal_tracker.py가 기록한다.
+#   신호가 실제로 효과가 있는지는 '신호가 없던 종목'과 비교해야 알 수 있다. 같은 날끼리 짝지으면 그날 시장 전체의 움직임이 양쪽에 똑같이 들어가 덜어진다.
+# ============================================================
+# ---- 대조군 비교 helpers begin
+BASELINE_PATH = "data/top10_baseline.json"
+BASELINE_GROUPS = [
+    ("상위 10 전체", lambda c: True),
+    ("전환신호 있음", lambda c: c.get("is_transition") is True),
+    ("전환신호 없음", lambda c: c.get("is_transition") is False),
+    ("동시 등장 있음", lambda c: c.get("is_volume_supply") is True),
+    ("동시 등장 없음", lambda c: c.get("is_volume_supply") is False),
+]
+BASELINE_FLAGS = {"전환신호": "is_transition", "거래량·수급 동시": "is_volume_supply"}
+
+
+@st.cache_data(ttl=60)
+def load_baseline_entries() -> list:
+    """대조군 파일의 항목 목록. 없거나 깨졌으면 빈 목록."""
+    if not os.path.exists(BASELINE_PATH):
+        return []
+    try:
+        with open(BASELINE_PATH, "r", encoding="utf-8") as f:
+            sigs = json.load(f).get("signals")
+        return sigs if isinstance(sigs, list) else []
+    except Exception:
+        return []
+
+
+def _entry_ret(e: dict, n: int, key: str = "ret"):
+    return ((e.get("perf") or {}).get(key) or {}).get(str(n))
+
+
+def baseline_group_stats(entries: list, horizon: int) -> pd.DataFrame:
+    """집단(상위 10 전체 / 전환신호 있음·없음 / 동시 등장 있음·없음)별 D+horizon 통계. 신호 탭의 성과 요약과 같은 열."""
+    rows = []
+    for label, pred in BASELINE_GROUPS:
+        sel = [e for e in entries if pred(e.get("conditions") or {})]
+        rets = [r for r in (_entry_ret(e, horizon) for e in sel) if r is not None]
+        exc = [x for x in (_entry_ret(e, horizon, "excess") for e in sel) if x is not None]
+        wins, losses = [r for r in rets if r > 0], [r for r in rets if r < 0]
+        avg_w = sum(wins) / len(wins) if wins else None
+        avg_l = sum(losses) / len(losses) if losses else None
+        rows.append({"집단": label, "표본 수": len(rets),
+                     "평균 수익률(%)": sum(rets) / len(rets) if rets else None,
+                     "중앙값(%)": float(pd.Series(rets).median()) if rets else None,
+                     "승률(%)": 100 * len(wins) / len(rets) if rets else None,
+                     "평균 이익(%)": avg_w, "평균 손실(%)": avg_l,
+                     "손익비": (avg_w / abs(avg_l)) if (avg_w is not None and avg_l) else None,
+                     "지수 비교 표본": len(exc), "평균 초과수익(%p)": sum(exc) / len(exc) if exc else None})
+    df = pd.DataFrame(rows)
+    cols = [c for c in df.columns if c != "집단"]
+    df[cols] = df[cols].apply(pd.to_numeric, errors="coerce")
+    return df
+
+
+def baseline_daily_pairs(entries: list, horizon: int, flag: str = "is_transition") -> pd.DataFrame:
+    """같은 날끼리 짝지은 비교: 그날 flag가 True인 종목들의 평균 D+horizon 수익률 vs False인 종목들의 평균.
+    flag를 알 수 없는 항목(None)과 아직 수익률이 없는 항목은 뺀다. 두 집단이 모두 있는 날만 나온다. 최근 날짜 먼저."""
+    by_date = {}
+    for e in entries:
+        r, f = _entry_ret(e, horizon), (e.get("conditions") or {}).get(flag)
+        if r is None or f is None:
+            continue
+        by_date.setdefault(e["signal_date"], {True: [], False: []})[bool(f)].append(r)
+    rows = []
+    for d, g in sorted(by_date.items(), reverse=True):
+        if g[True] and g[False]:
+            m1, m0 = sum(g[True]) / len(g[True]), sum(g[False]) / len(g[False])
+            rows.append({"신호일": d, "있음 종목 수": len(g[True]), "없음 종목 수": len(g[False]),
+                         "있음 평균(%)": m1, "없음 평균(%)": m0, "차이(%p)": m1 - m0})
+    return pd.DataFrame(rows, columns=["신호일", "있음 종목 수", "없음 종목 수", "있음 평균(%)", "없음 평균(%)", "차이(%p)"])
+
+
+def pair_summary(pairs: pd.DataFrame) -> dict:
+    if pairs is None or pairs.empty:
+        return {"n_days": 0, "mean_diff": None, "n_better": 0}
+    return {"n_days": len(pairs), "mean_diff": float(pairs["차이(%p)"].mean()), "n_better": int((pairs["차이(%p)"] > 0).sum())}
+
+
+def baseline_coverage(entries: list) -> dict:
+    """대조군 기록 현황: 항목 수, 날짜 수, 기간, 소급 항목 수, D+1 수익률이 계산된 항목 수."""
+    dates = sorted({e["signal_date"] for e in entries})
+    return {"n": len(entries), "n_dates": len(dates), "first": dates[0] if dates else None, "last": dates[-1] if dates else None,
+            "n_backfilled": sum(1 for e in entries if e.get("backfilled")), "n_with_d1": sum(1 for e in entries if _entry_ret(e, 1) is not None),
+            "n_vs_unknown": sum(1 for e in entries if (e.get("conditions") or {}).get("is_volume_supply") is None)}
+# ---- 대조군 비교 helpers end
+
+
 tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
     "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
 ])
@@ -2961,7 +3051,7 @@ with tab_tracker:
     opt_cols = st.columns([1, 1, 3])
     n_days = opt_cols[0].selectbox("표시할 최근 거래일 수", [10, 20, 40], index=1)
     only_active = opt_cols[1].checkbox("추적 중만 보기", value=False)
-    sub_trans, sub_vs = st.tabs(["🔀 전환신호", "🔥 거래량·수급 동시"])
+    sub_trans, sub_vs, sub_ctrl = st.tabs(["🔀 전환신호", "🔥 거래량·수급 동시", "⚖️ 신호 vs 대조군"])
     with sub_trans:
         st.caption(crit.get("transition", "전환신호(VCP 눌림 후 거래량급증+상승)가 뜬 종목 (순매수 상위 10 안에서 계산)")
                    + " — 순매수·거래량 순위는 요구하지 않습니다.")
@@ -2972,6 +3062,49 @@ with tab_tracker:
                    + " — '🔥 동시 등장' 탭과 같은 정의이고, 전환신호는 요구하지 않습니다.")
         render_tracker_section([x for x in all_signals if x.get("type") == "volume_supply"], n_days, only_active,
                                "아직 기록된 종목이 없습니다. 두 순위에 함께 오른 종목이 생기면 그날 15:40 이후 이 탭에 나타납니다.")
+
+    with sub_ctrl:
+        _bents = load_baseline_entries()
+        st.caption("대조군 = 같은 날 **순매수 상위 10 전체**(신호 여부와 무관)예요. 진입가(다음 거래일 시가)·D+n·지수 대비 계산은 신호와 똑같아서, "
+                   "'신호가 있던 종목'이 '신호가 없던 상위 종목'보다 나았는지를 볼 수 있어요. 신호가 수급 상위만 보는 것보다 실제로 더했는지 확인하려는 용도예요.")
+        if not _bents:
+            st.info("대조군 기록이 아직 없습니다. 다음 거래일 15:40 이후 'EOD Snapshot' 실행에서 기록이 시작되고, 과거 날짜는 히스토리(eod_candidates.csv)로 소급해서 채워져요.")
+        else:
+            _cov = baseline_coverage(_bents)
+            _hzs = [n for n in PERF_HORIZONS if any(_entry_ret(e, n) is not None for e in _bents)] or [1]
+            _hz = st.selectbox("보유기간", _hzs, format_func=lambda n: f"D+{n}", key="ctrl_hz")
+            cm = st.columns(4)
+            cm[0].metric("대조군 기록", f"{_cov['n']}건", delta=f"{_cov['n_dates']}일치", delta_color="off")
+            cm[1].metric("기간", f"{_cov['first']} ~ {_cov['last']}")
+            cm[2].metric("소급해서 채운 항목", f"{_cov['n_backfilled']}건")
+            cm[3].metric("D+1 계산된 항목", f"{_cov['n_with_d1']}건")
+            st.markdown(f"##### 집단별 D+{_hz} 성과 (진입가 = 다음 거래일 시가)")
+            _g = baseline_group_stats(_bents, _hz)
+            _signed = ["평균 수익률(%)", "중앙값(%)", "평균 이익(%)", "평균 손실(%)", "평균 초과수익(%p)"]
+            _gf = {c: (lambda v: f"{v:+.2f}") for c in _signed}
+            _gf.update({"승률(%)": lambda v: f"{v:.0f}", "손익비": lambda v: f"{v:.2f}", "표본 수": lambda v: f"{int(v)}", "지수 비교 표본": lambda v: f"{int(v)}"})
+            st.dataframe(safe_styler(_g, _gf, signed_cols=_signed), use_container_width=True, hide_index=True)
+            st.markdown(f"##### 같은 날끼리 비교 (D+{_hz})")
+            _flag_label = st.radio("무엇이 있는 종목 vs 없는 종목?", list(BASELINE_FLAGS), horizontal=True, key="ctrl_flag")
+            _pairs = baseline_daily_pairs(_bents, _hz, BASELINE_FLAGS[_flag_label])
+            _ps = pair_summary(_pairs)
+            pm = st.columns(3)
+            pm[0].metric("비교할 수 있는 날", f"{_ps['n_days']}일")
+            pm[1].metric(f"평균 차이 ({_flag_label} 있음 − 없음)", f"{_ps['mean_diff']:+.2f}%p" if _ps["mean_diff"] is not None else "—")
+            pm[2].metric(f"{_flag_label} 쪽이 나았던 날", f"{_ps['n_better']}/{_ps['n_days']}일" if _ps["n_days"] else "—")
+            if _ps["n_days"]:
+                st.dataframe(safe_styler(_pairs, {"있음 종목 수": lambda v: f"{int(v)}", "없음 종목 수": lambda v: f"{int(v)}", "있음 평균(%)": lambda v: f"{v:+.2f}",
+                                                  "없음 평균(%)": lambda v: f"{v:+.2f}", "차이(%p)": lambda v: f"{v:+.2f}"},
+                                         signed_cols=["있음 평균(%)", "없음 평균(%)", "차이(%p)"]), use_container_width=True, hide_index=True)
+            else:
+                st.info(f"D+{_hz} 수익률이 나온 날 중에 '{_flag_label} 있음'과 '없음' 종목이 같이 있는 날이 아직 없습니다.")
+            if _hz == 1 and _ps["n_days"] and _ps["n_days"] < 30:
+                st.warning(f"비교할 수 있는 날이 {_ps['n_days']}일뿐입니다. 하루에 몇 종목씩이라 우연의 영향이 크고, 30일 미만이면 결론으로 삼지 마세요.")
+            st.caption("**읽는 법**: '같은 날끼리 비교'는 신호가 있던 종목과 없던 종목의 평균 수익률 차이예요. 그날 시장이 전체적으로 오르내린 영향은 두 쪽에 똑같이 들어가서 덜어져요. "
+                       "차이가 플러스로 일관되게 나와야 신호가 부가 효과가 있다고 볼 수 있어요. 한두 날의 차이는 우연일 수 있어요. "
+                       f"**한계**: 대조군은 과거 날짜를 히스토리 CSV로 소급해서 채웠고, 거기에는 거래량 순위가 없어서 소급분 {_cov['n_vs_unknown']}건은 '동시 등장' 여부를 알 수 없어 그 비교에서 빠져요. "
+                       "수수료·세금·슬리피지는 반영하지 않았고, 순매수 상위 10 안에서만 비교해서 수급이 안 몰린 종목과의 비교는 아니에요. "
+                       "코스닥 종목은 지수 비교가 비어 있을 수 있어요(시장 구분이 안 잡힌 경우).")
 
 # ---------------- ⏱ 장중 변동 ----------------
 with tab_intraday:
