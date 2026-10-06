@@ -161,13 +161,19 @@ if __name__ == "__main__":
     try:
         res = signal_tracker.run(
             snapshot, fetcher=fetch_daily_ohlcv,
-            market_lookup=lambda code: (fetch_price_detail(code) or {}).get("rprs_mrkt_kor_name"))
+            market_lookup=lambda code: (fetch_price_detail(code) or {}).get("rprs_mrkt_kor_name"),
+            market_probe=signal_tracker.probe_market_yf)
         for t, label in signal_tracker.SIGNAL_TYPES.items():
             print(f"신호 추적[{label}]: 오늘 {res['found'][t]}개(신규 기록 {res['added'][t]}개) / "
                   f"진행 중 {res['active'][t]}개 / 누적 {res['total'][t]}개")
         idx_msg = ", ".join(f"{k} {'OK' if v else '실패'}" for k, v in res["index_status"].items()) or "신호 없어 생략"
         print(f"신호 추적: 종가 갱신 {res['updated']}건, 조회 실패 {res['failed']}건, 다음 날 시가 기록된 신호 {res['with_entry']}건, 지수 이력({idx_msg})"
               + ("" if res["volume_ok"] else " — 거래량 순위 조회 실패로 오늘은 '거래량·수급 동시' 신호를 기록하지 않음"))
+        b = res["baseline"]
+        print(f"대조군(순매수 상위 10 전체): 오늘 신규 {b['added']}개 + 히스토리 소급 {b['backfilled']}개 / 진행 중 {b['active']}개 / 누적 {b['total']}개 / "
+              f"다음 날 시가 기록된 항목 {b['with_entry']}개 (종가 갱신 {b['updated']}건, 조회 실패 {b['failed']}건)")
+        if res["unresolved_markets"]:      # 코스피/코스닥을 못 가린 종목: KIS가 준 원본 시장명을 남긴다 (지수 대비 비교가 비는 원인 확인용)
+            print("시장 판별 실패(지수 대비 비교 불가): " + ", ".join(f"{c} {n} (KIS 시장명={raw!r})" for c, n, raw in res["unresolved_markets"][:15]))
     except Exception as e:
         print(f"신호 추적 실패(스냅샷에는 영향 없음): {e}")
     n_transition = sum(1 for r in snapshot["buy_top10"] if r["transition"])
