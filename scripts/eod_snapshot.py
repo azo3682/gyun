@@ -169,6 +169,10 @@ if __name__ == "__main__":
         idx_msg = ", ".join(f"{k} {'OK' if v else '실패'}" for k, v in res["index_status"].items()) or "신호 없어 생략"
         print(f"신호 추적: 종가 갱신 {res['updated']}건, 조회 실패 {res['failed']}건, 다음 날 시가 기록된 신호 {res['with_entry']}건, 지수 이력({idx_msg})"
               + ("" if res["volume_ok"] else " — 거래량 순위 조회 실패로 오늘은 '거래량·수급 동시' 신호를 기록하지 않음"))
+        if not res["final"]:
+            print("장중(15:40 전) 실행: 오늘 날짜의 신호·대조군은 기록하지 않고 종가만 갱신했습니다 (오늘 값은 잠정 — 15:40 이후 실행에서 기록)")
+        if res["purged"]:
+            print(f"장중에 잠정 값으로 기록돼 있던 오늘자 항목 {res['purged']}건을 제거했습니다 (15:40 이후 실행이 확정 값으로 다시 기록)")
         b = res["baseline"]
         print(f"대조군(순매수 상위 10 전체): 오늘 신규 {b['added']}개 + 히스토리 소급 {b['backfilled']}개 / 진행 중 {b['active']}개 / 누적 {b['total']}개 / "
               f"다음 날 시가 기록된 항목 {b['with_entry']}개 (종가 갱신 {b['updated']}건, 조회 실패 {b['failed']}건)")
