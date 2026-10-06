@@ -45,5 +45,12 @@ jobs:
           git add data/history 2>/dev/null || true
           git add data/signal_tracker.json 2>/dev/null || true
           git add data/index_history.json 2>/dev/null || true
-          git commit -m "Update EOD snapshot [skip ci]" || echo "no changes"
-          git push
+          git add data/top10_baseline.json 2>/dev/null || true
+          git commit -m "Update EOD snapshot [skip ci]" || { echo "no changes"; exit 0; }
+          # 다른 워크플로(AI Report 등)가 먼저 푸시했으면 최신 상태 위로 다시 얹어서 올린다 (최대 3번)
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 5
+          done
+          echo "push failed after 3 attempts"
+          exit 1
