@@ -2785,6 +2785,21 @@ def baseline_coverage(entries: list) -> dict:
 # ---- 대조군 비교 helpers end
 
 
+# ---- 신호 추적 잠정값 안내 helpers begin
+def tracker_provisional_note(updated_at, last_close_date):
+    """추적 파일이 장중(평일 15:40 전)에 마지막으로 갱신됐고 가장 최근 종가 기록일이 바로 그날이면 안내 문구, 아니면 None.
+    그 날짜 열의 값은 종가가 아니라 갱신 시각의 가격이고, 요약(평균 수익률 등)에도 섞여 있다."""
+    try:
+        dt = datetime.fromisoformat(str(updated_at))
+    except (TypeError, ValueError):
+        return None
+    if not last_close_date or last_close_date != dt.strftime("%Y-%m-%d") or dt.weekday() >= 5 or (dt.hour, dt.minute) >= (15, 40):
+        return None
+    return (f"마지막 갱신이 {dt:%m-%d %H:%M}(장중, 15:40 전)이라 '{last_close_date}' 열의 값은 종가가 아니라 그 시각의 가격이에요. "
+            "평균 수익률 같은 요약에도 이 잠정값이 섞여 있고, 15:40 이후 실행에서 확정 값으로 바뀝니다. 오늘 날짜의 새 신호·대조군은 15:40 이후에만 기록돼요.")
+# ---- 신호 추적 잠정값 안내 helpers end
+
+
 tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
     "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
 ])
@@ -3048,6 +3063,11 @@ with tab_tracker:
                "거래량·수급 동시는 관심이 쏠렸다는 뜻일 뿐). 이 탭은 '실제로 올랐는지'를 지켜보기 위한 기록이며, "
                "몇 건 안 되는 표본으로 결론을 내리면 안 됩니다. 종가는 매 거래일 15:40 이후 자동 갱신되고 실시간이 아닙니다.")
     all_signals = (tracker or {}).get("signals", [])
+    _last_close = max((d for s_ in all_signals for d in (s_.get("closes") or {})), default=None)
+    _prov = tracker_provisional_note((tracker or {}).get("updated_at"), _last_close)
+    if _prov:
+        st.warning(_prov)
+    st.caption("가장 최근 거래일의 종가와 D+n은 다음 거래일 실행에서 공식 종가로 조금 바뀔 수 있어요(최근 관측: 최대 약 1.5%). 최신 날짜 값은 잠정으로 보세요.")
     opt_cols = st.columns([1, 1, 3])
     n_days = opt_cols[0].selectbox("표시할 최근 거래일 수", [10, 20, 40], index=1)
     only_active = opt_cols[1].checkbox("추적 중만 보기", value=False)
