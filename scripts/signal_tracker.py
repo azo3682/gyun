@@ -38,6 +38,13 @@ eod_snapshot.py가 평일 15:40 KST에 이 모듈을 호출한다. 결과: data/
   - 과거 날짜는 data/history/eod_candidates.csv(순매수 상위 10 + 전환신호 여부)로 소급해서 채운다. 이 CSV에는 거래량 순위가 없어서
     소급분의 is_volume_supply는 None(알 수 없음)이다.
 
+장중 실행 규칙 (2026-10-06 추가): 장중에 수동으로 돌리면 오늘 날짜의 순위·신호·종가가 모두 잠정값이다.
+  - FINAL_TIME(15:40) 전에는 '오늘 날짜'로 새 신호·대조군을 기록하지 않는다. (어제 이전 날짜 기록과 종가 갱신은 그대로 한다.)
+  - 이미 장중에 기록된 오늘자 항목(recorded_at이 오늘 15:40 전)은 다음 실행 때 제거하고, 15:40 이후 실행이 확정 값으로 다시 기록한다.
+    (같은 (종목, 날짜)는 건너뛰는 규칙 때문에 그냥 두면 장중 값이 영구히 남는다.)
+  - 장중 실행은 '추적 종료(active=False)' 판정도 하지 않는다. 오늘 종가가 잠정이라, 그 값으로 끝내면 확정 종가로 못 고친다.
+  - 신호일·D+n 종가는 다음 거래일 실행에서 공식 종가로 조금 바뀔 수 있다(2026-10 관측: 15:40 값이 최대 약 1.5% 달랐다). 최신 날짜 값은 잠정이다.
+
 주의: 전환신호는 2026-09-29에 '상승' 조건을 추가해 9/21 백테스트 이후 재검증되지 않았고,
 '거래량·수급 동시'는 매수 신호로 검증된 적이 없다(관심이 쏠렸다는 뜻일 뿐). 이 기록은 검증용 데이터를 쌓는 용도다.
 """
@@ -53,6 +60,7 @@ TRACKER_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "signal_tra
 INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "index_history.json")
 BASELINE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "top10_baseline.json")
 HISTORY_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "history", "eod_candidates.csv")
+FINAL_TIME = (15, 40)      # 이 시각 이후의 실행만 '오늘 날짜'의 신호·대조군을 확정 기록한다
 BASELINE_TYPE = "top10"
 BASELINE_TRACK_DAYS = 10   # 대조군은 D+10까지만 필요하다
 TRACK_DAYS = 40            # 신호 이후 이만큼의 거래일 종가를 쌓으면 추적 종료
@@ -109,7 +117,28 @@ def _num(v):
     return int(v) if v.is_integer() else v
 
 
-def find_signals(buy_rows: list, volume_ok: bool = True) -> list:
+def is_provisional_day(date_str, now: datetime) -> bool:
+    """date_str(YYYYMMDD 또는 YYYY-MM-DD)가 오늘이고 아직 FINAL_TIME 전이면 True — 그 날의 순위·신호·종가는 장중 값이라 확정 기록하면 안 된다.
+    어제 이전 날짜(장 시작 전·휴장일에 읽은 직전 거래일 데이터)는 False라서 정상적으로 기록된다."""
+    return _fmt_date(date_str) == now.strftime("%Y-%m-%d") and (now.hour, now.minute) < FINAL_TIME
+
+
+def purge_provisional(tracker: dict, now: datetime) -> int:
+    """오늘 날짜인데 오늘 FINAL_TIME 전에 기록된(=장중 값으로 기록된) 항목을 지운다. 지운 개수 반환.
+    같은 (종목, 날짜)는 다시 기록하지 않는 규칙 때문에, 지우지 않으면 장중 값이 영구히 남는다. 15:40 이후 실행이 확정 값으로 다시 기록한다."""
+    today, cutoff = now.strftime("%Y-%m-%d"), f"{FINAL_TIME[0]:02d}:{FINAL_TIME[1]:02d}"
+    keep = []
+    for s in tracker["signals"]:
+        ra = str(s.get("recorded_at") or "")
+        if s.get("signal_date") == today and ra[:10] == today and ra[11:16] < cutoff:
+            continue
+        keep.append(s)
+    removed = len(tracker["signals"]) - len(keep)
+    tracker["signals"] = keep
+    return removed
+
+
+def find_signals(buy_rows: list, volume_ok: bool = True, now: datetime | None = None) -> list:
     """스냅샷의 순매수 상위 행에서 두 종류의 신호를 각각 찾는다.
     - transition: r['transition']이 True (거래소 위험 상태 종목은 eod_snapshot이 이미 걸러 False로 만든다)
     - volume_supply: 거래량 상위에도 올라 있음(r['volume_rank']). 거래량 순위 조회가 실패한 날은 판단할 수 없어 기록하지 않는다.
@@ -117,6 +146,8 @@ def find_signals(buy_rows: list, volume_ok: bool = True) -> list:
     out = []
     for r in buy_rows:
         if not r.get("last_date") or not r.get("last_close"):
+            continue
+        if now is not None and is_provisional_day(r["last_date"], now):    # 장중 값은 기록하지 않는다
             continue
         is_trans = r.get("transition") is True
         is_vs = bool(volume_ok and r.get("volume_rank"))
@@ -139,29 +170,31 @@ def find_signals(buy_rows: list, volume_ok: bool = True) -> list:
     return out
 
 
-def record_signals(tracker: dict, signals: list) -> int:
-    """새 신호를 추가하고 추가된 개수를 반환. (종목코드, 신호일, 종류)가 같으면 건너뛴다."""
+def record_signals(tracker: dict, signals: list, now: datetime | None = None) -> int:
+    """새 신호를 추가하고 추가된 개수를 반환. (종목코드, 신호일, 종류)가 같으면 건너뛴다. recorded_at은 실행 시각(now)으로 찍는다."""
     seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
     added = 0
-    now = datetime.now(KST).isoformat(timespec="seconds")
+    stamp = (now or datetime.now(KST)).isoformat(timespec="seconds")
     for s in signals:
         key = (s["code"], s["signal_date"], s["type"])
         if key in seen:
             continue
         tracker["signals"].append({
-            **s, "signal_close_first": s["signal_close"], "closes": {}, "active": True, "recorded_at": now,
+            **s, "signal_close_first": s["signal_close"], "closes": {}, "active": True, "recorded_at": stamp,
         })
         seen.add(key)
         added += 1
     return added
 
 
-def find_top10_entries(buy_rows: list, volume_ok: bool = True) -> list:
+def find_top10_entries(buy_rows: list, volume_ok: bool = True, now: datetime | None = None) -> list:
     """오늘의 순매수 상위 10 전체를 대조군으로 기록할 항목으로 바꾼다(신호 여부와 무관).
     conditions.is_transition: 전환신호가 떴나 / is_volume_supply: 거래량 상위에도 올랐나(거래량 순위 조회가 실패한 날은 None=알 수 없음)."""
     out = []
     for r in buy_rows or []:
         if not r.get("last_date") or not r.get("last_close"):
+            continue
+        if now is not None and is_provisional_day(r["last_date"], now):    # 장중 값은 기록하지 않는다
             continue
         day_pct = r.get("day_pct")
         out.append({
@@ -178,14 +211,15 @@ def find_top10_entries(buy_rows: list, volume_ok: bool = True) -> list:
     return out
 
 
-def backfill_top10_from_history(tracker: dict, csv_path) -> int:
+def backfill_top10_from_history(tracker: dict, csv_path, exclude_date: str | None = None, now: datetime | None = None) -> int:
     """data/history/eod_candidates.csv(날짜별 순매수 상위 10 + 전환신호 여부)로 과거 날짜의 대조군을 채운다.
     신호일 종가는 비워 두고, update_closes가 일봉에서 그 날짜 종가를 찾아 채운다(일봉 범위 밖이면 계속 빈다).
-    이 CSV에는 거래량 순위가 없어서 is_volume_supply는 None이다. 이미 있는 (종목, 날짜)는 건너뛴다. 추가한 개수를 반환."""
+    이 CSV에는 거래량 순위가 없어서 is_volume_supply는 None이다. 이미 있는 (종목, 날짜)는 건너뛴다. 추가한 개수를 반환.
+    exclude_date: 이 날짜의 행은 건너뛴다(장중 실행에서 오늘 날짜의 잠정 행을 소급하지 않기 위함)."""
     if not csv_path or not os.path.exists(csv_path):
         return 0
     seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
-    now = datetime.now(KST).isoformat(timespec="seconds")
+    stamp = (now or datetime.now(KST)).isoformat(timespec="seconds")
     added = 0
     try:
         with open(csv_path, "r", encoding="utf-8", newline="") as f:
@@ -194,7 +228,7 @@ def backfill_top10_from_history(tracker: dict, csv_path) -> int:
         return 0
     for r in rows:
         date, code, name = (r.get("date") or "").strip(), (r.get("stock_code") or "").strip(), (r.get("stock_name") or "").strip()
-        if not (date and code and name) or (code, date, BASELINE_TYPE) in seen:
+        if not (date and code and name) or (code, date, BASELINE_TYPE) in seen or date == exclude_date:
             continue
         try:
             day_pct = round(float(r["day_pct"]) * 100, 2) if r.get("day_pct") not in (None, "") else None
@@ -206,7 +240,7 @@ def backfill_top10_from_history(tracker: dict, csv_path) -> int:
             rank = None
         tracker["signals"].append({
             "code": code, "name": name, "type": BASELINE_TYPE, "signal_date": date, "signal_close": None, "signal_close_first": None,
-            "day_pct": day_pct, "closes": {}, "active": True, "recorded_at": now, "backfilled": True,
+            "day_pct": day_pct, "closes": {}, "active": True, "recorded_at": stamp, "backfilled": True,
             "conditions": {"buy_rank": rank, "volume_rank": None, "is_transition": str(r.get("transition")) == "1",
                            "is_volume_supply": None,
                            "risk_flags": [x for x in (r.get("market_risk_flags") or "").split(";") if x]},
@@ -216,7 +250,7 @@ def backfill_top10_from_history(tracker: dict, csv_path) -> int:
     return added
 
 
-def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS):
+def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS, deactivate: bool = True):
     """진행 중인 신호마다 일봉을 읽어 신호일 이후 종가를 채운다. (갱신 수, 조회 실패 수) 반환.
     fetcher(code) -> 일봉 DataFrame (stck_bsop_date, stck_clpr 컬럼). 비어 있으면 실패로 센다.
     같은 종목이 두 종류에 다 있어도 일봉은 한 번만 조회한다."""
@@ -255,7 +289,7 @@ def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS):
             if s["entry_date"] in opens:
                 s["entry_open"] = opens[s["entry_date"]]
         s["last_updated"] = datetime.now(KST).strftime("%Y-%m-%d")
-        if len(s["closes"]) >= track_days:
+        if deactivate and len(s["closes"]) >= track_days:   # 장중 실행(deactivate=False)에선 오늘 종가가 잠정이라 끝내지 않는다
             s["active"] = False
         updated += 1
     return updated, failed
@@ -416,12 +450,14 @@ def compute_performance(s: dict, index_history: dict) -> dict:
 
 def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRACK_DAYS,
         market_lookup=None, index_fetcher=None, index_path: str = INDEX_PATH,
-        baseline_path=None, history_csv=None, market_probe=None) -> dict:
+        baseline_path=None, history_csv=None, market_probe=None, now: datetime | None = None) -> dict:
     """스냅샷에서 두 종류의 신호를 찾아 기록하고, 진행 중인 신호의 종가를 갱신해 저장한다. 요약 dict 반환.
     같은 실행에서 순매수 상위 10 전체를 대조군(data/top10_baseline.json)으로도 기록한다.
     baseline_path/history_csv를 안 주면, 기본 경로(TRACKER_PATH)일 때만 저장소의 대조군·히스토리 파일을 쓰고
     다른 경로(테스트 등)일 때는 추적 파일 이름에 맞춘 별도 대조군 파일(<추적파일>_top10_baseline.json)을 쓰고 히스토리 소급은 하지 않는다.
     일봉·시장 조회는 두 추적기가 한 번만 호출하도록 이 실행 안에서 공유한다."""
+    now = now or datetime.now(KST)
+    final_run = (now.hour, now.minute) >= FINAL_TIME       # False = 장중(15:40 전) 실행: 오늘 날짜는 기록하지 않는다
     default_paths = os.path.abspath(path) == os.path.abspath(TRACKER_PATH)
     baseline_path = baseline_path or (BASELINE_PATH if default_paths else os.path.splitext(os.path.abspath(path))[0] + "_top10_baseline.json")
     history_csv = history_csv if history_csv is not None else (HISTORY_CSV_PATH if default_paths else None)
@@ -445,22 +481,24 @@ def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRA
         "track_days": track_days,
     }
     volume_ok = snapshot.get("volume_rank_ok", True)
-    signals = find_signals(snapshot["buy_top10"], volume_ok)
+    purged = purge_provisional(tracker, now)
+    signals = find_signals(snapshot["buy_top10"], volume_ok, now)
     added_before = {t: 0 for t in SIGNAL_TYPES}
     seen_before = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
     for s in signals:
         if (s["code"], s["signal_date"], s["type"]) not in seen_before:
             added_before[s["type"]] += 1
-    record_signals(tracker, signals)
-    updated, failed = update_closes(tracker, shared_fetcher, track_days)
+    record_signals(tracker, signals, now)
+    updated, failed = update_closes(tracker, shared_fetcher, track_days, deactivate=final_run)
     ensure_index_keys(tracker, shared_lookup, market_probe)
 
     # 대조군: 순매수 상위 10 전체 (신호 여부 무관). 오늘 스냅샷을 먼저 기록하고, 그 뒤 히스토리 CSV로 과거 날짜를 소급한다.
     base = load_tracker(baseline_path, types={BASELINE_TYPE: "순매수 상위 10"}, legacy_split=False)
     base["criteria"] = {"top10": "순매수 상위 10 전체(신호 여부와 무관) — 신호가 실제로 효과가 있는지 비교하는 대조군", "track_days": BASELINE_TRACK_DAYS}
-    base_added = record_signals(base, find_top10_entries(snapshot["buy_top10"], volume_ok))
-    base_backfilled = backfill_top10_from_history(base, history_csv)
-    base_updated, base_failed = update_closes(base, shared_fetcher, BASELINE_TRACK_DAYS)
+    purged += purge_provisional(base, now)
+    base_added = record_signals(base, find_top10_entries(snapshot["buy_top10"], volume_ok, now), now)
+    base_backfilled = backfill_top10_from_history(base, history_csv, None if final_run else now.strftime("%Y-%m-%d"), now)
+    base_updated, base_failed = update_closes(base, shared_fetcher, BASELINE_TRACK_DAYS, deactivate=final_run)
     ensure_index_keys(base, shared_lookup, market_probe)
 
     index_status = {}
@@ -476,6 +514,7 @@ def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRA
         "found": {t: sum(1 for s in signals if s["type"] == t) for t in SIGNAL_TYPES},
         "added": added_before, "active": by_type(lambda s: s.get("active", True)), "total": by_type(lambda s: True),
         "updated": updated, "failed": failed, "volume_ok": volume_ok, "index_status": index_status,
+        "final": final_run, "purged": purged,
         "with_entry": sum(1 for s in tracker["signals"] if s.get("entry_open")),
         "baseline": {"added": base_added, "backfilled": base_backfilled, "total": len(base["signals"]),
                      "active": sum(1 for s in base["signals"] if s.get("active", True)),
