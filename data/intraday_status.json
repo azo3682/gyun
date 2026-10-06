@@ -1,62 +1,45 @@
 {
-  "checked_at": "2026-10-05T14:58:31+09:00",
-  "kept": [
+  "checked_at": "2026-10-06T09:57:00+09:00",
+  "kept": [],
+  "excluded": [
     {
       "stock_code": "041190",
       "stock_name": "우리기술투자",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 63.5
+        "RSI값": 62.1
       },
-      "transition": true,
-      "passed": 4,
+      "transition": false,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 6410.0,
-      "day_pct": 7.19
+      "current_price": 6160.0,
+      "day_pct": -3.45,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "018880",
       "stock_name": "한온시스템",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 59.8
+        "RSI값": 64.1
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3840.0,
-      "day_pct": 4.49
+      "current_price": 3955.0,
+      "day_pct": 3.26,
+      "reason": "전환신호 소멸"
     }
   ],
-  "excluded": [],
-  "new_candidates": [
-    {
-      "stock_code": "101670",
-      "stock_name": "하이드로리튬",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 64.3
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 556.0,
-      "day_pct": 16.81
-    }
-  ]
+  "new_candidates": []
 }
