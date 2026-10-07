@@ -1,61 +1,138 @@
 {
-  "checked_at": "2026-10-06T13:45:22+09:00",
+  "checked_at": "2026-10-07T09:59:17+09:00",
   "kept": [],
-  "excluded": [],
-  "new_candidates": [
+  "excluded": [
     {
       "stock_code": "007660",
       "stock_name": "이수페타시스",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 65.8
+      },
+      "transition": false,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 128000.0,
+      "day_pct": -2.96,
+      "reason": "순매수 상위 10에서 이탈"
+    },
+    {
+      "stock_code": "066570",
+      "stock_name": "LG전자",
+      "tech": {
+        "정배열": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 67.0
+        "RSI값": 69.9
       },
-      "transition": true,
-      "passed": 5,
+      "transition": false,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 131400.0,
-      "day_pct": 8.42
+      "current_price": 226000.0,
+      "day_pct": -2.8,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "340450",
       "stock_name": "지씨지놈",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 87.6
+        "RSI값": 85.5
       },
-      "transition": true,
-      "passed": 4,
+      "transition": false,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 10200.0,
-      "day_pct": 14.86
+      "current_price": 10090.0,
+      "day_pct": -1.08,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "036930",
       "stock_name": "주성엔지니어링",
       "tech": {
         "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 76.6
+      },
+      "transition": false,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 270000.0,
+      "day_pct": -3.05,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "002720",
+      "stock_name": "국제약품",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 91.2
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 4430.0,
+      "day_pct": 29.91
+    },
+    {
+      "stock_code": "142280",
+      "stock_name": "녹십자엠에스",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 71.7
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 3895.0,
+      "day_pct": 17.67
+    },
+    {
+      "stock_code": "411080",
+      "stock_name": "샌즈랩",
+      "tech": {
+        "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 79.6
+        "RSI값": 75.6
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 274750.0,
-      "day_pct": 15.93
+      "current_price": 9160.0,
+      "day_pct": 2.12
     }
   ]
 }
