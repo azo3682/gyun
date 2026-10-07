@@ -149,7 +149,605 @@
           "idx_basis": "open"
         }
       }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "093370",
+        "name": "후성",
+        "signal_date": "2026-09-30",
+        "signal_close": 15000,
+        "day_pct": 6.23,
+        "type": "transition",
+        "conditions": {
+          "buy_rank": 2,
+          "volume_rank": null,
+          "overlap": false,
+          "risk_flags": []
+        },
+        "signal_close_first": 15000,
+        "closes": {
+          "2026-10-01": 15710,
+          "2026-10-02": 16390,
+          "2026-10-06": 16290
+        },
+        "active": true,
+        "recorded_at": "2026-09-30T15:55:39+09:00",
+        "last_updated": "2026-10-06",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 5.58,
+            "3": 9.48
+          },
+          "ret_from_close": {
+            "1": 4.73,
+            "3": 8.6
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": 3.28,
+            "3": 7.61
+          },
+          "gap_pct": -0.8,
+          "idx_basis": "open"
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 14880
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "018880",
+        "name": "한온시스템",
+        "signal_date": "2026-09-30",
+        "signal_close": 3520,
+        "day_pct": 10.0,
+        "type": "transition",
+        "conditions": {
+          "buy_rank": 1,
+          "volume_rank": 5,
+          "overlap": true,
+          "risk_flags": []
+        },
+        "signal_close_first": 3520,
+        "closes": {
+          "2026-10-01": 3675,
+          "2026-10-02": 3830,
+          "2026-10-06": 3890
+        },
+        "active": true,
+        "recorded_at": "2026-09-30T15:55:39+09:00",
+        "last_updated": "2026-10-06",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 4.85,
+            "3": 10.98
+          },
+          "ret_from_close": {
+            "1": 4.4,
+            "3": 10.51
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": 2.55,
+            "3": 9.12
+          },
+          "gap_pct": -0.43,
+          "idx_basis": "open"
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 3505
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "018880",
+        "name": "한온시스템",
+        "signal_date": "2026-09-30",
+        "signal_close": 3520,
+        "day_pct": 10.0,
+        "type": "volume_supply",
+        "conditions": {
+          "buy_rank": 1,
+          "volume_rank": 5,
+          "overlap": true,
+          "risk_flags": []
+        },
+        "signal_close_first": 3520,
+        "closes": {
+          "2026-10-01": 3675,
+          "2026-10-02": 3830,
+          "2026-10-06": 3890
+        },
+        "active": true,
+        "recorded_at": "2026-09-30T15:55:39+09:00",
+        "last_updated": "2026-10-06",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 4.85,
+            "3": 10.98
+          },
+          "ret_from_close": {
+            "1": 4.4,
+            "3": 10.51
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": 2.55,
+            "3": 9.12
+          },
+          "gap_pct": -0.43,
+          "idx_basis": "open"
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 3505
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "093370",
+        "name": "후성",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 15000,
+        "signal_close_first": null,
+        "day_pct": 6.23,
+        "closes": {
+          "2026-10-01": 15710,
+          "2026-10-02": 16390,
+          "2026-10-06": 16290
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 2,
+          "volume_rank": null,
+          "is_transition": true,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 14880,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSPI200",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 5.58,
+            "3": 9.48
+          },
+          "ret_from_close": {
+            "1": 4.73,
+            "3": 8.6
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": 3.28,
+            "3": 7.61
+          },
+          "gap_pct": -0.8,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "018880",
+        "name": "한온시스템",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 3520,
+        "signal_close_first": null,
+        "day_pct": 10.0,
+        "closes": {
+          "2026-10-01": 3675,
+          "2026-10-02": 3830,
+          "2026-10-06": 3890
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 1,
+          "volume_rank": null,
+          "is_transition": true,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 3505,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSPI200",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 4.85,
+            "3": 10.98
+          },
+          "ret_from_close": {
+            "1": 4.4,
+            "3": 10.51
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": 2.55,
+            "3": 9.12
+          },
+          "gap_pct": -0.43,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "441270",
+        "name": "파인엠텍",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 9320,
+        "signal_close_first": null,
+        "day_pct": 5.43,
+        "closes": {
+          "2026-10-01": 9410,
+          "2026-10-02": 9400,
+          "2026-10-06": 9470
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 7,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 9120,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSDAQ",
+        "index_key": "KOSDAQ",
+        "perf": {
+          "ret": {
+            "1": 3.18,
+            "3": 3.84
+          },
+          "ret_from_close": {
+            "1": 0.97,
+            "3": 1.61
+          },
+          "idx_ret": {
+            "1": 4.72,
+            "3": 7.72
+          },
+          "excess": {
+            "1": -1.54,
+            "3": -3.89
+          },
+          "gap_pct": -2.15,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "009830",
+        "name": "한화솔루션",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 33900,
+        "signal_close_first": null,
+        "day_pct": 4.31,
+        "closes": {
+          "2026-10-01": 34250,
+          "2026-10-02": 36100,
+          "2026-10-06": 37000
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 5,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 33200,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSPI200",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 3.16,
+            "3": 11.45
+          },
+          "ret_from_close": {
+            "1": 1.03,
+            "3": 9.14
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": 0.86,
+            "3": 9.58
+          },
+          "gap_pct": -2.06,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "082740",
+        "name": "한화엔진",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 49000,
+        "signal_close_first": null,
+        "day_pct": 5.26,
+        "closes": {
+          "2026-10-01": 48500,
+          "2026-10-02": 48600,
+          "2026-10-06": 47450
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 10,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 48600,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSPI200",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": -0.21,
+            "3": -2.37
+          },
+          "ret_from_close": {
+            "1": -1.02,
+            "3": -3.16
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": -2.51,
+            "3": -4.23
+          },
+          "gap_pct": -0.82,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "010140",
+        "name": "삼성중공업",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 19700,
+        "signal_close_first": null,
+        "day_pct": 1.91,
+        "closes": {
+          "2026-10-01": 19720,
+          "2026-10-02": 19960,
+          "2026-10-06": 19700
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 3,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 19720,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSPI200",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": 0.0,
+            "3": -0.1
+          },
+          "ret_from_close": {
+            "1": 0.1,
+            "3": 0.0
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": -2.3,
+            "3": -1.96
+          },
+          "gap_pct": 0.1,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "047040",
+        "name": "대우건설",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 17740,
+        "signal_close_first": null,
+        "day_pct": 2.13,
+        "closes": {
+          "2026-10-01": 17760,
+          "2026-10-02": 17610,
+          "2026-10-06": 17750
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 4,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 18200,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSPI200",
+        "index_key": "KOSPI",
+        "perf": {
+          "ret": {
+            "1": -2.42,
+            "3": -2.47
+          },
+          "ret_from_close": {
+            "1": 0.11,
+            "3": 0.06
+          },
+          "idx_ret": {
+            "1": 2.3,
+            "3": 1.86
+          },
+          "excess": {
+            "1": -4.72,
+            "3": -4.33
+          },
+          "gap_pct": 2.59,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "290690",
+        "name": "아리바이오홀딩스",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 3425,
+        "signal_close_first": null,
+        "day_pct": -12.52,
+        "closes": {
+          "2026-10-01": 3170,
+          "2026-10-02": 3055,
+          "2026-10-06": 3065
+        },
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 8,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": []
+        },
+        "entry_date": "2026-10-01",
+        "entry_open": 3420,
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSDAQ",
+        "index_key": "KOSDAQ",
+        "perf": {
+          "ret": {
+            "1": -7.31,
+            "3": -10.38
+          },
+          "ret_from_close": {
+            "1": -7.45,
+            "3": -10.51
+          },
+          "idx_ret": {
+            "1": 4.72,
+            "3": 7.72
+          },
+          "excess": {
+            "1": -12.03,
+            "3": -18.1
+          },
+          "gap_pct": -0.15,
+          "idx_basis": "open"
+        }
+      }
+    },
+    {
+      "deleted_at": "2026-10-07T10:03:27+09:00",
+      "entry": {
+        "code": "084180",
+        "name": "수성웹툰",
+        "type": "top10",
+        "signal_date": "2026-09-30",
+        "signal_close": 210,
+        "signal_close_first": null,
+        "day_pct": -4.11,
+        "closes": {},
+        "active": true,
+        "recorded_at": "2026-10-06T10:02:37+09:00",
+        "backfilled": true,
+        "conditions": {
+          "buy_rank": 9,
+          "volume_rank": null,
+          "is_transition": false,
+          "is_volume_supply": null,
+          "risk_flags": [
+            "🚨 관리종목",
+            "⚠️ 시가총액 38억(관리종목 요건 200억에 근접/미달)"
+          ]
+        },
+        "last_updated": "2026-10-06",
+        "market_raw": "KOSDAQ",
+        "index_key": "KOSDAQ",
+        "perf": {
+          "ret": {},
+          "ret_from_close": {},
+          "idx_ret": {},
+          "excess": {}
+        }
+      }
     }
   ],
-  "updated_at": "2026-10-07T10:02:47+09:00"
+  "updated_at": "2026-10-07T10:03:27+09:00"
 }
