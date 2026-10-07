@@ -1,0 +1,64 @@
+name: Delete signals
+
+# 앱의 '📌 신호 추적' 탭(또는 Actions 화면의 Run workflow 버튼)에서만 실행된다. 스케줄 없음.
+# 입력은 쉘 명령에 직접 끼워 넣지 않고 환경변수로만 넘기며, 스크립트가 형식을 다시 검증한다.
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: "종목코드 6자리 (비우면 날짜 기준 전체)"
+        required: false
+        default: ""
+      date:
+        description: "신호일 YYYY-MM-DD (비우면 종목 기준 전체)"
+        required: false
+        default: ""
+      types:
+        description: "종류(쉼표 구분: transition,volume_supply,top10). 비우면 전체"
+        required: false
+        default: ""
+      dry_run:
+        description: "true면 미리보기만 하고 아무것도 바꾸지 않음"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+# EOD Snapshot과 같은 그룹 — 같은 파일을 동시에 고치지 않도록 한 번에 하나만 실행한다
+concurrency:
+  group: tracker-data
+  cancel-in-progress: false
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-actions.txt
+      - name: Delete signals
+        env:
+          DEL_CODE: ${{ inputs.code }}
+          DEL_DATE: ${{ inputs.date }}
+          DEL_TYPES: ${{ inputs.types }}
+          DEL_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          cd scripts
+          python delete_signals.py
+      - name: Commit result
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/signal_tracker.json data/top10_baseline.json data/deleted_signals.json data/deleted_archive.json 2>/dev/null || true
+          git commit -m "Delete signals [skip ci]" || { echo "no changes"; exit 0; }
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 5
+          done
+          echo "push failed after 3 attempts"
+          exit 1
