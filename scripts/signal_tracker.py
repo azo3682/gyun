@@ -299,6 +299,8 @@ def update_closes(tracker: dict, fetcher, track_days: int = TRACK_DAYS, deactiva
                 if o is not None and o == o and float(o) > 0:
                     opens[d] = _num(o)
         s["closes"] = dict(sorted(closes.items())[:track_days])     # track_days개까지만 저장 (소급·갭 이후 한꺼번에 쌓이는 것 방지)
+        all_opens = {**(s.get("opens") or {}), **opens}              # 날짜별 시가도 보관 — 눌림 진입(D+2 시가) 계산에 쓴다
+        s["opens"] = dict(sorted((d, o) for d, o in all_opens.items() if d in s["closes"])[:track_days])
         if s["closes"]:
             # 진입일 = 신호 다음 거래일. 시가는 이번에 받은 일봉에 있으면 갱신(수정주가 계열 유지), 없으면 기존 값 유지
             s["entry_date"] = min(s["closes"])
@@ -461,7 +463,48 @@ def compute_performance(s: dict, index_history: dict) -> dict:
             perf["idx_ret"][str(n)] = round(idx_ret, 2)
             perf["excess"][str(n)] = round(ret - idx_ret, 2)
             perf["idx_basis"] = basis
+    perf["pullback"] = compute_pullback(s, closes, dates)
+    if perf["pullback"] is None:
+        del perf["pullback"]
     return perf
+
+
+PULLBACK_HORIZONS = (3, 5, 10)    # 눌림 진입은 D+2 시가라서 청산은 D+3 종가부터 비교한다
+
+
+def compute_pullback(s: dict, closes: dict, dates: list):
+    """'눌림 대기 진입'을 '다음 날 시가 진입'과 같은 청산일 기준으로 비교한다. 일봉만으로 계산하는 보수적 근사다.
+    규칙: 신호 다음 거래일(D+1) 종가가 신호일 종가보다 낮으면 '눌림 발생'으로 보고, 그 다음 거래일(D+2) 시가에 진입한다.
+    (D+1 종가를 본 뒤에 D+2 시가에 사는 것이라 미래 정보를 쓰지 않는다. 장중에 눌림을 보고 바로 사는 실제 방식과는 다르다.)
+    반환: {"triggered": 눌림 발생 여부, "entry_date", "entry_open"(D+2 시가, 아직 없으면 None), "ret": {n: 눌림 진입 수익률%},
+           "imm_ret": {n: 같은 청산일의 다음 날 시가 진입 수익률%}}. D+1 종가가 아직 없거나 신호일 종가가 없으면 None."""
+    base_close = s.get("signal_close")
+    if not base_close or not dates:
+        return None
+    triggered = closes[dates[0]] < base_close
+    out = {"triggered": bool(triggered), "ret": {}, "imm_ret": {}}
+    entry_open, entry_open_date = s.get("entry_open"), s.get("entry_date")
+    if not triggered or len(dates) < 2:
+        if triggered:
+            out["entry_open"], out["entry_date"] = None, None
+        # 눌림이 안 온 신호도 같은 청산일의 즉시 진입 수익률을 남겨 '놓친 상승'을 볼 수 있게 한다
+        if entry_open:
+            for n in PULLBACK_HORIZONS:
+                if len(dates) >= n:
+                    out["imm_ret"][str(n)] = round((closes[dates[n - 1]] / entry_open - 1) * 100, 2)
+        return out
+    d2 = dates[1]
+    pb_open = (s.get("opens") or {}).get(d2)
+    out["entry_date"], out["entry_open"] = d2, pb_open
+    for n in PULLBACK_HORIZONS:
+        if len(dates) < n:
+            continue
+        c = closes[dates[n - 1]]
+        if pb_open:
+            out["ret"][str(n)] = round((c / pb_open - 1) * 100, 2)
+        if entry_open:
+            out["imm_ret"][str(n)] = round((c / entry_open - 1) * 100, 2)
+    return out
 
 
 def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRACK_DAYS,
