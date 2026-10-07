@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-07T13:47:17+09:00",
+  "checked_at": "2026-10-07T14:55:09+09:00",
   "kept": [
     {
       "stock_code": "002720",
@@ -30,16 +30,35 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 75.0
+        "RSI값": 75.1
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4110.0,
-      "day_pct": 24.17,
+      "current_price": 4125.0,
+      "day_pct": 24.62,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
-  "new_candidates": []
+  "new_candidates": [
+    {
+      "stock_code": "034230",
+      "stock_name": "파라다이스",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 44.9
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 9890.0,
+      "day_pct": 5.1
+    }
+  ]
 }
