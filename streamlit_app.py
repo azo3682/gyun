@@ -590,6 +590,31 @@ def compute_volatility_stats(df: pd.DataFrame, stop_pct: float = 5.0, window: in
         "max_open_low_20": float(((l.tail(20) / o.tail(20) - 1) * 100).min()),
         "atr_x_for_stop": float(stop_pct / atr_pct) if atr_pct else None,
     }
+
+STOP_MULTIPLES = ((" 좁게", 1.5), ("기본", 2.0), ("넓게", 2.5))
+
+
+def recommend_stops(df: pd.DataFrame, entry: float, loss_budget: float, custom_pct: float | None = None, window: int = 60) -> dict:
+    """ATR 기준 참고 손절선. 손절폭 = ATR14(%) × 배수(1.5 / 2.0 / 2.5)와, 사용자가 직접 정한 %(custom_pct) 한 줄.
+    각 줄: 손절폭(%), 손절가(= 매수가 × (1 − 폭)), 최근 window일 중 시가 대비 장중 저가가 그 폭 이상 내려간 날의 비율(%),
+    '한 번에 잃을 금액(loss_budget)'을 지키려면 투입할 금액(= 손실액 ÷ 폭)과 수량(매수가로 나눈 몫, 내림).
+    일봉 부족·매수가 0 이하면 빈 dict. 호가 단위는 반영하지 않는다(주문 시 맞춰야 함)."""
+    base = compute_volatility_stats(df, 5.0, window)
+    if not base or not entry or entry <= 0 or not base.get("atr14_pct"):
+        return {}
+    atr = base["atr14_pct"]
+    specs = [(f"{lab.strip()} (ATR×{m:g})", atr * m) for lab, m in STOP_MULTIPLES]
+    if custom_pct:
+        specs.append((f"직접 입력 ({custom_pct:g}%, ATR×{custom_pct / atr:.1f})", float(custom_pct)))
+    rows = []
+    for label, pct in specs:
+        hit = compute_volatility_stats(df, pct, window).get("open_low_hit")
+        invest = loss_budget / (pct / 100) if loss_budget and loss_budget > 0 else None
+        rows.append({"구분": label, "손절폭(%)": pct, "손절가(원)": entry * (1 - pct / 100), "장중 터치 비율(%)": hit,
+                     "투입금액(원)": invest, "수량(주)": int(invest // entry) if invest else None})
+    return {"atr14_pct": atr, "range5_pct": base["range5_pct"], "range20_pct": base["range20_pct"],
+            "max_open_low_20": base["max_open_low_20"], "n": base["n"], "rows": rows}
+
 # ---- 변동폭·손절폭 점검 helpers end
 
 
@@ -3639,21 +3664,30 @@ with tab_lookup:
             st.warning("현재가 조회 실패 — 종목코드를 확인하거나 잠시 후 다시 시도해 주세요 (일시적인 조회 실패일 수 있습니다).")
 
         if not lookup_df.empty:
-            st.markdown("**변동폭 · 손절폭 점검**")
-            _stop = st.number_input("점검할 손절폭(%)", min_value=1.0, max_value=30.0, value=5.0, step=0.5, key="lookup_stop_pct")
-            _vs = compute_volatility_stats(lookup_df, _stop)
-            if not _vs:
-                st.caption("일봉이 15개 미만이라 계산하지 못했습니다.")
+            st.markdown("**추천 손절 (변동폭 기준 참고선)**")
+            _last_close = float(lookup_df["stck_clpr"].iloc[-1])
+            _ic = st.columns(3)
+            _entry = _ic[0].number_input("매수가(원)", min_value=1.0, value=float(lookup_price or _last_close), step=100.0, key="lookup_entry")
+            _budget = _ic[1].number_input("한 번에 감수할 손실액(원)", min_value=0.0, value=500000.0, step=50000.0, key="lookup_loss_budget")
+            _custom = _ic[2].number_input("직접 정한 손절폭(%, 0이면 생략)", min_value=0.0, max_value=30.0, value=5.0, step=0.5, key="lookup_stop_pct")
+            _rs = recommend_stops(lookup_df, _entry, _budget, _custom or None)
+            if not _rs:
+                st.caption("일봉이 15개 미만이거나 매수가가 올바르지 않아 계산하지 못했습니다.")
             else:
-                vc = st.columns(4)
-                vc[0].metric("ATR(14일, 종가 대비)", f"{_vs['atr14_pct']:.1f}%")
-                vc[1].metric("평균 일중 변동폭 (5일 / 20일)", f"{_vs['range5_pct']:.1f}% / {_vs['range20_pct']:.1f}%")
-                vc[2].metric(f"시가 대비 장중 -{_stop:g}% 터치한 날", f"{_vs['open_low_hit']:.0f}%", delta=f"최근 {_vs['n']}거래일", delta_color="off")
-                vc[3].metric(f"종가가 전일 대비 -{_stop:g}% 이하", f"{_vs['close_drop_hit']:.0f}%", delta=f"최근 {_vs['n']}거래일", delta_color="off")
-                st.caption(f"손절폭 {_stop:g}%는 이 종목 ATR의 약 {_vs['atr_x_for_stop']:.1f}배입니다. 흔히 쓰는 참고선은 ATR의 1.5~2.5배 바깥이고 "
-                           f"(= {_vs['atr14_pct'] * 1.5:.1f}~{_vs['atr14_pct'] * 2.5:.1f}%), 그보다 좁으면 추세가 꺾이지 않아도 평소 흔들림에 걸리기 쉽습니다. "
-                           f"최근 20일 중 시가 대비 장중 낙폭이 가장 컸던 날은 {_vs['max_open_low_20']:.1f}%입니다. "
-                           "손절폭을 넓히면 같은 손실액을 지키려면 투입금액을 줄여야 합니다(손실액 = 손절폭 × 투입금액). 참고용이며 매매 신호가 아닙니다.")
+                vc = st.columns(3)
+                vc[0].metric("ATR(14일, 종가 대비)", f"{_rs['atr14_pct']:.1f}%")
+                vc[1].metric("평균 일중 변동폭 (5일 / 20일)", f"{_rs['range5_pct']:.1f}% / {_rs['range20_pct']:.1f}%")
+                vc[2].metric("최근 20일 최대 장중 낙폭(시가 대비)", f"{_rs['max_open_low_20']:.1f}%")
+                _sdf = pd.DataFrame(_rs["rows"])
+                _fmt = {"손절폭(%)": lambda v: f"-{v:.1f}%", "손절가(원)": lambda v: f"{v:,.0f}",
+                        "장중 터치 비율(%)": lambda v: "—" if pd.isna(v) else f"{v:.0f}%",
+                        "투입금액(원)": lambda v: "—" if pd.isna(v) else f"{v:,.0f}",
+                        "수량(주)": lambda v: "—" if pd.isna(v) else f"{int(v):,}"}
+                st.dataframe(_sdf.style.format(_fmt), use_container_width=True, hide_index=True)
+                st.caption(f"손절가 = 매수가 × (1 − 손절폭). 손절폭은 ATR의 1.5배, 2배, 2.5배를 참고선으로 삼았고, '장중 터치 비율'은 최근 {_rs['n']}거래일 중 "
+                           "시가 대비 장중 저가가 그 폭 이상 내려간 날의 비율(시가에 샀다면 그날 손절선에 닿았을 빈도)입니다. 손절폭이 넓을수록 터치는 줄지만 "
+                           "한 번 걸릴 때 손실이 커지므로, '투입금액'은 감수할 손실액을 그대로 지키려면 줄여야 하는 금액입니다(투입금액 = 손실액 ÷ 손절폭). "
+                           "호가 단위에 맞춰 주문하세요. 변동성은 최근 구간(급등락 포함)에 따라 달라지고 이 값은 매매 신호나 권유가 아닌 참고용입니다.")
 
         st.markdown("**밸류에이션 (PER · PBR)**")
         if lookup_per is not None or lookup_pbr is not None:
