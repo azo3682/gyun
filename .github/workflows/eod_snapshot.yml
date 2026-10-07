@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 
+# 신호 삭제 워크플로(Delete signals)와 같은 파일을 동시에 고치지 않도록 한 번에 하나만 실행한다
+concurrency:
+  group: tracker-data
+  cancel-in-progress: false
+
 jobs:
   snapshot:
     runs-on: ubuntu-latest
