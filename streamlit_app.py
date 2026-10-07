@@ -557,6 +557,42 @@ def analyze_technicals(df: pd.DataFrame) -> dict:
     return result
 
 
+# ---- 변동폭·손절폭 점검 helpers begin
+def compute_volatility_stats(df: pd.DataFrame, stop_pct: float = 5.0, window: int = 60) -> dict:
+    """일봉으로 변동폭 지표와 '손절폭 X%가 평소 흔들림에 얼마나 걸리는지'를 센다. 일봉이 15개 미만이면 빈 dict.
+    atr14_pct: 최근 14일 평균 진폭(TR)을 마지막 종가 대비 %로(TR = max(고-저, |고-전일종가|, |저-전일종가|)).
+    range5_pct / range20_pct: (고가-저가)/종가의 최근 5·20일 평균(%).
+    n: 아래 비율을 센 거래일 수(최근 window일 이내). open_low_hit: 시가 대비 장중 저가가 -stop_pct% 이하까지 내려간 날의 비율(%) —
+    '시가에 사서 그날 장중 손절선에 닿았을 날'의 빈도. close_drop_hit: 전일 종가 대비 종가가 -stop_pct% 이하인 날의 비율(%).
+    max_open_low_20: 최근 20일 중 시가 대비 장중 저가 낙폭이 가장 컸던 값(%, 음수). atr_x_for_stop: 손절폭이 ATR의 몇 배인지."""
+    need = ["stck_clpr", "stck_oprc", "stck_hgpr", "stck_lwpr"]
+    if df is None or df.empty or any(c not in df.columns for c in need) or len(df) < 15:
+        return {}
+    d = df[need].apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
+    if len(d) < 15:
+        return {}
+    c, o, h, l = d["stck_clpr"], d["stck_oprc"], d["stck_hgpr"], d["stck_lwpr"]
+    prev = c.shift(1)
+    tr = pd.concat([h - l, (h - prev).abs(), (l - prev).abs()], axis=1).max(axis=1)
+    last = float(c.iloc[-1])
+    rng = (h - l) / c * 100
+    w = d.tail(window)
+    o_w, l_w, c_w = w["stck_oprc"], w["stck_lwpr"], w["stck_clpr"]
+    open_low = (l_w / o_w - 1) * 100
+    close_ret = (c / prev - 1) * 100
+    atr_pct = float(tr.tail(14).mean() / last * 100)
+    return {
+        "n": int(len(w)), "stop_pct": float(stop_pct),
+        "atr14_pct": atr_pct,
+        "range5_pct": float(rng.tail(5).mean()), "range20_pct": float(rng.tail(20).mean()),
+        "open_low_hit": float((open_low <= -stop_pct).mean() * 100),
+        "close_drop_hit": float((close_ret.tail(len(w)) <= -stop_pct).mean() * 100),
+        "max_open_low_20": float(((l.tail(20) / o.tail(20) - 1) * 100).min()),
+        "atr_x_for_stop": float(stop_pct / atr_pct) if atr_pct else None,
+    }
+# ---- 변동폭·손절폭 점검 helpers end
+
+
 def compute_transition_signal(df: pd.DataFrame) -> bool:
     """VCP(눌림) 상태였다가 거래량급증 + 실제 상승이 함께 뜬 경우만 True.
 
@@ -3601,6 +3637,23 @@ with tab_lookup:
                          " — 아래 전환신호·국면 판단은 이 상태를 반영하지 않으니 근거로 쓰지 마세요.")
         else:
             st.warning("현재가 조회 실패 — 종목코드를 확인하거나 잠시 후 다시 시도해 주세요 (일시적인 조회 실패일 수 있습니다).")
+
+        if not lookup_df.empty:
+            st.markdown("**변동폭 · 손절폭 점검**")
+            _stop = st.number_input("점검할 손절폭(%)", min_value=1.0, max_value=30.0, value=5.0, step=0.5, key="lookup_stop_pct")
+            _vs = compute_volatility_stats(lookup_df, _stop)
+            if not _vs:
+                st.caption("일봉이 15개 미만이라 계산하지 못했습니다.")
+            else:
+                vc = st.columns(4)
+                vc[0].metric("ATR(14일, 종가 대비)", f"{_vs['atr14_pct']:.1f}%")
+                vc[1].metric("평균 일중 변동폭 (5일 / 20일)", f"{_vs['range5_pct']:.1f}% / {_vs['range20_pct']:.1f}%")
+                vc[2].metric(f"시가 대비 장중 -{_stop:g}% 터치한 날", f"{_vs['open_low_hit']:.0f}%", delta=f"최근 {_vs['n']}거래일", delta_color="off")
+                vc[3].metric(f"종가가 전일 대비 -{_stop:g}% 이하", f"{_vs['close_drop_hit']:.0f}%", delta=f"최근 {_vs['n']}거래일", delta_color="off")
+                st.caption(f"손절폭 {_stop:g}%는 이 종목 ATR의 약 {_vs['atr_x_for_stop']:.1f}배입니다. 흔히 쓰는 참고선은 ATR의 1.5~2.5배 바깥이고 "
+                           f"(= {_vs['atr14_pct'] * 1.5:.1f}~{_vs['atr14_pct'] * 2.5:.1f}%), 그보다 좁으면 추세가 꺾이지 않아도 평소 흔들림에 걸리기 쉽습니다. "
+                           f"최근 20일 중 시가 대비 장중 낙폭이 가장 컸던 날은 {_vs['max_open_low_20']:.1f}%입니다. "
+                           "손절폭을 넓히면 같은 손실액을 지키려면 투입금액을 줄여야 합니다(손실액 = 손절폭 × 투입금액). 참고용이며 매매 신호가 아닙니다.")
 
         st.markdown("**밸류에이션 (PER · PBR)**")
         if lookup_per is not None or lookup_pbr is not None:
