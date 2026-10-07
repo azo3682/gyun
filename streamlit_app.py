@@ -1184,6 +1184,46 @@ def style_summary(df: pd.DataFrame):
     return styler.format(lambda v: f"{int(v)}", subset=["표본 수", "지수 비교 표본"])
 
 
+# ---- 눌림 대기 진입 비교 helpers begin
+PULLBACK_HORIZONS = (3, 5, 10)
+
+
+def summarize_pullback(signals: list) -> dict:
+    """눌림 대기 진입(D+1 종가가 신호일 종가보다 낮으면 D+2 시가 진입) vs 다음 날 시가 진입을 같은 청산일(D+n 종가)로 비교한다.
+    반환: {"n_obs": D+1까지 온 신호 수, "n_trig": 눌림 발생 수, "rows": [n별 통계 dict]}.
+    각 행: 눌림 진입 표본·평균·승률, 같은 종목들의 즉시 진입 평균(같은 표본), 차이(눌림 − 즉시, %p), 눌림이 안 온 종목의 즉시 진입 평균."""
+    pbs = [(s.get("perf") or {}).get("pullback") for s in signals]
+    pbs = [p for p in pbs if p]
+    n_trig = sum(1 for p in pbs if p.get("triggered"))
+    rows = []
+    for n in PULLBACK_HORIZONS:
+        k = str(n)
+        pairs = [(p["ret"][k], p["imm_ret"][k]) for p in pbs if p.get("triggered") and k in (p.get("ret") or {}) and k in (p.get("imm_ret") or {})]
+        no_pb = [p["imm_ret"][k] for p in pbs if not p.get("triggered") and k in (p.get("imm_ret") or {})]
+        pb, imm = [x for x, _ in pairs], [y for _, y in pairs]
+        rows.append({
+            "청산": f"D+{n} 종가", "눌림 진입 표본": len(pairs),
+            "눌림 진입 평균(%)": sum(pb) / len(pb) if pb else None,
+            "눌림 진입 승률(%)": 100 * sum(1 for x in pb if x > 0) / len(pb) if pb else None,
+            "같은 종목 다음날 시가 진입 평균(%)": sum(imm) / len(imm) if imm else None,
+            "차이(눌림−즉시, %p)": (sum(pb) - sum(imm)) / len(pairs) if pairs else None,
+            "눌림 안 온 종목 표본": len(no_pb),
+            "눌림 안 온 종목 다음날 시가 진입 평균(%)": sum(no_pb) / len(no_pb) if no_pb else None,
+        })
+    df = pd.DataFrame(rows)
+    df[[c for c in df.columns if c != "청산"]] = df[[c for c in df.columns if c != "청산"]].apply(pd.to_numeric, errors="coerce")
+    return {"n_obs": len(pbs), "n_trig": n_trig, "rows": df}
+
+
+def style_pullback(df: pd.DataFrame):
+    signed = ["눌림 진입 평균(%)", "같은 종목 다음날 시가 진입 평균(%)", "차이(눌림−즉시, %p)", "눌림 안 온 종목 다음날 시가 진입 평균(%)"]
+    styler = df.style.map(_signed_style, subset=signed)
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}", subset=signed)
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:.0f}", subset=["눌림 진입 승률(%)"])
+    return styler.format(lambda v: f"{int(v)}", subset=["눌림 진입 표본", "눌림 안 온 종목 표본"])
+# ---- 눌림 대기 진입 비교 helpers end
+
+
 # ============================================================
 # 수급 (외국인 · 기관 · 개인) — 종목 조회 탭
 #   - 일별: KIS '주식현재가 투자자'(v1_국내주식-012, FHKST01010900) — 개인·외국인·기관 순매수 수량(주) 일별.
@@ -1414,6 +1454,24 @@ def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_
                "'지수 대비 초과수익'은 같은 기간 종목이 속한 시장(코스피/코스닥) 지수의 수익률을 뺀 값(%p)이고, 지수는 야후 파이낸스(yfinance) 비공식 "
                "데이터라 받지 못한 날은 비어 있을 수 있습니다(지수 시가가 없으면 신호일 지수 종가를 기준으로 대체). "
                "승률은 진입가 대비 수익률이 0보다 큰 비율입니다. 수수료·세금·슬리피지, 시가에 실제로 체결되는지는 반영하지 않았습니다.")
+    st.markdown("##### 🔽 눌림 대기 진입 vs 다음 날 시가 진입")
+    pbs = summarize_pullback(signals)
+    if pbs["n_obs"] == 0:
+        st.info("아직 비교할 신호가 없습니다. 신호 다음 거래일(D+1) 종가가 기록되면 눌림이 왔는지 판정합니다.")
+    else:
+        st.caption(f"규칙: 신호 다음 거래일(D+1) 종가가 신호일 종가보다 낮으면 '눌림 발생'으로 보고 **그 다음 거래일(D+2) 시가**에 진입한 것으로 계산해, "
+                   f"같은 청산일(D+n 종가)의 '다음 날 시가 진입'과 비교합니다. D+1까지 온 신호 {pbs['n_obs']}건 중 눌림 발생 {pbs['n_trig']}건"
+                   f"({100 * pbs['n_trig'] / pbs['n_obs']:.0f}%).")
+        if int(pbs["rows"][["눌림 진입 표본", "눌림 안 온 종목 표본"]].sum(axis=1).max()) > 0:
+            st.dataframe(style_pullback(pbs["rows"]), use_container_width=True, hide_index=True)
+        else:
+            st.info("D+3 종가까지 쌓인 신호가 아직 없어 수익률 비교는 비어 있습니다.")
+        _pb_n = int(pbs["rows"]["눌림 진입 표본"].max()) if len(pbs["rows"]) else 0
+        if _pb_n < 30:
+            st.warning(f"눌림 진입 표본이 가장 많은 구간도 {_pb_n}건뿐입니다. 30건 미만이면 결론으로 삼지 마세요.")
+        st.caption("일봉만으로 계산한 보수적 근사입니다. 실제로 장중에 눌림을 보고 바로 사는 방식(예: 당일 -3% 지점)은 일봉에서 재현되지 않아 이 표와 다를 수 있어요. "
+                   "'차이'가 플러스로 일관돼야 기다리는 쪽이 낫다고 볼 수 있고, '눌림 안 온 종목' 열은 기다리다 놓친 상승이 어느 정도였는지를 보여 줍니다. "
+                   "눌림 진입 계산에는 신호 이후 날짜별 시가가 필요해서, 이 기능을 올린 뒤 첫 EOD 실행에서 과거 신호의 시가가 채워집니다.")
     st.markdown("##### 🧾 종목별 성과 (D+n · 진입가 기준)")
     st.dataframe(style_perf_table(build_perf_table(shown_signals)), use_container_width=True, hide_index=True)
     with st.expander("신호 발생 당시 조건 상세"):
