@@ -60,6 +60,7 @@ TRACKER_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "signal_tra
 INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "index_history.json")
 BASELINE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "top10_baseline.json")
 HISTORY_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "history", "eod_candidates.csv")
+DELETED_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "deleted_signals.json")
 FINAL_TIME = (15, 40)      # 이 시각 이후의 실행만 '오늘 날짜'의 신호·대조군을 확정 기록한다
 BASELINE_TYPE = "top10"
 BASELINE_TRACK_DAYS = 10   # 대조군은 D+10까지만 필요하다
@@ -170,9 +171,23 @@ def find_signals(buy_rows: list, volume_ok: bool = True, now: datetime | None = 
     return out
 
 
-def record_signals(tracker: dict, signals: list, now: datetime | None = None) -> int:
-    """새 신호를 추가하고 추가된 개수를 반환. (종목코드, 신호일, 종류)가 같으면 건너뛴다. recorded_at은 실행 시각(now)으로 찍는다."""
-    seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
+def load_deleted(path: str | None = DELETED_PATH) -> set:
+    """사용자가 앱에서 지운 (종목코드, 신호일, 종류) 목록(data/deleted_signals.json). 이 조합은 다시 기록하지 않는다.
+    파일이 없거나 깨졌으면 빈 집합. 지운 '그 건'만 막고 같은 종목의 앞으로의 신호는 막지 않는다."""
+    if not path or not os.path.exists(path):
+        return set()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            items = json.load(f).get("deleted") or []
+        return {(d["code"], d["date"], d["type"]) for d in items if isinstance(d, dict) and d.get("code") and d.get("date") and d.get("type")}
+    except Exception:
+        return set()
+
+
+def record_signals(tracker: dict, signals: list, now: datetime | None = None, deleted: set | None = None) -> int:
+    """새 신호를 추가하고 추가된 개수를 반환. (종목코드, 신호일, 종류)가 같으면 건너뛴다. recorded_at은 실행 시각(now)으로 찍는다.
+    deleted: 사용자가 지운 조합(load_deleted) — 이 조합도 건너뛴다."""
+    seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]} | set(deleted or ())
     added = 0
     stamp = (now or datetime.now(KST)).isoformat(timespec="seconds")
     for s in signals:
@@ -211,14 +226,15 @@ def find_top10_entries(buy_rows: list, volume_ok: bool = True, now: datetime | N
     return out
 
 
-def backfill_top10_from_history(tracker: dict, csv_path, exclude_date: str | None = None, now: datetime | None = None) -> int:
+def backfill_top10_from_history(tracker: dict, csv_path, exclude_date: str | None = None, now: datetime | None = None,
+                                deleted: set | None = None) -> int:
     """data/history/eod_candidates.csv(날짜별 순매수 상위 10 + 전환신호 여부)로 과거 날짜의 대조군을 채운다.
     신호일 종가는 비워 두고, update_closes가 일봉에서 그 날짜 종가를 찾아 채운다(일봉 범위 밖이면 계속 빈다).
     이 CSV에는 거래량 순위가 없어서 is_volume_supply는 None이다. 이미 있는 (종목, 날짜)는 건너뛴다. 추가한 개수를 반환.
     exclude_date: 이 날짜의 행은 건너뛴다(장중 실행에서 오늘 날짜의 잠정 행을 소급하지 않기 위함)."""
     if not csv_path or not os.path.exists(csv_path):
         return 0
-    seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
+    seen = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]} | set(deleted or ())
     stamp = (now or datetime.now(KST)).isoformat(timespec="seconds")
     added = 0
     try:
@@ -450,7 +466,8 @@ def compute_performance(s: dict, index_history: dict) -> dict:
 
 def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRACK_DAYS,
         market_lookup=None, index_fetcher=None, index_path: str = INDEX_PATH,
-        baseline_path=None, history_csv=None, market_probe=None, now: datetime | None = None) -> dict:
+        baseline_path=None, history_csv=None, market_probe=None, now: datetime | None = None,
+        deleted_path=None) -> dict:
     """스냅샷에서 두 종류의 신호를 찾아 기록하고, 진행 중인 신호의 종가를 갱신해 저장한다. 요약 dict 반환.
     같은 실행에서 순매수 상위 10 전체를 대조군(data/top10_baseline.json)으로도 기록한다.
     baseline_path/history_csv를 안 주면, 기본 경로(TRACKER_PATH)일 때만 저장소의 대조군·히스토리 파일을 쓰고
@@ -461,6 +478,7 @@ def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRA
     default_paths = os.path.abspath(path) == os.path.abspath(TRACKER_PATH)
     baseline_path = baseline_path or (BASELINE_PATH if default_paths else os.path.splitext(os.path.abspath(path))[0] + "_top10_baseline.json")
     history_csv = history_csv if history_csv is not None else (HISTORY_CSV_PATH if default_paths else None)
+    deleted = load_deleted(deleted_path if deleted_path is not None else (DELETED_PATH if default_paths else None))   # 사용자가 지운 항목은 다시 기록하지 않는다
     _memo, _market_memo = {}, {}
 
     def shared_fetcher(code):
@@ -484,11 +502,11 @@ def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRA
     purged = purge_provisional(tracker, now)
     signals = find_signals(snapshot["buy_top10"], volume_ok, now)
     added_before = {t: 0 for t in SIGNAL_TYPES}
-    seen_before = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]}
+    seen_before = {(s["code"], s["signal_date"], s["type"]) for s in tracker["signals"]} | deleted
     for s in signals:
         if (s["code"], s["signal_date"], s["type"]) not in seen_before:
             added_before[s["type"]] += 1
-    record_signals(tracker, signals, now)
+    record_signals(tracker, signals, now, deleted)
     updated, failed = update_closes(tracker, shared_fetcher, track_days, deactivate=final_run)
     ensure_index_keys(tracker, shared_lookup, market_probe)
 
@@ -496,8 +514,8 @@ def run(snapshot: dict, fetcher, path: str = TRACKER_PATH, track_days: int = TRA
     base = load_tracker(baseline_path, types={BASELINE_TYPE: "순매수 상위 10"}, legacy_split=False)
     base["criteria"] = {"top10": "순매수 상위 10 전체(신호 여부와 무관) — 신호가 실제로 효과가 있는지 비교하는 대조군", "track_days": BASELINE_TRACK_DAYS}
     purged += purge_provisional(base, now)
-    base_added = record_signals(base, find_top10_entries(snapshot["buy_top10"], volume_ok, now), now)
-    base_backfilled = backfill_top10_from_history(base, history_csv, None if final_run else now.strftime("%Y-%m-%d"), now)
+    base_added = record_signals(base, find_top10_entries(snapshot["buy_top10"], volume_ok, now), now, deleted)
+    base_backfilled = backfill_top10_from_history(base, history_csv, None if final_run else now.strftime("%Y-%m-%d"), now, deleted)
     base_updated, base_failed = update_closes(base, shared_fetcher, BASELINE_TRACK_DAYS, deactivate=final_run)
     ensure_index_keys(base, shared_lookup, market_probe)
 
