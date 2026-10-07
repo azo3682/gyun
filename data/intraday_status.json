@@ -1,85 +1,6 @@
 {
-  "checked_at": "2026-10-07T10:28:17+09:00",
-  "kept": [],
-  "excluded": [
-    {
-      "stock_code": "007660",
-      "stock_name": "이수페타시스",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 64.9
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 127100.0,
-      "day_pct": -3.64,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "066570",
-      "stock_name": "LG전자",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 70.9
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 226500.0,
-      "day_pct": -2.58,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "340450",
-      "stock_name": "지씨지놈",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 83.6
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 9960.0,
-      "day_pct": -2.35,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "036930",
-      "stock_name": "주성엔지니어링",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 75.0
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 267000.0,
-      "day_pct": -4.13,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
+  "checked_at": "2026-10-07T11:46:49+09:00",
+  "kept": [
     {
       "stock_code": "002720",
       "stock_name": "국제약품",
@@ -97,7 +18,9 @@
       "risky_disclosures": [],
       "current_price": 4430.0,
       "day_pct": 29.91
-    },
+    }
+  ],
+  "excluded": [
     {
       "stock_code": "142280",
       "stock_name": "녹십자엠에스",
@@ -107,14 +30,16 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 74.5
+        "RSI값": 74.8
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4070.0,
-      "day_pct": 22.96
+      "current_price": 4095.0,
+      "day_pct": 23.72,
+      "reason": "순매수 상위 10에서 이탈"
     }
-  ]
+  ],
+  "new_candidates": []
 }
