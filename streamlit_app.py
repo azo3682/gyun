@@ -2800,6 +2800,141 @@ def tracker_provisional_note(updated_at, last_close_date):
 # ---- 신호 추적 잠정값 안내 helpers end
 
 
+# ============================================================
+# 🗑 신호 지우기 — '📌 신호 추적' 탭 맨 아래. 앱은 저장소에 직접 쓰지 않고, 'Delete signals' 워크플로를 실행하라고 요청만 한다.
+#   필요한 Secrets: GYUN_ACTIONS_TOKEN(이 저장소 하나에 Actions: Read and write만 준 토큰), JOURNAL_PASSWORD(탭을 여는 비밀번호).
+#   선택: GYUN_REPO(기본 azo3682/gyun), GYUN_BRANCH(기본 main).
+#   지우는 대상은 신호 추적·대조군 기록뿐이다 — 매매 일지는 건드리지 않는다. 실제 삭제는 scripts/delete_signals.py가 한다.
+# ============================================================
+# ---- 신호 지우기 helpers begin
+DELETE_TYPE_LABELS = {"transition": "전환신호", "volume_supply": "거래량·수급 동시", "top10": "대조군(순매수 상위 10)"}
+_DEL_CODE_RE = re.compile(r"[0-9A-Z]{6}")
+_DEL_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+DELETE_WORKFLOW_FILE = "delete_signals.yml"
+DELETE_COOLDOWN_SEC = 30
+
+SETUP_DELETE_GUIDE = """**신호 지우기를 쓰려면 먼저 설정이 필요합니다** (앱이 저장소에 직접 쓰지 않고, 삭제 작업을 '요청'만 하는 방식이라 안전합니다).
+
+1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → 새 토큰.
+2. **Repository access: Only select repositories → `gyun` 하나만** 고릅니다.
+3. 권한은 **Actions: Read and write** 하나만 켭니다 (Contents 등 다른 권한은 켜지 않습니다). 유효기간은 90일~1년 정도로 두세요.
+4. Streamlit 앱 설정 → Secrets에 아래 한 줄을 추가합니다 (기존 값은 그대로).
+
+```
+GYUN_ACTIONS_TOKEN = "github_pat_..."
+```
+(`JOURNAL_PASSWORD`가 이미 있어야 하고, 이 비밀번호를 한 번 더 입력해야 지울 수 있어요.)
+"""
+
+
+def delete_settings() -> dict:
+    return {"token": _secret("GYUN_ACTIONS_TOKEN"), "password": _secret("JOURNAL_PASSWORD"),
+            "repo": _secret("GYUN_REPO", "azo3682/gyun"), "branch": _secret("GYUN_BRANCH", "main")}
+
+
+def validate_delete_request(code: str, date: str, types: list):
+    """(code, date, types)를 검증해 정리한 값을 반환. 문제가 있으면 ValueError(사용자에게 보여줄 메시지). scripts/delete_signals.py와 같은 규칙."""
+    code, date = (code or "").strip(), (date or "").strip()
+    if code and not _DEL_CODE_RE.fullmatch(code):
+        raise ValueError("종목코드 형식이 올바르지 않습니다.")
+    if date:
+        try:
+            if not _DEL_DATE_RE.fullmatch(date):
+                raise ValueError
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("날짜 형식이 올바르지 않습니다.")
+    if not code and not date:
+        raise ValueError("종목 또는 날짜를 골라야 합니다 (전체 삭제는 지원하지 않습니다).")
+    chosen = [t for t in DELETE_TYPE_LABELS if t in (types or [])]
+    if not chosen:
+        raise ValueError("지울 종류를 하나 이상 골라 주세요.")
+    return code, date, chosen
+
+
+def delete_matches(entries: list, code: str, date: str, types: list) -> list:
+    """미리보기용: 조건에 맞는 기록(날짜 내림차순). 실제 삭제는 워크플로가 같은 조건으로 한다."""
+    out = [e for e in entries if (not code or e.get("code") == code) and (not date or e.get("signal_date") == date) and e.get("type") in types]
+    return sorted(out, key=lambda e: (e.get("signal_date", ""), e.get("code", ""), e.get("type", "")), reverse=True)
+
+
+def dispatch_delete_workflow(code: str, date: str, types: list, cfg: dict, dry_run: bool = False, post=None):
+    """'Delete signals' 워크플로 실행을 요청한다. (성공 여부, 사용자에게 보여줄 메시지)를 반환. 토큰은 메시지에 넣지 않는다."""
+    post = post or requests.post
+    try:
+        code, date, types = validate_delete_request(code, date, types)
+    except ValueError as ex:
+        return False, str(ex)
+    url = f"{GITHUB_API}/repos/{cfg['repo']}/actions/workflows/{DELETE_WORKFLOW_FILE}/dispatches"
+    body = {"ref": cfg["branch"], "inputs": {"code": code, "date": date, "types": ",".join(types), "dry_run": "true" if dry_run else "false"}}
+    try:
+        r = post(url, headers={"Authorization": f"Bearer {cfg['token']}", "Accept": "application/vnd.github+json",
+                               "X-GitHub-Api-Version": "2022-11-28"}, json=body, timeout=15)
+    except Exception as ex:
+        return False, f"GitHub에 연결하지 못했습니다: {type(ex).__name__}"
+    if r.status_code == 204:
+        return True, "삭제 작업을 요청했습니다."
+    hint = {401: "토큰이 올바르지 않거나 만료됐습니다.",
+            403: "토큰에 이 저장소의 Actions: Read and write 권한이 없습니다.",
+            404: f"저장소({cfg['repo']}) 또는 워크플로 파일({DELETE_WORKFLOW_FILE})을 찾지 못했습니다. 파일을 .github/workflows/에 올렸는지, 토큰이 이 저장소에 허용돼 있는지 확인하세요.",
+            422: f"워크플로가 '{cfg['branch']}' 브랜치에서 실행 요청을 받지 못했습니다. 파일이 그 브랜치에 있는지 확인하세요."}.get(r.status_code, f"GitHub가 거절했습니다(HTTP {r.status_code}).")
+    return False, hint
+
+
+def render_delete_panel(tracker_entries: list, baseline_entries: list, cfg: dict):
+    entries = [e for e in tracker_entries if e.get("code") and e.get("signal_date")] + \
+              [e for e in baseline_entries if e.get("code") and e.get("signal_date")]
+    if not entries:
+        st.info("지울 기록이 없습니다.")
+        return
+    mode = st.radio("무엇을 지울까요?", ["한 건 (종목 + 신호일)", "종목 전체", "날짜 전체"], horizontal=True, key="del_mode")
+    names = {}
+    for e in entries:
+        names.setdefault(e["code"], e.get("name") or e["code"])
+    stock_opts = sorted(names, key=lambda c: names[c])
+    code, date = "", ""
+    if mode != "날짜 전체":
+        code = st.selectbox("종목", stock_opts, format_func=lambda c: f"{names[c]} ({c})", key="del_code")
+    if mode == "한 건 (종목 + 신호일)":
+        dates = sorted({e["signal_date"] for e in entries if e["code"] == code}, reverse=True)
+        date = st.selectbox("신호일", dates, key="del_date_one")
+    elif mode == "날짜 전체":
+        dates = sorted({e["signal_date"] for e in entries}, reverse=True)
+        date = st.selectbox("신호일", dates, key="del_date_all")
+    types = st.multiselect("지울 종류", list(DELETE_TYPE_LABELS), default=list(DELETE_TYPE_LABELS),
+                           format_func=lambda t: DELETE_TYPE_LABELS[t], key="del_types")
+    try:
+        v_code, v_date, v_types = validate_delete_request(code, date, types)
+    except ValueError as ex:
+        st.warning(str(ex))
+        return
+    hits = delete_matches(entries, v_code, v_date, v_types)
+    if not hits:
+        st.info("조건에 맞는 기록이 없습니다.")
+        return
+    st.markdown(f"**지워질 기록 {len(hits)}건**")
+    st.dataframe(pd.DataFrame([{"신호일": e["signal_date"], "종목": e.get("name"), "코드": e["code"], "종류": DELETE_TYPE_LABELS.get(e["type"], e["type"]),
+                                "경과(거래일)": len(e.get("closes") or {})} for e in hits]), use_container_width=True, hide_index=True)
+    if len(hits) > 300:
+        st.error("한 번에 300건까지만 지울 수 있습니다. 조건을 좁혀 주세요.")
+        return
+    st.caption("지운 기록은 data/deleted_archive.json에 통째로 보관되고(복구용), 같은 (종목·신호일·종류)는 이후 EOD 실행이 다시 기록하지 않습니다. "
+               "같은 종목의 앞으로의 신호는 정상적으로 기록돼요. 매매 일지·AI 리포트 파일은 바뀌지 않습니다(AI 리포트는 다음 생성부터 반영).")
+    confirm = st.text_input("확인을 위해 '삭제'라고 입력하세요", key="del_confirm")
+    wait = DELETE_COOLDOWN_SEC - (time.time() - st.session_state.get("del_last", 0))
+    if st.button(f"🗑 {len(hits)}건 삭제 요청", disabled=(confirm.strip() != "삭제" or wait > 0), key="del_go"):
+        ok, msg = dispatch_delete_workflow(v_code, v_date, v_types, cfg)
+        st.session_state["del_last"] = time.time()
+        if ok:
+            st.success(msg + " 보통 1~2분 안에 끝나고, 앱에 반영되기까지 몇 분 더 걸릴 수 있어요. "
+                       f"진행 상황: https://github.com/{cfg['repo']}/actions/workflows/{DELETE_WORKFLOW_FILE}")
+        else:
+            st.error(msg)
+    if wait > 0 and st.session_state.get("del_last"):
+        st.caption(f"중복 요청을 막기 위해 {int(wait) + 1}초 뒤에 다시 요청할 수 있어요.")
+# ---- 신호 지우기 helpers end
+
+
 tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
     "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
 ])
@@ -3125,6 +3260,28 @@ with tab_tracker:
                        f"**한계**: 대조군은 과거 날짜를 히스토리 CSV로 소급해서 채웠고, 거기에는 거래량 순위가 없어서 소급분 {_cov['n_vs_unknown']}건은 '동시 등장' 여부를 알 수 없어 그 비교에서 빠져요. "
                        "수수료·세금·슬리피지는 반영하지 않았고, 순매수 상위 10 안에서만 비교해서 수급이 안 몰린 종목과의 비교는 아니에요. "
                        "코스닥 종목은 지수 비교가 비어 있을 수 있어요(시장 구분이 안 잡힌 경우).")
+
+    with st.expander("🗑 신호 지우기 (신호 추적·대조군 기록만 — 매매 일지는 지워지지 않습니다)"):
+        _dcfg = delete_settings()
+        if not _dcfg["token"] or not _dcfg["password"]:
+            st.info(SETUP_DELETE_GUIDE)
+            st.caption("아직 없는 설정: " + ", ".join(n for n, k in (("GYUN_ACTIONS_TOKEN", "token"), ("JOURNAL_PASSWORD", "password")) if not _dcfg[k]))
+        elif not st.session_state.get("delete_ok"):
+            _dpw = st.text_input("비밀번호", type="password", key="delete_pw")
+            if _dpw:
+                if hmac.compare_digest(_dpw.encode("utf-8"), _dcfg["password"].encode("utf-8")):
+                    st.session_state["delete_ok"] = True
+                    st.rerun()
+                else:
+                    time.sleep(1)
+                    st.error("비밀번호가 맞지 않습니다.")
+            st.caption("신호 기록을 지우려면 비밀번호(매매 일지와 같은 것)를 입력하세요.")
+        else:
+            if st.button("🔒 잠그기", key="delete_lock"):
+                st.session_state["delete_ok"] = False
+                st.rerun()
+            render_delete_panel(all_signals, load_baseline_entries(), _dcfg)
+
 
 # ---------------- ⏱ 장중 변동 ----------------
 with tab_intraday:
