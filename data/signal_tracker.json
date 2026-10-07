@@ -15,11 +15,12 @@
       },
       "signal_close_first": 6380,
       "closes": {
-        "2026-10-06": 6270
+        "2026-10-06": 6270,
+        "2026-10-07": 6160
       },
       "active": true,
       "recorded_at": "2026-10-02T15:56:18+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "perf": {
         "ret": {
           "1": 0.0
@@ -56,11 +57,12 @@
       },
       "signal_close_first": 6380,
       "closes": {
-        "2026-10-06": 6270
+        "2026-10-06": 6270,
+        "2026-10-07": 6160
       },
       "active": true,
       "recorded_at": "2026-10-02T15:56:18+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "perf": {
         "ret": {
           "1": 0.0
@@ -97,11 +99,12 @@
       },
       "signal_close_first": 3830,
       "closes": {
-        "2026-10-06": 3890
+        "2026-10-06": 3890,
+        "2026-10-07": 3862
       },
       "active": true,
       "recorded_at": "2026-10-02T15:56:18+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "index_key": "KOSPI",
       "perf": {
         "ret": {
@@ -137,11 +140,12 @@
       },
       "signal_close_first": 3830,
       "closes": {
-        "2026-10-06": 3890
+        "2026-10-06": 3890,
+        "2026-10-07": 3862
       },
       "active": true,
       "recorded_at": "2026-10-02T15:56:18+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "index_key": "KOSPI",
       "perf": {
         "ret": {
@@ -177,11 +181,12 @@
       },
       "signal_close_first": 276000,
       "closes": {
-        "2026-10-06": 272000
+        "2026-10-06": 272000,
+        "2026-10-07": 273000
       },
       "active": true,
       "recorded_at": "2026-10-02T15:56:18+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "index_key": "KOSPI",
       "perf": {
         "ret": {
@@ -216,18 +221,32 @@
         "risk_flags": []
       },
       "signal_close_first": 131900,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 127300
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KOSPI200",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": -2.9
+        },
+        "ret_from_close": {
+          "1": -3.49
+        },
+        "idx_ret": {
+          "1": 0.85
+        },
+        "excess": {
+          "1": -3.75
+        },
+        "gap_pct": -0.61,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 131100
     },
     {
       "code": "066570",
@@ -243,18 +262,32 @@
         "risk_flags": []
       },
       "signal_close_first": 232500,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 226500
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KOSPI200",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": -2.16
+        },
+        "ret_from_close": {
+          "1": -2.58
+        },
+        "idx_ret": {
+          "1": 0.85
+        },
+        "excess": {
+          "1": -3.01
+        },
+        "gap_pct": -0.43,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 231500
     },
     {
       "code": "340450",
@@ -270,18 +303,32 @@
         "risk_flags": []
       },
       "signal_close_first": 10200,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 9950
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KOSDAQ",
       "index_key": "KOSDAQ",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": 0.61
+        },
+        "ret_from_close": {
+          "1": -2.45
+        },
+        "idx_ret": {
+          "1": -0.81
+        },
+        "excess": {
+          "1": 1.41
+        },
+        "gap_pct": -3.04,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 9890
     },
     {
       "code": "036930",
@@ -297,18 +344,32 @@
         "risk_flags": []
       },
       "signal_close_first": 278500,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 267500
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KSQ150",
       "index_key": "KOSDAQ",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": -3.25
+        },
+        "ret_from_close": {
+          "1": -3.95
+        },
+        "idx_ret": {
+          "1": -0.81
+        },
+        "excess": {
+          "1": -2.45
+        },
+        "gap_pct": -0.72,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 276500
     },
     {
       "code": "010170",
@@ -324,18 +385,32 @@
         "risk_flags": []
       },
       "signal_close_first": 18530,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 18310
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KOSDAQ",
       "index_key": "KOSDAQ",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": -3.38
+        },
+        "ret_from_close": {
+          "1": -1.19
+        },
+        "idx_ret": {
+          "1": -0.81
+        },
+        "excess": {
+          "1": -2.57
+        },
+        "gap_pct": 2.27,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 18950
     },
     {
       "code": "018880",
@@ -351,18 +426,32 @@
         "risk_flags": []
       },
       "signal_close_first": 3890,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 3862
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KOSPI200",
       "index_key": "KOSPI",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": -1.1
+        },
+        "ret_from_close": {
+          "1": -0.72
+        },
+        "idx_ret": {
+          "1": 0.85
+        },
+        "excess": {
+          "1": -1.95
+        },
+        "gap_pct": 0.39,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 3905
     },
     {
       "code": "069540",
@@ -380,18 +469,32 @@
         ]
       },
       "signal_close_first": 5010,
-      "closes": {},
+      "closes": {
+        "2026-10-07": 5490
+      },
       "active": true,
       "recorded_at": "2026-10-06T15:57:40+09:00",
-      "last_updated": "2026-10-06",
+      "last_updated": "2026-10-07",
       "market_raw": "KOSDAQ",
       "index_key": "KOSDAQ",
       "perf": {
-        "ret": {},
-        "ret_from_close": {},
-        "idx_ret": {},
-        "excess": {}
-      }
+        "ret": {
+          "1": 7.23
+        },
+        "ret_from_close": {
+          "1": 9.58
+        },
+        "idx_ret": {
+          "1": -0.81
+        },
+        "excess": {
+          "1": 8.03
+        },
+        "gap_pct": 2.2,
+        "idx_basis": "open"
+      },
+      "entry_date": "2026-10-07",
+      "entry_open": 5120
     }
   ],
   "criteria": {
@@ -399,5 +502,5 @@
     "volume_supply": "순매수 상위 10과 거래량 상위에 같은 날 함께 오른 종목",
     "track_days": 40
   },
-  "updated_at": "2026-10-07T10:04:51+09:00"
+  "updated_at": "2026-10-07T10:28:28+09:00"
 }
