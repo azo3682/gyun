@@ -1,6 +1,7 @@
 {
-  "checked_at": "2026-10-07T14:55:09+09:00",
-  "kept": [
+  "checked_at": "2026-10-08T10:03:33+09:00",
+  "kept": [],
+  "excluded": [
     {
       "stock_code": "002720",
       "stock_name": "국제약품",
@@ -10,55 +11,54 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 91.2
+        "RSI값": 91.7
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4430.0,
-      "day_pct": 29.91
-    }
-  ],
-  "excluded": [
-    {
-      "stock_code": "142280",
-      "stock_name": "녹십자엠에스",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 75.1
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 4125.0,
-      "day_pct": 24.62,
+      "current_price": 4495.0,
+      "day_pct": 1.47,
       "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
+    },
     {
       "stock_code": "034230",
       "stock_name": "파라다이스",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 44.9
+        "RSI값": 47.5
       },
-      "transition": true,
-      "passed": 2,
+      "transition": false,
+      "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 9890.0,
-      "day_pct": 5.1
+      "current_price": 9820.0,
+      "day_pct": 0.1,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "126600",
+      "stock_name": "BGF에코머티리얼즈",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 84.3
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 3660.0,
+      "day_pct": 11.59
     }
   ]
 }
