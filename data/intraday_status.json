@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-08T11:44:59+09:00",
+  "checked_at": "2026-10-08T13:42:19+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,9 +11,9 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 89.1
+        "RSI값": 91.1
       },
-      "transition": false,
+      "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
@@ -30,14 +30,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 44.6
+        "RSI값": 48.1
       },
       "transition": false,
       "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 9700.0,
-      "day_pct": -1.12,
+      "current_price": 9820.0,
+      "day_pct": 0.1,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
@@ -51,32 +51,14 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 77.8
+        "RSI값": 78.5
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 11240.0,
-      "day_pct": 13.77
-    },
-    {
-      "stock_code": "419050",
-      "stock_name": "삼기에너지솔루션즈",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 76.3
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 2305.0,
-      "day_pct": 29.93
+      "current_price": 11440.0,
+      "day_pct": 15.79
     },
     {
       "stock_code": "417840",
@@ -87,14 +69,50 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 89.1
+        "RSI값": 88.7
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 21300.0,
-      "day_pct": 13.3
+      "current_price": 21050.0,
+      "day_pct": 11.97
+    },
+    {
+      "stock_code": "005440",
+      "stock_name": "현대지에프홀딩스",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 42.2
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 13000.0,
+      "day_pct": 5.86
+    },
+    {
+      "stock_code": "059090",
+      "stock_name": "미코",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 77.0
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 25050.0,
+      "day_pct": 9.63
     }
   ]
 }
