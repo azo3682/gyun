@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-08T10:32:22+09:00",
+  "checked_at": "2026-10-08T11:44:59+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,14 +11,14 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 80.1
+        "RSI값": 89.1
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4230.0,
-      "day_pct": -4.51,
+      "current_price": 4445.0,
+      "day_pct": 0.34,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -30,35 +30,71 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 47.5
+        "RSI값": 44.6
       },
       "transition": false,
       "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 9800.0,
-      "day_pct": -0.1,
+      "current_price": 9700.0,
+      "day_pct": -1.12,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
     {
-      "stock_code": "126600",
-      "stock_name": "BGF에코머티리얼즈",
+      "stock_code": "033790",
+      "stock_name": "피노",
       "tech": {
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 84.2
+        "RSI값": 77.8
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3660.0,
-      "day_pct": 11.59
+      "current_price": 11240.0,
+      "day_pct": 13.77
+    },
+    {
+      "stock_code": "419050",
+      "stock_name": "삼기에너지솔루션즈",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 76.3
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 2305.0,
+      "day_pct": 29.93
+    },
+    {
+      "stock_code": "417840",
+      "stock_name": "저스템",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 89.1
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 21300.0,
+      "day_pct": 13.3
     }
   ]
 }
