@@ -1,47 +1,6 @@
 {
-  "checked_at": "2026-10-08T14:55:14+09:00",
-  "kept": [],
-  "excluded": [
-    {
-      "stock_code": "002720",
-      "stock_name": "국제약품",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 85.5
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 4340.0,
-      "day_pct": -2.03,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "034230",
-      "stock_name": "파라다이스",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 50.9
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 9910.0,
-      "day_pct": 1.02,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
+  "checked_at": "2026-10-09T10:00:31+09:00",
+  "kept": [
     {
       "stock_code": "033790",
       "stock_name": "피노",
@@ -57,8 +16,8 @@
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 11490.0,
-      "day_pct": 16.3
+      "current_price": 11500.0,
+      "day_pct": 16.4
     },
     {
       "stock_code": "417840",
@@ -75,8 +34,8 @@
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 20800.0,
-      "day_pct": 10.64
+      "current_price": 20850.0,
+      "day_pct": 10.9
     },
     {
       "stock_code": "005440",
@@ -87,14 +46,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 41.6
+        "RSI값": 39.9
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 12940.0,
-      "day_pct": 5.37
+      "current_price": 12850.0,
+      "day_pct": 4.64
     },
     {
       "stock_code": "059090",
@@ -105,14 +64,16 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 76.3
+        "RSI값": 75.5
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 24700.0,
-      "day_pct": 8.1
+      "current_price": 24350.0,
+      "day_pct": 6.56
     }
-  ]
+  ],
+  "excluded": [],
+  "new_candidates": []
 }
