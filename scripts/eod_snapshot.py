@@ -24,6 +24,7 @@ from common import (
     compute_transition_signal, compute_day_return, fetch_valuation_and_risk, is_cheap,
     check_disclosure_risk, fetch_news, KST,
     fetch_financial_ratio, strip_raw, composite_score, fetch_volume_ranking, fetch_price_detail,
+    compute_momentum, fetch_recent_disclosures, summarize_disclosures, get_sector_memo, build_signal_tags,
 )
 import signal_tracker
 
@@ -108,6 +109,16 @@ def build_snapshot():
         # 검증된 신호로 인정하지 않는다 (백테스트 표본에 이런 상태의 종목은 없었다)
         transition = raw_transition and not market_flags
 
+        # 신호 시점의 업종·모멘텀·공시 태그 (나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 실패해도 스냅샷은 계속)
+        try:
+            momentum = compute_momentum(df)
+            recent_disc = fetch_recent_disclosures(code)
+            disc_summary = summarize_disclosures(recent_disc)
+            tags = build_signal_tags(get_sector_memo(code), momentum, disc_summary)
+        except Exception as ex:
+            print(f"태그 계산 실패 {code}: {ex}")
+            momentum, recent_disc, disc_summary, tags = {}, [], None, {}
+
         last_date = str(df["stck_bsop_date"].iloc[-1]) if not df.empty else None
         last_close = float(df["stck_clpr"].iloc[-1]) if not df.empty else None
 
@@ -118,6 +129,8 @@ def build_snapshot():
             "fundamentals": strip_raw(fin), "score": score,
             "passed": passed, "total": total,
             "risky_disclosures": risky, "news": news,
+            "momentum": momentum, "sector": get_sector_memo(code), "recent_disclosures": recent_disc[:10],
+            "disclosure_summary": disc_summary, "tags": tags,
         })
 
     # 전환신호 우선, 그다음 참고점수, 그다음 원래 순위
