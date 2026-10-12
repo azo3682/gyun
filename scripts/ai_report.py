@@ -38,6 +38,7 @@ from common import (
     BASE_URL, KST, kis_headers, fetch_investor_ranking, fetch_volume_ranking, fetch_price_detail, market_risk_flags,
     _to_float, fetch_financial_ratio, strip_raw, composite_score, fetch_daily_ohlcv, analyze_technicals,
     compute_transition_signal, check_disclosure_risk, get_access_token, FAIL_REASONS,
+    compute_momentum, pick_sector, fetch_recent_disclosures, summarize_disclosures, MOMENTUM_CELL_NOTES,
 )
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
@@ -517,6 +518,14 @@ def collect_stock(item: dict, now: datetime) -> dict:
     except Exception:
         disclosures = []
         issues.append("공시 조회 실패")
+    # 업종·모멘텀·최근 공시 (맥락 정보. 실패해도 리포트는 계속 만든다)
+    try:
+        recent = fetch_recent_disclosures(code)
+        context = {"sector": pick_sector(detail), "momentum": compute_momentum(df), "recent_disclosures": recent[:8],
+                   "disclosure_summary": summarize_disclosures(recent)}
+    except Exception:
+        context = {"sector": "", "momentum": {}, "recent_disclosures": [], "disclosure_summary": summarize_disclosures([])}
+        issues.append("업종·모멘텀·공시 맥락 계산 실패")
     per, pbr = _to_float(detail.get("per")), _to_float(detail.get("pbr"))
     app_score = composite_score(per, pbr, fin) if not fin_is_empty(fin) else {"score": None, "parts": {}, "coverage": 0, "notes": []}
     structure, volume = compute_structure(df, detail, price)
@@ -537,7 +546,7 @@ def collect_stock(item: dict, now: datetime) -> dict:
                       "to_upper_pct": ((up / price - 1) * 100) if (up and price) else None,
                       "vs_mid_pct": ((price / mid - 1) * 100) if (mid and price) else None},
         "structure": structure, "volume": volume,
-        "financial": fin, "flow": flow, "disclosures": disclosures,
+        "financial": fin, "flow": flow, "disclosures": disclosures, "context": context,
         "scores": {"app_composite": app_score.get("score"), "app_notes": app_score.get("notes", []), "swing_check": swing},
         "data_issues": issues,
     }
@@ -638,6 +647,19 @@ def _detail_block(s: dict) -> str:
                      f"순이익 증가율 {fmt_num(fin.get('ni_growth'), 1, True)}%")
     else:
         lines.append("- 재무: 데이터 없음")
+    ctx = s.get("context") or {}
+    mom = ctx.get("momentum") or {}
+    if mom:
+        mom_txt = (f"{mom['cell']} (60일 {fmt_num(mom['ret60'], 1, True)}%, 20일 {fmt_num(mom['ret20'], 1, True)}%, 5일 {fmt_num(mom['ret5'], 1, True)}%, "
+                   f"RSI {fmt_num(mom['rsi'], 0)}, 구간 고점 대비 {fmt_num(mom['from_high'], 1, True)}%)")
+    else:
+        mom_txt = "계산 불가(일봉 61개 미만)"
+    ds = ctx.get("disclosure_summary") or {}
+    recent = ctx.get("recent_disclosures") or []
+    disc_txt = f"최근 7일 공시 분류 {ds.get('text', '—')}" if recent else "최근 7일 공시 없음 또는 조회 불가"
+    lines.append(f"- 맥락(참고용 분류, 예측 아님): 업종 {ctx.get('sector') or '정보 없음'} / 모멘텀 {mom_txt} / {disc_txt}")
+    if recent:
+        lines.append("  - 최근 공시: " + "; ".join(f"{d['date']} {d['title']}" for d in recent[:5]))
     lines.append(f"- 점수: 스윙 체크 {_score_text(sc)}; 앱 종합 {s['scores']['app_composite'] if s['scores']['app_composite'] is not None else 'N/A'}")
     extra = list(sc["notes"]) + list(s["scores"]["app_notes"]) + list(s["data_issues"])
     if s["risk_flags"]:
