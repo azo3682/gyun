@@ -164,6 +164,8 @@ def find_signals(buy_rows: list, volume_ok: bool = True, now: datetime | None = 
             "buy_rank": r.get("rank"), "volume_rank": r.get("volume_rank"),
             "overlap": is_trans and is_vs, "risk_flags": list(r.get("market_risk_flags") or []),
         }
+        if r.get("tags"):
+            base["tags"] = dict(r["tags"])       # 신호 시점의 업종·모멘텀·공시 태그 (없으면 키를 만들지 않는다)
         if is_trans:
             out.append({**base, "type": "transition", "conditions": dict(cond)})
         if is_vs:
@@ -222,6 +224,7 @@ def find_top10_entries(buy_rows: list, volume_ok: bool = True, now: datetime | N
                 "is_volume_supply": bool(r.get("volume_rank")) if volume_ok else None,
                 "risk_flags": list(r.get("market_risk_flags") or []),
             },
+            **({"tags": dict(r["tags"])} if r.get("tags") else {}),
         })
     return out
 
