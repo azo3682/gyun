@@ -304,6 +304,16 @@ def market_risk_flags(stat_code: str, warn_code: str, halted: bool, mktcap_eok: 
     return flags
 
 
+@st.cache_resource
+def _sector_memo() -> dict:
+    """종목코드 -> 업종명. 현재가 응답을 받을 때 채워지고 앱이 떠 있는 동안 유지된다(호출을 따로 늘리지 않으려는 용도)."""
+    return {}
+
+
+def get_sector_memo(stock_code: str) -> str:
+    return _sector_memo().get(stock_code, "")
+
+
 def _fetch_current_price_raw(stock_code: str):
     """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트). 실패하거나 응답이 비어 있으면 예외를 던진다."""
     resp = requests.get(
@@ -334,6 +344,9 @@ def _fetch_current_price_raw(stock_code: str):
         str(output.get("temp_stop_yn") or "") == "Y",
         mktcap_eok,
     )
+    sector = pick_sector(output)
+    if sector:
+        _sector_memo()[stock_code] = sector
     return price, pct, flags
 
 
@@ -1236,6 +1249,55 @@ def summarize_performance(signals: list) -> pd.DataFrame:
     return df
 
 
+TAG_HORIZONS = (3, 5, 10)
+
+
+def summarize_by_tag(signals: list, key_fn) -> pd.DataFrame:
+    """신호를 태그 값(key_fn(signal) -> 문자열 또는 None)으로 묶어 D+n 평균 수익률(진입가=다음날 시가 기준)과 표본 수를 낸다.
+    key_fn이 None을 주면(태그 없음) 그 신호는 제외한다. 신호 수가 많은 순으로 정렬."""
+    groups = {}
+    for s in signals:
+        k = key_fn(s)
+        if k is None:
+            continue
+        groups.setdefault(k, []).append(s)
+    rows = []
+    for k, ss in groups.items():
+        row = {"구분": k, "신호 수": len(ss)}
+        for n in TAG_HORIZONS:
+            rets = [(x.get("perf") or {}).get("ret", {}).get(str(n)) for x in ss]
+            rets = [r for r in rets if r is not None]
+            row[f"D+{n} 평균(%)"] = sum(rets) / len(rets) if rets else None
+            row[f"D+{n} 표본"] = len(rets)
+        rows.append(row)
+    df = pd.DataFrame(rows, columns=["구분", "신호 수"] + [c for n in TAG_HORIZONS for c in (f"D+{n} 평균(%)", f"D+{n} 표본")])
+    if len(df):
+        df = df.sort_values(["신호 수", "구분"], ascending=[False, True]).reset_index(drop=True)
+    return df
+
+
+def tag_momentum(s):
+    return ((s.get("tags") or {}).get("momentum") or {}).get("cell")
+
+
+def tag_disclosure(s):
+    t = s.get("tags") or {}
+    if "disc_risk" not in t:
+        return None
+    return "주의 공시 있음" if t["disc_risk"] else "주의 공시 없음"
+
+
+def tag_sector(s):
+    return (s.get("tags") or {}).get("sector") or None
+
+
+def style_tag_table(df: pd.DataFrame):
+    avg = [c for c in df.columns if c.endswith("평균(%)")]
+    styler = df.style.map(_signed_style, subset=avg)
+    styler = styler.format(lambda v: "—" if pd.isna(v) else f"{v:+.2f}", subset=avg)
+    return styler.format(lambda v: f"{int(v)}", subset=[c for c in df.columns if c.endswith("표본") or c == "신호 수"])
+
+
 def style_summary(df: pd.DataFrame):
     signed = ["평균 수익률(%)", "중앙값(%)", "평균 이익(%)", "평균 손실(%)", "평균 초과수익(%p)"]
     styler = df.style.map(_signed_style, subset=signed)
@@ -1515,6 +1577,23 @@ def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_
                "'지수 대비 초과수익'은 같은 기간 종목이 속한 시장(코스피/코스닥) 지수의 수익률을 뺀 값(%p)이고, 지수는 야후 파이낸스(yfinance) 비공식 "
                "데이터라 받지 못한 날은 비어 있을 수 있습니다(지수 시가가 없으면 신호일 지수 종가를 기준으로 대체). "
                "승률은 진입가 대비 수익률이 0보다 큰 비율입니다. 수수료·세금·슬리피지, 시가에 실제로 체결되는지는 반영하지 않았습니다.")
+    with st.expander("🏷 태그별 성과 (모멘텀 · 공시 · 업종)"):
+        n_tagged = sum(1 for s in signals if s.get("tags"))
+        if n_tagged == 0:
+            st.info("아직 태그가 붙은 신호가 없습니다. 업종·모멘텀·공시 태그는 이 기능을 올린 뒤 EOD(15:40)에서 새로 기록되는 신호부터 붙고, 과거 신호에는 소급되지 않습니다.")
+        else:
+            st.caption(f"태그가 붙은 신호 {n_tagged}건 / 전체 {len(signals)}건. 수익률은 진입가(다음날 시가) 대비 D+n 종가 기준입니다.")
+            for title, fn in (("모멘텀 분류별", tag_momentum), ("주의 공시 여부별", tag_disclosure), ("업종별", tag_sector)):
+                tdf2 = summarize_by_tag(signals, fn)
+                st.markdown(f"**{title}**")
+                if tdf2.empty:
+                    st.caption("해당 태그가 있는 신호가 없습니다.")
+                else:
+                    st.dataframe(style_tag_table(tdf2), use_container_width=True, hide_index=True)
+            best = max((int(summarize_by_tag(signals, fn)[f"D+{n} 표본"].max() or 0) for fn in (tag_momentum, tag_disclosure, tag_sector)
+                        for n in TAG_HORIZONS if not summarize_by_tag(signals, fn).empty), default=0)
+            st.warning(f"칸 하나에 표본이 가장 많은 곳도 {best}건입니다. 칸마다 최소 30건, 믿으려면 100건 안팎은 쌓여야 비교가 의미 있습니다. "
+                       "그 전에는 '이 칸이 낫다/나쁘다'를 결론으로 삼지 말고 기록으로만 보세요.")
     st.markdown("##### 🔽 눌림 대기 진입 vs 다음 날 시가 진입")
     pbs = summarize_pullback(signals)
     if pbs["n_obs"] == 0:
@@ -3054,6 +3133,138 @@ def render_delete_panel(tracker_entries: list, baseline_entries: list, cfg: dict
 # ---- 신호 지우기 helpers end
 
 
+# ---- 모멘텀·공시 분류 shared begin
+# 이 블록은 scripts/common.py와 streamlit_app.py에 글자 그대로 똑같이 들어 있다.
+# EOD가 신호 시점에 기록하는 값과 앱 화면의 값이 어긋나지 않게 하려는 것이라서, 한쪽만 고치지 말고 두 파일을 같이 고칠 것
+# (tests/test_shared_block.py가 두 파일의 블록이 같은지 검사한다). pandas만 쓰고 다른 모듈에 의존하지 않는다.
+#
+# 아래 기준값(60일 +10%, 5일 +10%, RSI 70, 급반등 +8%)은 데이터로 검증된 값이 아니라 임시 기본값이다.
+MOM_MIN_ROWS = 61               # 60거래일 수익률을 내려면 일봉이 61개 필요하다 (앱이 받는 일봉은 최근 약 4개월 = 90개 안팎)
+MOM_STRONG_RET60 = 10.0         # 중기 강세: 60거래일 수익률이 이 % 이상이고, 종가가 60일선 위, 60일선이 최근 5일 전보다 낮아지지 않음
+MOM_HOT_RET5 = 10.0             # 단기 과열: 5거래일 수익률이 이 % 이상이거나 RSI가 아래 값 이상
+MOM_HOT_RSI = 70.0
+MOM_BOUNCE_RET5 = 8.0           # 중기가 약한데 5거래일에 이만큼 올랐으면 '급반등'
+MOMENTUM_CELL_NOTES = {
+    "강세·안정": "중기 추세가 살아 있고 단기 과열은 아님 — 눌림을 기다릴 우선 후보",
+    "강세·과열": "중기 추세는 강하지만 최근 급등·과열 — 눌림을 기다릴 종목(추격 금지)",
+    "약세·급반등": "중기 약세 속 단기 급반등 — 추격 회피 후보",
+    "약세": "중기 추세가 약함",
+    "판단불가": "일봉이 61개 미만이라 계산하지 못함",
+}
+
+
+def compute_momentum(df) -> dict:
+    """일봉(stck_clpr, stck_hgpr 필요)으로 중기 모멘텀과 단기 과열을 계산해 네 칸 중 하나로 분류한다. 일봉이 61개 미만이면 빈 dict.
+    ret5/ret20/ret60: 종가 기준 5·20·60거래일 수익률(%). from_high: 가져온 일봉 구간의 최고가 대비 현재가(%). rsi: RSI14.
+    above_ma60: 종가가 60일선 위인가 / aligned: 종가 > 20일선 > 60일선인가 / ma60_rising: 60일선이 5거래일 전 값 이상인가(65개 미만이면 True로 본다).
+    cell: 강세·안정 / 강세·과열 / 약세·급반등 / 약세. 지수 대비 초과수익은 계산하지 않는다(일봉 구간이 짧아 지수 이력을 맞출 수 없음)."""
+    need = ["stck_clpr", "stck_hgpr"]
+    if df is None or getattr(df, "empty", True) or any(c not in df.columns for c in need):
+        return {}
+    d = df[need].apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
+    if len(d) < MOM_MIN_ROWS:
+        return {}
+    c = d["stck_clpr"]
+    last = float(c.iloc[-1])
+    if last <= 0:
+        return {}
+
+    def ret(n):
+        return (last / float(c.iloc[-1 - n]) - 1) * 100
+
+    ret5, ret20, ret60 = ret(5), ret(20), ret(60)
+    ma20, ma60 = float(c.tail(20).mean()), float(c.tail(60).mean())
+    ma60_prev = float(c.iloc[-65:-5].mean()) if len(c) >= 65 else None
+    rising = ma60_prev is None or ma60 >= ma60_prev
+    delta = c.diff()
+    avg_gain = delta.clip(lower=0).rolling(14).mean().iloc[-1]
+    avg_loss = (-delta.clip(upper=0)).rolling(14).mean().iloc[-1]
+    rsi = None
+    if pd.notna(avg_gain) and pd.notna(avg_loss):
+        rsi = (100.0 if avg_gain > 0 else None) if avg_loss == 0 else 100 - 100 / (1 + avg_gain / avg_loss)
+    from_high = (last / float(d["stck_hgpr"].max()) - 1) * 100
+    mid_strong = ret60 >= MOM_STRONG_RET60 and last > ma60 and rising
+    hot = ret5 >= MOM_HOT_RET5 or (rsi is not None and rsi >= MOM_HOT_RSI)
+    if mid_strong:
+        cell = "강세·과열" if hot else "강세·안정"
+    elif ret5 >= MOM_BOUNCE_RET5:
+        cell = "약세·급반등"
+    else:
+        cell = "약세"
+    return {"cell": cell, "ret5": round(ret5, 1), "ret20": round(ret20, 1), "ret60": round(ret60, 1),
+            "from_high": round(from_high, 1), "rsi": round(float(rsi), 1) if rsi is not None else None,
+            "above_ma60": bool(last > ma60), "aligned": bool(last > ma20 > ma60), "ma60_rising": bool(rising)}
+
+
+# 공시 제목 → (분류, 성격). 위에서부터 처음 맞는 규칙을 쓴다. 제목에 공백이 있어도 맞도록 비교할 때 공백을 지운다.
+# 성격: neg=주의가 필요한 공시, pos=일반적으로 호재로 읽히는 공시, neutral=내용을 읽어야 아는 공시. 호재/악재를 판정하는 게 아니라 '무슨 공시인지' 분류만 한다.
+DISCLOSURE_RULES = [
+    ("위험", "neg", ("횡령", "배임", "상장폐지", "관리종목", "거래정지", "불성실공시", "투자주의환기", "감사의견", "회생", "부도", "파산")),
+    ("무상증자", "pos", ("무상증자",)),
+    ("희석 우려", "neg", ("유상증자", "전환사채", "신주인수권부사채", "교환사채")),
+    ("감자", "neg", ("감자",)),
+    ("자사주 취득", "pos", ("자기주식취득", "자기주식 취득")),
+    ("자사주 처분", "neg", ("자기주식처분", "자기주식 처분")),
+    ("수주·공급계약", "pos", ("공급계약", "단일판매")),
+    ("실적", "neutral", ("영업(잠정)실적", "영업실적", "잠정실적", "손익구조")),
+    ("배당", "pos", ("배당결정", "현금ㆍ현물배당", "현금·현물배당")),
+    ("구조변경", "neutral", ("합병", "분할", "영업양수", "영업양도", "주식교환", "주식이전")),
+    ("최대주주 변경", "neutral", ("최대주주변경", "최대주주 변경")),
+    ("소송", "neg", ("소송",)),
+]
+
+
+def classify_disclosure(title) -> tuple:
+    """(분류, 성격). 규칙에 없으면 ('기타', 'neutral')."""
+    t = str(title or "").replace(" ", "")
+    for cat, tone, kws in DISCLOSURE_RULES:
+        if any(kw.replace(" ", "") in t for kw in kws):
+            return cat, tone
+    return "기타", "neutral"
+
+
+def summarize_disclosures(items) -> dict:
+    """공시 목록([{title, category?, tone?}])을 한 줄 요약으로 줄인다. 기타는 뺀다.
+    tags: 중복 없는 분류 이름(주의 → 호재 → 중립 순), neg: 주의 분류, risk: 주의 공시가 하나라도 있는가, text: 표에 넣는 한 줄(주의는 ⚠️)."""
+    seen, order = {}, {"neg": 0, "pos": 1, "neutral": 2}
+    for it in items or []:
+        cat, tone = it.get("category"), it.get("tone")
+        if not cat:
+            cat, tone = classify_disclosure(it.get("title"))
+        if cat != "기타" and cat not in seen:
+            seen[cat] = tone or "neutral"
+    ordered = sorted(seen.items(), key=lambda kv: order.get(kv[1], 2))
+    return {"tags": [k for k, _ in ordered], "neg": [k for k, v in ordered if v == "neg"], "risk": any(v == "neg" for _, v in ordered),
+            "text": " · ".join(("⚠️" if v == "neg" else "") + k for k, v in ordered) or "—"}
+
+
+SECTOR_FIELDS = ("bstp_kor_isnm", "idx_bztp_scls_cd_name", "idx_bztp_mcls_cd_name", "std_idst_clsf_cd_name")
+
+
+def pick_sector(output) -> str:
+    """증권사 현재가 응답(output dict)에서 업종명을 고른다. 첫 번째로 값이 있는 필드를 쓰고, 없으면 ''.
+    [확인 필요] 이 필드들이 실제로 오는지 이 환경에서는 확인하지 못했다 — 앱 종목 조회에서 업종이 보이는지 확인할 것."""
+    for key in SECTOR_FIELDS:
+        v = str((output or {}).get(key) or "").strip()
+        if v:
+            return v
+    return ""
+
+
+def build_signal_tags(sector, momentum, disclosure_summary) -> dict:
+    """신호를 기록하는 시점의 업종·모멘텀·공시 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
+    tags = {}
+    if sector:
+        tags["sector"] = sector
+    if momentum:
+        tags["momentum"] = {k: momentum.get(k) for k in ("cell", "ret5", "ret20", "ret60", "from_high", "rsi")}
+    if disclosure_summary is not None:
+        tags["disclosures"] = list(disclosure_summary.get("tags") or [])
+        tags["disc_risk"] = bool(disclosure_summary.get("risk"))
+    return tags
+# ---- 모멘텀·공시 분류 shared end
+
+
 # ---- 관찰목록 helpers begin
 # 관찰목록: 신호가 뜬 종목을 바로 사지 않고, 신호 다음 거래일부터 최대 WATCH_WINDOW_DAYS 거래일 지켜보다가 눌림 구간에서 판단하는 도구.
 # 저장 위치: 매매 일지와 같은 '비공개' 저장소의 watchlist.json (공개 저장소에는 어떤 종목을 보는지 남기지 않는다).
@@ -3336,12 +3547,79 @@ def fetch_watch_ohlcv(code: str) -> pd.DataFrame:
     return _retry(_fetch_watch_ohlcv_cached, code, default=pd.DataFrame())
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_recent_disclosures(stock_code: str, days: int = 7) -> list:
+    """최근 days일의 DART 공시 [{date, title, rcp_no, category, tone}] (최신순, 30분 캐시). 키가 없거나 실패하면 빈 목록(실패는 캐시되지 않게 예외로 올리지 않고 [] 반환)."""
+    corp_code = load_dart_corp_code_map().get(stock_code)
+    if not corp_code or not DART_API_KEY:
+        return []
+    end = datetime.now(KST).strftime("%Y%m%d")
+    start = (datetime.now(KST) - timedelta(days=days)).strftime("%Y%m%d")
+    resp = requests.get("https://opendart.fss.or.kr/api/list.json",
+                        params={"crtfc_key": DART_API_KEY, "corp_code": corp_code, "bgn_de": start, "end_de": end,
+                                "page_no": 1, "page_count": 30}, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("status") != "000":
+        return []
+    out = []
+    for it in data.get("list", []):
+        title = (it.get("report_nm") or "").strip()
+        cat, tone = classify_disclosure(title)
+        out.append({"date": it.get("rcept_dt", ""), "title": title, "rcp_no": it.get("rcept_no", ""), "category": cat, "tone": tone})
+    return out
+
+
+def sector_groups(rows) -> dict:
+    """[{sector, name|code}] -> {업종: [종목명...]} (많은 업종 순). 업종을 모르는 항목은 뺀다."""
+    g = {}
+    for r in rows:
+        sec = (r.get("sector") or "").strip()
+        if sec:
+            g.setdefault(sec, []).append(r.get("name") or r.get("code") or "?")
+    return dict(sorted(g.items(), key=lambda kv: (-len(kv[1]), kv[0])))
+
+
+def render_context_section(code: str, df):
+    """종목 조회용: 모멘텀 · 업종 · 최근 공시."""
+    mom = compute_momentum(df)
+    if not mom:
+        st.caption("일봉이 61개 미만이라 모멘텀을 계산하지 못했습니다.")
+    else:
+        mc = st.columns(5)
+        mc[0].metric("모멘텀 분류", mom["cell"])
+        mc[1].metric("60일 수익률", f"{mom['ret60']:+.1f}%")
+        mc[2].metric("20일 / 5일", f"{mom['ret20']:+.1f}% / {mom['ret5']:+.1f}%")
+        mc[3].metric("RSI(14)", "—" if mom["rsi"] is None else f"{mom['rsi']:.0f}")
+        mc[4].metric("구간 고점 대비", f"{mom['from_high']:+.1f}%")
+        st.caption(f"{MOMENTUM_CELL_NOTES[mom['cell']]}. 60일선 위: {'예' if mom['above_ma60'] else '아니오'} · "
+                   f"종가>20일선>60일선: {'예' if mom['aligned'] else '아니오'}. 기준값(60일 +10%, 5일 +10%, RSI 70)은 검증 전 임시값이고, "
+                   "눌림이 올지·언제 올지를 예측하는 값이 아니라 지금 어떤 상태인지 분류하는 값입니다.")
+    sector = get_sector_memo(code)
+    st.markdown(f"**업종**: {sector}" if sector else "**업종**: 응답에 업종 필드가 없습니다.")
+    discs = fetch_recent_disclosures(code)
+    summ = summarize_disclosures(discs)
+    st.markdown(f"**최근 7일 공시 분류**: {summ['text']}")
+    if discs:
+        lines = []
+        for d in discs[:15]:
+            mark = "⚠️ " if d["tone"] == "neg" else ""
+            url = f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={d['rcp_no']}" if d.get("rcp_no") else ""
+            title = f"[{d['title']}]({url})" if url else d["title"]
+            lines.append(f"- {d['date']} {mark}{title} · {d['category']}")
+        st.markdown("\n".join(lines))
+    else:
+        st.caption("최근 7일 공시가 없거나 DART 조회가 되지 않았습니다(DART 키가 없으면 비어 있습니다).")
+    st.caption("공시 분류는 제목 키워드로만 한 것이라 '어떤 종류의 공시인지'를 알려 줄 뿐 호재·악재 판정이 아닙니다. 내용은 링크로 직접 확인하세요.")
+
+
 @st.cache_data(ttl=60, show_spinner=False)
 def evaluate_watch_item(it: dict, budget: float, today: str) -> dict:
     """항목 하나의 현재 상태를 계산한다(60초 캐시 — 화면의 다른 버튼을 눌러도 증권사 호출이 다시 나가지 않게).
     조회가 실패해도 예외를 던지지 않고 status='조회 실패'로 돌려준다."""
     out = {**it, "status": "조회 실패", "price": None, "day_pct": None, "days_since": None, "sig_close": it.get("signal_close"),
-           "sig_low": None, "gap_pct": None, "vol_mult": None, "zone": None, "stop": None, "qty": None, "frgn": None, "orgn": None}
+           "sig_low": None, "gap_pct": None, "vol_mult": None, "zone": None, "stop": None, "qty": None, "frgn": None, "orgn": None,
+           "momentum": {}, "sector": "", "disc": None}
     hint = it.get("elapsed_hint")
     if not it.get("decision") and hint is not None and hint > WATCH_WINDOW_DAYS + it.get("extend_days", 0):
         out.update(status="만료", days_since=hint)          # 신호 추적 파일만으로 이미 기한이 지난 것 — 일봉을 받지 않는다
@@ -3352,7 +3630,12 @@ def evaluate_watch_item(it: dict, budget: float, today: str) -> dict:
             raise RuntimeError("일봉 조회 실패")           # 일봉이 없으면 경과 일수를 0으로 잘못 세어 '신호 당일'로 보이게 된다
         time.sleep(0.12)                                    # 종목이 많을 때 초당 호출 제한에 걸리지 않도록 (캐시에 없을 때만 실행된다)
         price, pct, _flags = fetch_current_price(it["code"])
-        out.update(price=price, day_pct=pct)
+        out.update(price=price, day_pct=pct, sector=get_sector_memo(it["code"]))
+        out["momentum"] = compute_momentum(df)
+        try:
+            out["disc"] = summarize_disclosures(fetch_recent_disclosures(it["code"]))
+        except Exception:
+            out["disc"] = None                              # 공시 조회가 실패해도 상태 판정은 계속한다
         dates = [_ymd(x) for x in df["stck_bsop_date"]] if not df.empty else []
         sig, sig_close = it["signal_date"], it.get("signal_close")
         if sig in dates:
@@ -3397,12 +3680,13 @@ def watch_dataframe(rows: list) -> pd.DataFrame:
     for r in rows:
         sc, px = r.get("sig_close"), r.get("price")
         data.append({
-            "상태": r["status"], "종목": r["name"], "코드": r["code"], "출처": watch_source_label(r), "신호일": r["signal_date"][5:],
+            "상태": r["status"], "종목": r["name"], "코드": r["code"], "업종": r.get("sector") or "—",
+            "모멘텀": (r.get("momentum") or {}).get("cell") or "—", "출처": watch_source_label(r), "신호일": r["signal_date"][5:],
             "경과(거래일)": r.get("days_since"), "신호일 종가": sc, "현재가": px,
             "종가 대비(%)": (px / sc - 1) * 100 if (px and sc) else None,
             "눌림 구간(원)": f"{r['zone'][0]:,.0f} – {r['zone'][1]:,.0f}" if r.get("zone") else "—",
             "손절가(원)": r.get("stop"), "수량(주)": r.get("qty"), "거래량 배수": r.get("vol_mult"),
-            "외국인 연속": _sn(r.get("frgn")), "기관 연속": _sn(r.get("orgn")), "메모": (r.get("note") or "")[:30],
+            "외국인 연속": _sn(r.get("frgn")), "기관 연속": _sn(r.get("orgn")), "공시(7일)": (r.get("disc") or {}).get("text") or "—", "메모": (r.get("note") or "")[:30],
         })
     return pd.DataFrame(data)
 
@@ -3465,10 +3749,35 @@ def render_watchlist_tab():
 
     if live:
         st.dataframe(style_watch_table(watch_dataframe(live)), use_container_width=True, hide_index=True)
+        crowded = {k: v for k, v in sector_groups(live).items() if len(v) >= 2}
+        if crowded:
+            st.warning("같은 업종 종목이 여러 개 관찰 중입니다 (같이 오르고 같이 빠지는 경향이 있어 사실상 한 번에 크게 베팅하는 셈이 됩니다): "
+                       + " / ".join(f"{k} {len(v)}개({', '.join(v)})" for k, v in crowded.items()))
+        st.caption("업종은 증권사 현재가 응답에서 가져오며(응답에 없으면 '—'), 모멘텀은 일봉 기준 분류(강세·안정 / 강세·과열 / 약세·급반등 / 약세), "
+                   "공시(7일)는 DART 제목 키워드 분류(⚠️는 주의 공시)입니다. 분류일 뿐 눌림 여부를 예측하는 값이 아닙니다. 공시가 '—'이면 없거나 조회 불가입니다.")
         st.caption("눌림 구간·손절가·수량은 신호일 종가의 -1%와 -3% 중간값을 진입가로 가정해 계산한 참고값입니다(손절가는 ATR×1.5 기준). "
                    "외국인·기관 연속은 확정 데이터 기준 연속 순매수(+)·순매도(-) 일수이고, 거래량 배수는 최근 일봉 거래량을 직전 20일 평균과 비교한 값입니다.")
     else:
         st.info("관찰 중인 종목이 없습니다. 신호 추적에 새 신호가 기록되거나 장중 신규 후보가 잡히면 자동으로 들어오고, 아래에서 직접 추가할 수도 있습니다.")
+    with st.expander("🧭 업종 쏠림"):
+        grp = sector_groups(live)
+        if grp:
+            st.dataframe(pd.DataFrame([{"업종": k, "관찰 중": len(v), "종목": ", ".join(v)} for k, v in grp.items()]),
+                         use_container_width=True, hide_index=True)
+        else:
+            st.caption("업종을 알 수 있는 관찰 종목이 없습니다.")
+        if st.checkbox("오늘 순매수 상위 10도 업종별로 집계 (증권사 조회 10건)", key=f"watch_top10_sector_{nonce}"):
+            rows10 = []
+            for r in buy_rows:
+                fetch_current_price(r["stock_code"])
+                rows10.append({"sector": get_sector_memo(r["stock_code"]), "name": r["stock_name"]})
+            g10 = sector_groups(rows10)
+            if g10:
+                st.dataframe(pd.DataFrame([{"업종": k, "종목 수": len(v), "종목": ", ".join(v)} for k, v in g10.items()]),
+                             use_container_width=True, hide_index=True)
+                st.caption("순매수 상위가 한 업종으로 몰려 있으면 그 업종 전체의 수급이지 개별 종목의 신호가 아닐 수 있습니다.")
+            else:
+                st.caption("업종 정보를 받지 못했습니다.")
     if done:
         with st.expander(f"종료된 항목 {len(done)}개 (최근 30개까지 표시)"):
             st.dataframe(style_watch_table(watch_dataframe(done[:30])), use_container_width=True, hide_index=True)
@@ -4243,6 +4552,13 @@ with tab_lookup:
             st.caption("재무비율 조회 실패 (ETF·신규상장·결산 미공시 종목은 제공되지 않을 수 있습니다).")
 
         render_investor_section(lookup_est, lookup_inv)
+
+        st.markdown("**모멘텀 · 업종 · 최근 공시**")
+        render_context_section(lookup_code, lookup_df)
+        _sec_keys = [k for k in (lookup_val_raw or {}) if any(x in k for x in ("bstp", "bztp", "idst"))]
+        if not get_sector_memo(lookup_code):
+            st.caption("업종이 비어 있으면 위 '원본 응답 확인'에서 업종 관련 필드를 찾아 알려 주세요. "
+                       + (f"업종 관련으로 보이는 필드: {', '.join(_sec_keys)}" if _sec_keys else "이름에 bstp·bztp·idst가 들어간 필드가 응답에 없습니다."))
 
         lookup_transition = compute_transition_signal(lookup_df)
         if lookup_transition:
