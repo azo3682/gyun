@@ -3054,8 +3054,495 @@ def render_delete_panel(tracker_entries: list, baseline_entries: list, cfg: dict
 # ---- 신호 지우기 helpers end
 
 
-tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
+# ---- 관찰목록 helpers begin
+# 관찰목록: 신호가 뜬 종목을 바로 사지 않고, 신호 다음 거래일부터 최대 WATCH_WINDOW_DAYS 거래일 지켜보다가 눌림 구간에서 판단하는 도구.
+# 저장 위치: 매매 일지와 같은 '비공개' 저장소의 watchlist.json (공개 저장소에는 어떤 종목을 보는지 남기지 않는다).
+# 아래 기준(3거래일, -1%에서 -3% 눌림 구간, 갭 +2% 패스)은 데이터로 검증된 값이 아니라 임시 기본값이다.
+WATCH_WINDOW_DAYS = 3
+WATCH_PULLBACK_NEAR = 0.01       # 눌림 구간 = 신호일 종가의 -1% 에서 -3% 사이
+WATCH_PULLBACK_FAR = 0.03
+WATCH_GAP_PASS_PCT = 2.0         # 신호 다음 날 시가가 신호일 종가보다 이 % 이상 높게 열리면 그날은 패스
+WATCH_AUTO_LOOKBACK_DAYS = 12    # 신호 추적 파일에서 자동으로 가져올 신호의 최대 경과 일수(달력 기준, 연휴 여유 포함)
+WATCH_EXTEND_MAX = 5             # 관찰 기간을 늘릴 수 있는 최대 거래일
+WATCH_DISMISSED_KEEP_DAYS = 60   # 삭제 목록(같은 신호 재편입 방지)을 보관하는 기간
+WATCH_KIND_LABELS = {"transition": "전환신호", "volume_supply": "거래량·수급", "intraday": "장중 잠정", "manual": "수동"}
+WATCH_ACTIVE_STATUSES = ("진입 구간", "깊은 눌림")
+WATCH_STATUS_RANK = {"진입 구간": 0, "깊은 눌림": 1, "대기": 2, "갭상승 패스": 3, "신호 당일": 4, "조회 실패": 5,
+                     "진입함": 6, "패스": 7, "무효": 8, "만료": 9}
+WATCH_DONE_STATUSES = ("진입함", "패스", "무효", "만료")
+WATCH_CODE_RE = re.compile(r"[0-9A-Z]{6}")
+WATCH_DECISIONS = ("", "진입함", "패스")
+
+
+def watch_key(code, signal_date) -> str:
+    return f"{code}|{signal_date}"
+
+
+def normalize_watchlist(wl) -> dict:
+    """저장 파일이 비었거나 깨졌어도 {'items': [], 'dismissed': []} 모양을 보장한다. 알 수 없는 키는 그대로 둔다."""
+    wl = dict(wl) if isinstance(wl, dict) else {}
+    wl["items"] = [dict(i) for i in (wl.get("items") or []) if isinstance(i, dict) and i.get("code") and i.get("signal_date")]
+    wl["dismissed"] = [dict(d) for d in (wl.get("dismissed") or []) if isinstance(d, dict) and d.get("code") and d.get("signal_date")]
+    return wl
+
+
+def trading_days_after(dates, ref_date: str) -> int:
+    """일봉 날짜 목록(YYYY-MM-DD)에서 ref_date보다 뒤인 거래일 수. 신호 다음 거래일이 1."""
+    return sum(1 for d in dates if d > ref_date)
+
+
+def pullback_zone(signal_close: float):
+    """(아래, 위) = 신호일 종가의 -3%, -1%."""
+    return signal_close * (1 - WATCH_PULLBACK_FAR), signal_close * (1 - WATCH_PULLBACK_NEAR)
+
+
+def judge_watch(signal_close, signal_low, cur, days_since: int, extend_days: int = 0, gap_pct=None,
+                decision: str = "", window: int = WATCH_WINDOW_DAYS) -> str:
+    """관찰 종목의 상태. 우선순위: 사용자가 정한 판단(진입함/패스) > 무효(신호일 저가 이탈) > 만료 > 신호 당일 > 갭상승 패스 > 눌림 구간 판정.
+    신호 당일에는 사지 않는다는 기조라서 days_since가 0이면 '신호 당일'이다."""
+    if decision in ("진입함", "패스"):
+        return decision
+    if not signal_close or not cur:
+        return "조회 실패"
+    if signal_low and cur < signal_low:
+        return "무효"
+    if days_since > window + (extend_days or 0):
+        return "만료"
+    if days_since <= 0:
+        return "신호 당일"
+    lo, hi = pullback_zone(signal_close)
+    if cur > hi:
+        if days_since == 1 and gap_pct is not None and gap_pct >= WATCH_GAP_PASS_PCT:
+            return "갭상승 패스"
+        return "대기"
+    if cur >= lo:
+        return "진입 구간"
+    return "깊은 눌림"
+
+
+def build_watch_items(wl, tracker_signals, intraday_new, today: str, lookback_days: int = WATCH_AUTO_LOOKBACK_DAYS) -> list:
+    """자동 후보(신호 추적 파일의 최근 신호 + 오늘 장중 신규 후보)와 저장된 항목을 (종목, 신호일) 기준으로 합친다.
+    삭제 목록에 있는 조합은 뺀다. 저장된 메모·판단·연장일은 자동 후보 위에 덮어 쓴다.
+    elapsed_hint: 신호 추적 파일에 쌓인 신호 이후 종가 개수(= 마지막 EOD 실행까지 지난 거래일 수). 일봉을 받지 않고 만료를 미리 거르는 데 쓴다."""
+    wl = normalize_watchlist(wl)
+    dismissed = {watch_key(d["code"], d["signal_date"]) for d in wl["dismissed"]}
+    cutoff = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    auto = {}
+
+    def _add(code, name, sdate, kind, sig_close=None, hint=None):
+        k = watch_key(code, sdate)
+        if k in dismissed:
+            return
+        e = auto.setdefault(k, {"code": code, "name": name or code, "signal_date": sdate, "kinds": [],
+                                "signal_close": None, "provisional": True, "elapsed_hint": None})
+        if kind not in e["kinds"]:
+            e["kinds"].append(kind)
+        if kind in ("transition", "volume_supply"):
+            e["provisional"] = False
+            if sig_close:
+                e["signal_close"] = sig_close
+            if hint is not None:
+                e["elapsed_hint"] = max(hint, e["elapsed_hint"] or 0)
+
+    for s in tracker_signals or []:
+        if s.get("type") in ("transition", "volume_supply") and s.get("code") and (s.get("signal_date") or "") >= cutoff:
+            _add(s["code"], s.get("name"), s["signal_date"], s["type"], s.get("signal_close"), len(s.get("closes") or {}))
+    for n in intraday_new or []:
+        if n.get("stock_code"):
+            _add(n["stock_code"], n.get("stock_name"), today, "intraday")
+
+    stored = {}
+    for i in wl["items"]:
+        k = watch_key(i["code"], i["signal_date"])
+        if k not in dismissed:
+            stored[k] = i
+    out = []
+    for k in list(auto) + [k for k in stored if k not in auto]:
+        a, s = auto.get(k), stored.get(k, {})
+        base = a or {"code": s["code"], "name": s.get("name") or s["code"], "signal_date": s["signal_date"],
+                     "kinds": [s.get("kind") or "manual"], "signal_close": None, "provisional": False, "elapsed_hint": None}
+        out.append({
+            "key": k, "code": base["code"], "name": base["name"] if base["name"] != base["code"] else (s.get("name") or base["code"]),
+            "signal_date": base["signal_date"], "kinds": base["kinds"], "provisional": base["provisional"],
+            "signal_close": base["signal_close"] or s.get("ref_close"), "elapsed_hint": base["elapsed_hint"],
+            "note": s.get("note") or "", "decision": s.get("decision") or "", "extend_days": int(s.get("extend_days") or 0),
+            "entry_price": s.get("entry_price"), "stored": bool(s), "added_date": s.get("added_date") or base["signal_date"],
+        })
+    return out
+
+
+def watch_source_label(it: dict) -> str:
+    text = " + ".join(WATCH_KIND_LABELS.get(k, k) for k in it.get("kinds", []))
+    return text + (" (잠정)" if it.get("provisional") else "")
+
+
+# ---- 저장 내용을 바꾸는 함수들: 모두 wl을 받아 바뀐 새 wl을 돌려준다 (GitHub 읽기-수정-쓰기에서 mutator로 쓴다)
+def _prune_dismissed(wl: dict, now_iso: str) -> dict:
+    try:
+        limit = (datetime.fromisoformat(now_iso[:19]) - timedelta(days=WATCH_DISMISSED_KEEP_DAYS)).isoformat(timespec="seconds")
+    except ValueError:
+        return wl
+    wl["dismissed"] = [d for d in wl["dismissed"] if (d.get("dismissed_at") or "9999") >= limit]
+    return wl
+
+
+def wl_upsert_fields(wl, code: str, signal_date: str, name: str, fields: dict, today: str, now_iso: str) -> dict:
+    """(종목, 신호일) 항목이 있으면 fields를 덮어쓰고, 없으면 새로 만든다 (자동 후보에 메모·판단을 처음 남길 때)."""
+    wl = normalize_watchlist(wl)
+    k = watch_key(code, signal_date)
+    for it in wl["items"]:
+        if watch_key(it["code"], it["signal_date"]) == k:
+            it.update(fields)
+            if name and not it.get("name"):
+                it["name"] = name
+            break
+    else:
+        wl["items"].append({"code": code, "name": name or code, "signal_date": signal_date, "added_date": today, **fields})
+    wl["updated_at"] = now_iso
+    return wl
+
+
+def wl_set_decision(wl, code, signal_date, name, decision: str, entry_price, today: str, now_iso: str) -> dict:
+    if decision not in WATCH_DECISIONS:
+        raise ValueError("판단은 미정·진입함·패스 중 하나여야 합니다")
+    fields = {"decision": decision, "decided_at": now_iso if decision else None,
+              "entry_price": float(entry_price) if (decision == "진입함" and entry_price) else None}
+    return wl_upsert_fields(wl, code, signal_date, name, fields, today, now_iso)
+
+
+def wl_extend(wl, code, signal_date, name, days: int, current_extend: int, today: str, now_iso: str) -> dict:
+    new = max(0, min(WATCH_EXTEND_MAX, int(current_extend or 0) + int(days)))
+    return wl_upsert_fields(wl, code, signal_date, name, {"extend_days": new}, today, now_iso)
+
+
+def wl_dismiss(wl, code, signal_date, now_iso: str) -> dict:
+    """항목을 지우고 삭제 목록에 올린다 → 같은 (종목, 신호일)은 자동으로 다시 들어오지 않는다."""
+    wl = normalize_watchlist(wl)
+    k = watch_key(code, signal_date)
+    wl["items"] = [i for i in wl["items"] if watch_key(i["code"], i["signal_date"]) != k]
+    if not any(watch_key(d["code"], d["signal_date"]) == k for d in wl["dismissed"]):
+        wl["dismissed"].append({"code": code, "signal_date": signal_date, "dismissed_at": now_iso})
+    wl["updated_at"] = now_iso
+    return _prune_dismissed(wl, now_iso)
+
+
+def wl_add_manual(wl, code: str, name: str, ref_close: float, note: str, today: str, now_iso: str) -> dict:
+    """직접 추가. 신호일 자리에는 추가한 날짜가 들어가고(관찰 시작일), 기준 가격은 그때의 현재가다.
+    같은 날 지웠던 종목을 다시 추가하면 삭제 목록에서 빼 준다."""
+    code = (code or "").strip().upper()
+    if not WATCH_CODE_RE.fullmatch(code):
+        raise ValueError("종목코드는 6자리 숫자(또는 영문 대문자)여야 합니다")
+    if not ref_close or ref_close <= 0:
+        raise ValueError("기준 가격을 알 수 없습니다")
+    wl = normalize_watchlist(wl)
+    k = watch_key(code, today)
+    wl["dismissed"] = [d for d in wl["dismissed"] if watch_key(d["code"], d["signal_date"]) != k]
+    fields = {"kind": "manual", "ref_close": float(ref_close), "note": (note or "").strip()[:500]}
+    return wl_upsert_fields(wl, code, today, (name or "").strip()[:40] or code, fields, today, now_iso)
+
+
+def watch_counts(rows: list) -> dict:
+    out = {}
+    for r in rows:
+        out[r["status"]] = out.get(r["status"], 0) + 1
+    return out
+def intraday_checked_today(checked_at, today: str) -> bool:
+    """장중 재점검 파일(data/intraday_status.json)의 checked_at이 오늘 것인지. 형식을 정확히 몰라서 날짜가 YYYY-MM-DD 또는 YYYYMMDD로 들어 있으면 오늘로 본다."""
+    text = str(checked_at or "")
+    return bool(text) and (today in text or today.replace("-", "") in text)
+
+# ---- 관찰목록 helpers end
+
+
+# ---- 관찰목록 저장·화면 begin
+WATCHLIST_DEFAULT_PATH = "watchlist.json"
+INTRADAY_STATUS_FILE = "data/intraday_status.json"
+SETUP_WATCH_GUIDE = """**관찰목록은 매매 일지와 같은 설정을 씁니다** (새로 만들 것은 없어요). 목록은 이 코드 저장소가 아니라 일지를 저장하는 **비공개 저장소**의 `watchlist.json`에 저장됩니다.
+
+Streamlit Secrets에 `JOURNAL_GITHUB_TOKEN`, `JOURNAL_REPO`, `JOURNAL_PASSWORD`가 있어야 하고(매매 일지 안내 참고), 파일 이름을 바꾸고 싶으면 `WATCHLIST_PATH`를 추가하세요."""
+
+_WATCH_STATUS_STYLE = {
+    "진입 구간": "background-color: rgba(47,158,68,0.18); color: #2f9e44; font-weight: 600;",
+    "깊은 눌림": "background-color: rgba(245,159,0,0.18); color: #e67700; font-weight: 600;",
+    "진입함": "background-color: rgba(112,72,232,0.16); color: #7048e8; font-weight: 600;",
+    "무효": "color: #868e96;", "만료": "color: #868e96;", "패스": "color: #868e96;",
+}
+
+
+def watchlist_settings() -> dict:
+    return {**journal_settings(), "path": _secret("WATCHLIST_PATH", WATCHLIST_DEFAULT_PATH)}
+
+
+def gh_read_json(repo: str, path: str, token: str, branch=None):
+    """(dict, sha). 파일이 아직 없으면 ({}, None). 저장소를 못 찾거나 권한이 없으면 RuntimeError."""
+    resp = requests.get(f"{GITHUB_API}/repos/{repo}/contents/{path}", headers=_gh_headers(token),
+                        params={"ref": branch} if branch else None, timeout=15)
+    if resp.status_code == 404:
+        r2 = requests.get(f"{GITHUB_API}/repos/{repo}", headers=_gh_headers(token), timeout=15)
+        if r2.status_code == 200:
+            return {}, None
+        raise RuntimeError("저장소를 찾을 수 없거나 토큰에 접근 권한이 없습니다 (JOURNAL_REPO 이름과 토큰의 저장소 권한을 확인하세요)")
+    if resp.status_code != 200:
+        raise RuntimeError(_gh_error(resp))
+    data = resp.json()
+    text = base64.b64decode(data.get("content", "")).decode("utf-8")
+    parsed = json.loads(text) if text.strip() else {}
+    return (parsed if isinstance(parsed, dict) else {}), data["sha"]
+
+
+def watchlist_mutate(mutator, message: str):
+    """관찰목록을 읽어 mutator로 바꾼 뒤 저장한다. 그 사이 다른 곳에서 바뀌었으면(충돌) 한 번 다시 읽어 재시도."""
+    cfg = watchlist_settings()
+    for attempt in range(2):
+        wl, sha = gh_read_json(cfg["repo"], cfg["path"], cfg["token"], cfg["branch"])
+        wl = mutator(normalize_watchlist(wl))
+        try:
+            gh_write_journal(cfg["repo"], cfg["path"], cfg["token"], wl, sha, message, cfg["branch"])
+            return wl
+        except JournalConflict:
+            if attempt == 1:
+                raise
+
+
+@st.cache_data(ttl=60)
+def load_watchlist() -> dict:
+    cfg = watchlist_settings()
+    return normalize_watchlist(gh_read_json(cfg["repo"], cfg["path"], cfg["token"], cfg["branch"])[0])
+
+
+@st.cache_data(ttl=60)
+def load_intraday_new(today: str) -> list:
+    """오늘 장중 재점검에서 새로 잡힌 후보(잠정). 파일이 없거나 오늘 것이 아니면 빈 목록."""
+    try:
+        with open(INTRADAY_STATUS_FILE, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        if not intraday_checked_today(d.get("checked_at"), today):
+            return []
+        return [n for n in (d.get("new_candidates") or []) if isinstance(n, dict)]
+    except Exception:
+        return []
+
+
+def _ymd(s) -> str:
+    s = str(s)
+    return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) == 8 and s.isdigit() else s
+
+
+_fetch_watch_ohlcv_cached = st.cache_data(ttl=120)(_fetch_daily_ohlcv_raw)
+
+
+def fetch_watch_ohlcv(code: str) -> pd.DataFrame:
+    """관찰 종목의 일봉(2분 캐시). 성공한 결과만 캐시하고 실패는 한 번 더 시도한다. 끝내 실패하면 빈 DataFrame."""
+    return _retry(_fetch_watch_ohlcv_cached, code, default=pd.DataFrame())
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def evaluate_watch_item(it: dict, budget: float, today: str) -> dict:
+    """항목 하나의 현재 상태를 계산한다(60초 캐시 — 화면의 다른 버튼을 눌러도 증권사 호출이 다시 나가지 않게).
+    조회가 실패해도 예외를 던지지 않고 status='조회 실패'로 돌려준다."""
+    out = {**it, "status": "조회 실패", "price": None, "day_pct": None, "days_since": None, "sig_close": it.get("signal_close"),
+           "sig_low": None, "gap_pct": None, "vol_mult": None, "zone": None, "stop": None, "qty": None, "frgn": None, "orgn": None}
+    hint = it.get("elapsed_hint")
+    if not it.get("decision") and hint is not None and hint > WATCH_WINDOW_DAYS + it.get("extend_days", 0):
+        out.update(status="만료", days_since=hint)          # 신호 추적 파일만으로 이미 기한이 지난 것 — 일봉을 받지 않는다
+        return out
+    try:
+        df = fetch_watch_ohlcv(it["code"])
+        if df.empty:
+            raise RuntimeError("일봉 조회 실패")           # 일봉이 없으면 경과 일수를 0으로 잘못 세어 '신호 당일'로 보이게 된다
+        time.sleep(0.12)                                    # 종목이 많을 때 초당 호출 제한에 걸리지 않도록 (캐시에 없을 때만 실행된다)
+        price, pct, _flags = fetch_current_price(it["code"])
+        out.update(price=price, day_pct=pct)
+        dates = [_ymd(x) for x in df["stck_bsop_date"]] if not df.empty else []
+        sig, sig_close = it["signal_date"], it.get("signal_close")
+        if sig in dates:
+            row = df.iloc[dates.index(sig)]
+            out["sig_low"] = float(row["stck_lwpr"])
+            if "manual" not in it["kinds"] and not it.get("provisional"):
+                sig_close = float(row["stck_clpr"])         # 공식 일봉 종가를 우선한다 (신호 추적 파일의 15:40 값은 조금 다를 수 있다)
+        if it.get("provisional") and price:
+            sig_close = price                              # 장중 잠정 신호: 지금 가격을 임시 기준으로
+        out["sig_close"] = sig_close
+        out["days_since"] = trading_days_after(dates, sig)
+        after = [i for i, d in enumerate(dates) if d > sig]
+        if after and sig_close:
+            out["gap_pct"] = (float(df.iloc[after[0]]["stck_oprc"]) / sig_close - 1) * 100
+        if len(df) >= 21:
+            prior = df["acml_vol"].iloc[-21:-1].mean()
+            out["vol_mult"] = float(df["acml_vol"].iloc[-1] / prior) if prior else None
+        if sig_close:
+            lo, hi = pullback_zone(sig_close)
+            out["zone"] = (lo, hi)
+            rec = recommend_stops(df, (lo + hi) / 2, budget)
+            if rec and rec.get("rows"):
+                out["stop"], out["qty"] = rec["rows"][0]["손절가(원)"], rec["rows"][0]["수량(주)"]
+        inv = fetch_investor_daily(it["code"])
+        if inv:
+            confirmed = [r for r in inv if not investor_row_pending(r, today.replace("-", ""))]
+            out["frgn"], out["orgn"] = investor_streak(confirmed, "frgn"), investor_streak(confirmed, "orgn")
+        out["status"] = judge_watch(sig_close, out["sig_low"], price, out["days_since"], it.get("extend_days", 0),
+                                    out["gap_pct"], it.get("decision", ""))
+    except Exception as e:
+        out["status"] = it.get("decision") or "조회 실패"
+        out["error"] = str(e)[:100]
+    return out
+
+
+def _sn(n) -> str:
+    return "—" if not n else f"{n:+d}"
+
+
+def watch_dataframe(rows: list) -> pd.DataFrame:
+    data = []
+    for r in rows:
+        sc, px = r.get("sig_close"), r.get("price")
+        data.append({
+            "상태": r["status"], "종목": r["name"], "코드": r["code"], "출처": watch_source_label(r), "신호일": r["signal_date"][5:],
+            "경과(거래일)": r.get("days_since"), "신호일 종가": sc, "현재가": px,
+            "종가 대비(%)": (px / sc - 1) * 100 if (px and sc) else None,
+            "눌림 구간(원)": f"{r['zone'][0]:,.0f} – {r['zone'][1]:,.0f}" if r.get("zone") else "—",
+            "손절가(원)": r.get("stop"), "수량(주)": r.get("qty"), "거래량 배수": r.get("vol_mult"),
+            "외국인 연속": _sn(r.get("frgn")), "기관 연속": _sn(r.get("orgn")), "메모": (r.get("note") or "")[:30],
+        })
+    return pd.DataFrame(data)
+
+
+def style_watch_table(df: pd.DataFrame):
+    fmt = {"신호일 종가": lambda v: "—" if pd.isna(v) else f"{v:,.0f}", "현재가": lambda v: "—" if pd.isna(v) else f"{v:,.0f}",
+           "종가 대비(%)": lambda v: "—" if pd.isna(v) else f"{v:+.1f}%", "손절가(원)": lambda v: "—" if pd.isna(v) else f"{v:,.0f}",
+           "수량(주)": lambda v: "—" if pd.isna(v) else f"{int(v):,}", "거래량 배수": lambda v: "—" if pd.isna(v) else f"{v:.1f}배",
+           "경과(거래일)": lambda v: "—" if pd.isna(v) else f"{int(v)}"}
+    return (df.style.format(fmt).map(_signed_style, subset=["종가 대비(%)"])
+            .map(lambda v: _WATCH_STATUS_STYLE.get(v, ""), subset=["상태"]))
+
+
+def render_watchlist_tab():
+    flash = st.session_state.pop("watch_flash", None)
+    if flash:
+        st.success(flash)
+    try:
+        wl = load_watchlist()
+    except Exception as e:
+        st.error(f"관찰목록을 불러오지 못했습니다: {e}")
+        return
+    now = datetime.now(KST)
+    today, now_iso = now.strftime("%Y-%m-%d"), now.isoformat(timespec="seconds")
+    signals = load_tracker_signals()
+    items = build_watch_items(wl, signals, load_intraday_new(today), today)
+    nonce = st.session_state.get("watch_nonce", 0)
+
+    st.caption(
+        f"**기조**: 신호 당일에는 사지 않고, 신호 다음 거래일부터 최대 {WATCH_WINDOW_DAYS}거래일 지켜봅니다. 신호일 종가의 -{WATCH_PULLBACK_NEAR * 100:.0f}% 에서 "
+        f"-{WATCH_PULLBACK_FAR * 100:.0f}% 사이로 눌리면 '진입 구간', 신호일 저가를 깨면 '무효', 기한 안에 눌림이 없으면 '만료'입니다. "
+        f"신호 다음 날 시가가 신호일 종가보다 {WATCH_GAP_PASS_PCT:.0f}% 이상 높게 열리면 그날은 '갭상승 패스'입니다. "
+        "이 기준들은 백테스트로 확인한 값이 아니라 임시 기본값이고, 아래에서 '진입함/패스'를 기록해 두면 나중에 같은 기준으로 성과를 비교할 수 있습니다.")
+
+    top = st.columns([2, 1])
+    budget = top[0].number_input("한 번에 감수할 손실액(원) — 수량 계산용", min_value=0.0, value=500000.0, step=50000.0, key="watch_budget")
+    if top[1].button("🔄 새로고침", key="watch_refresh"):
+        load_watchlist.clear()
+        load_intraday_new.clear()
+        _fetch_watch_ohlcv_cached.clear()
+        evaluate_watch_item.clear()
+        st.rerun()
+
+    with st.spinner("관찰 종목 현황을 계산하는 중..."):
+        rows = [evaluate_watch_item(it, budget, today) for it in items]
+    live = sorted([r for r in rows if r["status"] not in WATCH_DONE_STATUSES], key=lambda r: r["signal_date"], reverse=True)
+    live.sort(key=lambda r: WATCH_STATUS_RANK.get(r["status"], 9))      # 같은 상태 안에서는 최근 신호가 위 (정렬은 안정적)
+    done = sorted([r for r in rows if r["status"] in WATCH_DONE_STATUSES], key=lambda r: r["signal_date"], reverse=True)
+    n_act = sum(1 for r in live if r["status"] in WATCH_ACTIVE_STATUSES)
+
+    mc = st.columns(3)
+    mc[0].metric("오늘 판단할 종목", f"{n_act}개")
+    mc[1].metric("관찰 중", f"{len(live)}개")
+    mc[2].metric("종료 (진입함·패스·무효·만료)", f"{len(done)}개")
+    st.caption(f"계산 시각 {now.strftime('%H:%M:%S')} · 현재가는 30초, 일봉은 2분, 수급은 5분 단위로 캐시됩니다. 장중에 계속 새로고침하지 말고 15:40 이후와 다음 날 시가 전에 보세요.")
+    if n_act == 0 and live:
+        st.info("지금 눌림 구간에 들어온 종목이 없습니다. 오늘 할 일은 없습니다.")
+    if any(r.get("provisional") for r in rows):
+        st.caption("'(잠정)' 표시는 장중에 잡힌 신호라서 마감 후 확정 신호에서 빠질 수 있습니다. 신호 당일이므로 어차피 오늘은 사지 않습니다.")
+
+    if live:
+        st.dataframe(style_watch_table(watch_dataframe(live)), use_container_width=True, hide_index=True)
+        st.caption("눌림 구간·손절가·수량은 신호일 종가의 -1%와 -3% 중간값을 진입가로 가정해 계산한 참고값입니다(손절가는 ATR×1.5 기준). "
+                   "외국인·기관 연속은 확정 데이터 기준 연속 순매수(+)·순매도(-) 일수이고, 거래량 배수는 최근 일봉 거래량을 직전 20일 평균과 비교한 값입니다.")
+    else:
+        st.info("관찰 중인 종목이 없습니다. 신호 추적에 새 신호가 기록되거나 장중 신규 후보가 잡히면 자동으로 들어오고, 아래에서 직접 추가할 수도 있습니다.")
+    if done:
+        with st.expander(f"종료된 항목 {len(done)}개 (최근 30개까지 표시)"):
+            st.dataframe(style_watch_table(watch_dataframe(done[:30])), use_container_width=True, hide_index=True)
+
+    def _apply(mutator, message: str, ok_text: str):
+        try:
+            watchlist_mutate(mutator, message)
+        except Exception as e:
+            st.error(f"저장하지 못했습니다: {e}")
+            return
+        load_watchlist.clear()
+        st.session_state["watch_nonce"] = nonce + 1
+        st.session_state["watch_flash"] = ok_text
+        st.rerun()
+
+    with st.expander("✏️ 종목 관리 (메모 · 판단 · 관찰 기간 연장 · 삭제)"):
+        everything = live + done
+        if not everything:
+            st.caption("관리할 종목이 없습니다.")
+        else:
+            labels = {f"{r['name']}({r['code']}) · 신호 {r['signal_date'][5:]} · {r['status']}": r for r in everything}
+            pick = st.selectbox("종목 선택", list(labels), key=f"watch_pick_{nonce}")
+            r = labels[pick]
+            ks = f"{r['key']}_{nonce}"
+            code, sdate, name = r["code"], r["signal_date"], r["name"]
+            note = st.text_area("메모 (진입 근거 · 손절가 · 관찰 이유 등)", value=r.get("note") or "", max_chars=500, key=f"watch_note_{ks}")
+            decision = st.radio("내 판단", ["미정", "진입함", "패스"], horizontal=True, key=f"watch_dec_{ks}",
+                                index={"": 0, "진입함": 1, "패스": 2}.get(r.get("decision") or "", 0))
+            entry_price = None
+            if decision == "진입함":
+                entry_price = st.number_input("실제 매수가(원, 모르면 0)", min_value=0.0, step=10.0, key=f"watch_ep_{ks}",
+                                              value=float(r.get("entry_price") or r.get("price") or 0))
+            st.caption(f"관찰 기간: 기본 {WATCH_WINDOW_DAYS}거래일 + 연장 {r.get('extend_days', 0)}거래일 (최대 {WATCH_EXTEND_MAX}). "
+                       "삭제하면 같은 신호는 다시 자동으로 들어오지 않습니다. 매매 일지는 지워지지 않습니다.")
+            bc = st.columns(3)
+            if bc[0].button("💾 저장", key=f"watch_save_{ks}"):
+                dec = "" if decision == "미정" else decision
+
+                def _save(w):
+                    w = wl_upsert_fields(w, code, sdate, name, {"note": (note or "").strip()[:500]}, today, now_iso)
+                    return wl_set_decision(w, code, sdate, name, dec, entry_price, today, now_iso)
+                _apply(_save, f"watchlist: {name}", "저장했습니다 ✅")
+            if bc[1].button("⏳ 관찰 기간 +1거래일", key=f"watch_ext_{ks}"):
+                def _ext(w):
+                    cur = next((i.get("extend_days") or 0 for i in w["items"] if watch_key(i["code"], i["signal_date"]) == r["key"]), 0)
+                    return wl_extend(w, code, sdate, name, 1, cur, today, now_iso)
+                _apply(_ext, f"watchlist: extend {name}", "관찰 기간을 하루 늘렸습니다.")
+            if bc[2].button("🗑 삭제", key=f"watch_del_{ks}"):
+                _apply(lambda w: wl_dismiss(w, code, sdate, now_iso), f"watchlist: remove {name}", "삭제했습니다.")
+
+    with st.expander("➕ 직접 추가"):
+        with st.form(f"watch_add_form_{nonce}"):
+            ac = st.columns(2)
+            code_in = ac[0].text_input("종목코드 (6자리)")
+            name_in = ac[1].text_input("종목명 (선택)")
+            note_in = st.text_input("메모 (선택)", max_chars=200)
+            submitted = st.form_submit_button("관찰목록에 추가")
+        if submitted:
+            code = (code_in or "").strip().upper()
+            if not WATCH_CODE_RE.fullmatch(code):
+                st.error("종목코드는 6자리여야 합니다 (예: 005440).")
+            else:
+                price, _pct, _fl = fetch_current_price(code)
+                if not price:
+                    st.error("현재가를 가져오지 못했습니다. 종목코드를 확인하거나 잠시 후 다시 시도해 주세요.")
+                else:
+                    known = name_in.strip() or next((s.get("name") for s in signals if s.get("code") == code and s.get("name")), "")
+                    _apply(lambda w: wl_add_manual(w, code, known, price, note_in, today, now_iso), f"watchlist: add {known or code}",
+                           f"{known or code}을(를) 추가했습니다. 오늘이 관찰 시작일이고, 지금 가격({price:,.0f}원)이 기준입니다.")
+# ---- 관찰목록 저장·화면 end
+
+
+tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_watch, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
+    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "👀 관찰목록", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
 ])
 
 # ---------------- 📊 순매수 상위 ----------------
@@ -3401,6 +3888,27 @@ with tab_tracker:
                 st.rerun()
             render_delete_panel(all_signals, load_baseline_entries(), _dcfg)
 
+
+# ---------------- 👀 관찰목록 ----------------
+with tab_watch:
+    st.subheader("👀 관찰목록")
+    _wcfg = watchlist_settings()
+    _wmissing = [n for n, k in (("JOURNAL_GITHUB_TOKEN", "token"), ("JOURNAL_REPO", "repo"), ("JOURNAL_PASSWORD", "password")) if not _wcfg[k]]
+    if _wmissing:
+        st.info(SETUP_WATCH_GUIDE)
+        st.caption("아직 없는 설정: " + ", ".join(_wmissing))
+    elif not st.session_state.get("journal_ok"):
+        _wpw = st.text_input("비밀번호", type="password", key="watch_pw")
+        if _wpw:
+            if hmac.compare_digest(_wpw.encode("utf-8"), _wcfg["password"].encode("utf-8")):
+                st.session_state["journal_ok"] = True
+                st.rerun()
+            else:
+                time.sleep(1)
+                st.error("비밀번호가 맞지 않습니다.")
+        st.caption("관찰목록은 매매 일지와 같은 비밀번호를 입력해야 볼 수 있습니다 (한 번 입력하면 두 탭이 함께 열립니다).")
+    else:
+        render_watchlist_tab()
 
 # ---------------- ⏱ 장중 변동 ----------------
 with tab_intraday:
