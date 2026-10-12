@@ -242,6 +242,138 @@ def fetch_valuation(stock_code: str):
     return {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
 
 
+# ---- 모멘텀·공시 분류 shared begin
+# 이 블록은 scripts/common.py와 streamlit_app.py에 글자 그대로 똑같이 들어 있다.
+# EOD가 신호 시점에 기록하는 값과 앱 화면의 값이 어긋나지 않게 하려는 것이라서, 한쪽만 고치지 말고 두 파일을 같이 고칠 것
+# (tests/test_shared_block.py가 두 파일의 블록이 같은지 검사한다). pandas만 쓰고 다른 모듈에 의존하지 않는다.
+#
+# 아래 기준값(60일 +10%, 5일 +10%, RSI 70, 급반등 +8%)은 데이터로 검증된 값이 아니라 임시 기본값이다.
+MOM_MIN_ROWS = 61               # 60거래일 수익률을 내려면 일봉이 61개 필요하다 (앱이 받는 일봉은 최근 약 4개월 = 90개 안팎)
+MOM_STRONG_RET60 = 10.0         # 중기 강세: 60거래일 수익률이 이 % 이상이고, 종가가 60일선 위, 60일선이 최근 5일 전보다 낮아지지 않음
+MOM_HOT_RET5 = 10.0             # 단기 과열: 5거래일 수익률이 이 % 이상이거나 RSI가 아래 값 이상
+MOM_HOT_RSI = 70.0
+MOM_BOUNCE_RET5 = 8.0           # 중기가 약한데 5거래일에 이만큼 올랐으면 '급반등'
+MOMENTUM_CELL_NOTES = {
+    "강세·안정": "중기 추세가 살아 있고 단기 과열은 아님 — 눌림을 기다릴 우선 후보",
+    "강세·과열": "중기 추세는 강하지만 최근 급등·과열 — 눌림을 기다릴 종목(추격 금지)",
+    "약세·급반등": "중기 약세 속 단기 급반등 — 추격 회피 후보",
+    "약세": "중기 추세가 약함",
+    "판단불가": "일봉이 61개 미만이라 계산하지 못함",
+}
+
+
+def compute_momentum(df) -> dict:
+    """일봉(stck_clpr, stck_hgpr 필요)으로 중기 모멘텀과 단기 과열을 계산해 네 칸 중 하나로 분류한다. 일봉이 61개 미만이면 빈 dict.
+    ret5/ret20/ret60: 종가 기준 5·20·60거래일 수익률(%). from_high: 가져온 일봉 구간의 최고가 대비 현재가(%). rsi: RSI14.
+    above_ma60: 종가가 60일선 위인가 / aligned: 종가 > 20일선 > 60일선인가 / ma60_rising: 60일선이 5거래일 전 값 이상인가(65개 미만이면 True로 본다).
+    cell: 강세·안정 / 강세·과열 / 약세·급반등 / 약세. 지수 대비 초과수익은 계산하지 않는다(일봉 구간이 짧아 지수 이력을 맞출 수 없음)."""
+    need = ["stck_clpr", "stck_hgpr"]
+    if df is None or getattr(df, "empty", True) or any(c not in df.columns for c in need):
+        return {}
+    d = df[need].apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
+    if len(d) < MOM_MIN_ROWS:
+        return {}
+    c = d["stck_clpr"]
+    last = float(c.iloc[-1])
+    if last <= 0:
+        return {}
+
+    def ret(n):
+        return (last / float(c.iloc[-1 - n]) - 1) * 100
+
+    ret5, ret20, ret60 = ret(5), ret(20), ret(60)
+    ma20, ma60 = float(c.tail(20).mean()), float(c.tail(60).mean())
+    ma60_prev = float(c.iloc[-65:-5].mean()) if len(c) >= 65 else None
+    rising = ma60_prev is None or ma60 >= ma60_prev
+    delta = c.diff()
+    avg_gain = delta.clip(lower=0).rolling(14).mean().iloc[-1]
+    avg_loss = (-delta.clip(upper=0)).rolling(14).mean().iloc[-1]
+    rsi = None
+    if pd.notna(avg_gain) and pd.notna(avg_loss):
+        rsi = (100.0 if avg_gain > 0 else None) if avg_loss == 0 else 100 - 100 / (1 + avg_gain / avg_loss)
+    from_high = (last / float(d["stck_hgpr"].max()) - 1) * 100
+    mid_strong = ret60 >= MOM_STRONG_RET60 and last > ma60 and rising
+    hot = ret5 >= MOM_HOT_RET5 or (rsi is not None and rsi >= MOM_HOT_RSI)
+    if mid_strong:
+        cell = "강세·과열" if hot else "강세·안정"
+    elif ret5 >= MOM_BOUNCE_RET5:
+        cell = "약세·급반등"
+    else:
+        cell = "약세"
+    return {"cell": cell, "ret5": round(ret5, 1), "ret20": round(ret20, 1), "ret60": round(ret60, 1),
+            "from_high": round(from_high, 1), "rsi": round(float(rsi), 1) if rsi is not None else None,
+            "above_ma60": bool(last > ma60), "aligned": bool(last > ma20 > ma60), "ma60_rising": bool(rising)}
+
+
+# 공시 제목 → (분류, 성격). 위에서부터 처음 맞는 규칙을 쓴다. 제목에 공백이 있어도 맞도록 비교할 때 공백을 지운다.
+# 성격: neg=주의가 필요한 공시, pos=일반적으로 호재로 읽히는 공시, neutral=내용을 읽어야 아는 공시. 호재/악재를 판정하는 게 아니라 '무슨 공시인지' 분류만 한다.
+DISCLOSURE_RULES = [
+    ("위험", "neg", ("횡령", "배임", "상장폐지", "관리종목", "거래정지", "불성실공시", "투자주의환기", "감사의견", "회생", "부도", "파산")),
+    ("무상증자", "pos", ("무상증자",)),
+    ("희석 우려", "neg", ("유상증자", "전환사채", "신주인수권부사채", "교환사채")),
+    ("감자", "neg", ("감자",)),
+    ("자사주 취득", "pos", ("자기주식취득", "자기주식 취득")),
+    ("자사주 처분", "neg", ("자기주식처분", "자기주식 처분")),
+    ("수주·공급계약", "pos", ("공급계약", "단일판매")),
+    ("실적", "neutral", ("영업(잠정)실적", "영업실적", "잠정실적", "손익구조")),
+    ("배당", "pos", ("배당결정", "현금ㆍ현물배당", "현금·현물배당")),
+    ("구조변경", "neutral", ("합병", "분할", "영업양수", "영업양도", "주식교환", "주식이전")),
+    ("최대주주 변경", "neutral", ("최대주주변경", "최대주주 변경")),
+    ("소송", "neg", ("소송",)),
+]
+
+
+def classify_disclosure(title) -> tuple:
+    """(분류, 성격). 규칙에 없으면 ('기타', 'neutral')."""
+    t = str(title or "").replace(" ", "")
+    for cat, tone, kws in DISCLOSURE_RULES:
+        if any(kw.replace(" ", "") in t for kw in kws):
+            return cat, tone
+    return "기타", "neutral"
+
+
+def summarize_disclosures(items) -> dict:
+    """공시 목록([{title, category?, tone?}])을 한 줄 요약으로 줄인다. 기타는 뺀다.
+    tags: 중복 없는 분류 이름(주의 → 호재 → 중립 순), neg: 주의 분류, risk: 주의 공시가 하나라도 있는가, text: 표에 넣는 한 줄(주의는 ⚠️)."""
+    seen, order = {}, {"neg": 0, "pos": 1, "neutral": 2}
+    for it in items or []:
+        cat, tone = it.get("category"), it.get("tone")
+        if not cat:
+            cat, tone = classify_disclosure(it.get("title"))
+        if cat != "기타" and cat not in seen:
+            seen[cat] = tone or "neutral"
+    ordered = sorted(seen.items(), key=lambda kv: order.get(kv[1], 2))
+    return {"tags": [k for k, _ in ordered], "neg": [k for k, v in ordered if v == "neg"], "risk": any(v == "neg" for _, v in ordered),
+            "text": " · ".join(("⚠️" if v == "neg" else "") + k for k, v in ordered) or "—"}
+
+
+SECTOR_FIELDS = ("bstp_kor_isnm", "idx_bztp_scls_cd_name", "idx_bztp_mcls_cd_name", "std_idst_clsf_cd_name")
+
+
+def pick_sector(output) -> str:
+    """증권사 현재가 응답(output dict)에서 업종명을 고른다. 첫 번째로 값이 있는 필드를 쓰고, 없으면 ''.
+    [확인 필요] 이 필드들이 실제로 오는지 이 환경에서는 확인하지 못했다 — 앱 종목 조회에서 업종이 보이는지 확인할 것."""
+    for key in SECTOR_FIELDS:
+        v = str((output or {}).get(key) or "").strip()
+        if v:
+            return v
+    return ""
+
+
+def build_signal_tags(sector, momentum, disclosure_summary) -> dict:
+    """신호를 기록하는 시점의 업종·모멘텀·공시 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
+    tags = {}
+    if sector:
+        tags["sector"] = sector
+    if momentum:
+        tags["momentum"] = {k: momentum.get(k) for k in ("cell", "ret5", "ret20", "ret60", "from_high", "rsi")}
+    if disclosure_summary is not None:
+        tags["disclosures"] = list(disclosure_summary.get("tags") or [])
+        tags["disc_risk"] = bool(disclosure_summary.get("risk"))
+    return tags
+# ---- 모멘텀·공시 분류 shared end
+
+
 # 거래소가 실시간으로 매기는 종목상태코드 — DART 공시보다 먼저, 더 확실하게 위험을 알려준다
 # (예: '관리종목 지정 우려' 같은 거래소 시장조치 안내는 DART 기업공시로 안 올라오는 경우가 있다)
 MARKET_STAT_LABELS = {"51": "🚨 관리종목", "52": "🚨 투자위험", "53": "⚠️ 투자경고",
@@ -265,12 +397,23 @@ def market_risk_flags(stat_code: str, warn_code: str, halted: bool, mktcap_eok: 
     return flags
 
 
+_SECTOR_MEMO: dict = {}
+
+
+def get_sector_memo(stock_code: str) -> str:
+    """fetch_valuation_and_risk가 이번 실행에서 본 업종명. 못 봤으면 ''."""
+    return _SECTOR_MEMO.get(stock_code, "")
+
+
 def fetch_valuation_and_risk(stock_code: str):
     """(밸류에이션 dict|None, 거래소 위험 플래그 리스트) — 현재가 조회 한 번으로 둘 다 얻는다."""
     out = fetch_price_detail(stock_code)
     if out is None:
         return None, []
     valuation = {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
+    sector = pick_sector(out)
+    if sector:
+        _SECTOR_MEMO[stock_code] = sector       # 같은 응답에서 업종도 챙겨 둔다 (호출을 더 늘리지 않으려고)
     flags = market_risk_flags(
         str(out.get("iscd_stat_cls_code") or ""),
         str(out.get("mrkt_warn_cls_code") or ""),
@@ -669,6 +812,34 @@ def check_disclosure_risk(stock_code: str) -> list[str]:
         return [f"{it.get('rcept_dt', '')} {it.get('report_nm', '')}"
                 for it in data.get("list", [])
                 if any(kw in it.get("report_nm", "") for kw in RISK_KEYWORDS)]
+    except Exception:
+        return []
+
+
+def fetch_recent_disclosures(stock_code: str, days: int = 7, limit: int = 30) -> list[dict]:
+    """최근 days일의 DART 공시 목록 [{date, title, rcp_no, category, tone}] (최신순). 키가 없거나 실패하면 [].
+    분류(category/tone)는 제목 키워드로만 한 것이라 '무슨 공시인지'를 알려줄 뿐 호재/악재 판정이 아니다."""
+    corp_code = load_dart_corp_code_map().get(stock_code)
+    if not corp_code or not DART_API_KEY:
+        return []
+    end = datetime.now(KST).strftime("%Y%m%d")
+    start = (datetime.now(KST) - timedelta(days=days)).strftime("%Y%m%d")
+    try:
+        resp = requests.get("https://opendart.fss.or.kr/api/list.json",
+                             params={"crtfc_key": DART_API_KEY, "corp_code": corp_code,
+                                      "bgn_de": start, "end_de": end, "page_no": 1, "page_count": limit},
+                             timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("status") != "000":
+            return []
+        out = []
+        for it in data.get("list", []):
+            title = (it.get("report_nm") or "").strip()
+            cat, tone = classify_disclosure(title)
+            out.append({"date": it.get("rcept_dt", ""), "title": title, "rcp_no": it.get("rcept_no", ""),
+                        "category": cat, "tone": tone})
+        return out
     except Exception:
         return []
 
