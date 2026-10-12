@@ -1,79 +1,102 @@
 {
-  "checked_at": "2026-10-09T14:55:10+09:00",
-  "kept": [
+  "checked_at": "2026-10-12T10:05:59+09:00",
+  "kept": [],
+  "excluded": [
     {
       "stock_code": "033790",
       "stock_name": "피노",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 78.7
+        "RSI값": 69.7
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 11500.0,
-      "day_pct": 16.4
+      "current_price": 10800.0,
+      "day_pct": -6.74,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "417840",
       "stock_name": "저스템",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 88.5
+        "RSI값": 82.0
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 20850.0,
-      "day_pct": 10.9
+      "current_price": 20250.0,
+      "day_pct": -3.11,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "005440",
       "stock_name": "현대지에프홀딩스",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 39.9
+        "RSI값": 48.3
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 12850.0,
-      "day_pct": 4.64
+      "current_price": 12930.0,
+      "day_pct": 0.62,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "059090",
       "stock_name": "미코",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 75.5
+        "RSI값": 77.9
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 24350.0,
-      "day_pct": 6.56
+      "current_price": 25400.0,
+      "day_pct": 2.42,
+      "reason": "순매수 상위 10에서 이탈"
     }
   ],
-  "excluded": [],
-  "new_candidates": []
+  "new_candidates": [
+    {
+      "stock_code": "000890",
+      "stock_name": "보해양조",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 64.4
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 1378.0,
+      "day_pct": 4.39
+    }
+  ]
 }
