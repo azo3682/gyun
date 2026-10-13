@@ -1,7 +1,6 @@
 {
-  "checked_at": "2026-10-13T13:46:17+09:00",
-  "kept": [],
-  "excluded": [
+  "checked_at": "2026-10-13T15:00:31+09:00",
+  "kept": [
     {
       "stock_code": "011200",
       "stock_name": "HMM",
@@ -18,28 +17,9 @@
       "total": 5,
       "risky_disclosures": [],
       "current_price": 21900.0,
-      "day_pct": 0.46,
-      "reason": "순매수 상위 10에서 이탈"
+      "day_pct": 0.46
     }
   ],
-  "new_candidates": [
-    {
-      "stock_code": "396300",
-      "stock_name": "HT로보틱스",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 68.9
-      },
-      "transition": true,
-      "passed": 5,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 6170.0,
-      "day_pct": 2.83
-    }
-  ]
+  "excluded": [],
+  "new_candidates": []
 }
