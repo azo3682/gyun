@@ -1437,6 +1437,85 @@ def investor_recent_sum(rows: list, key: str, n: int = 5):
     return sum(vals) if vals else None
 
 
+# ---- 수급 흐름 helpers begin
+FLOW_PANEL_DAYS = 30
+FLOW_PANEL_WINDOWS = (5, 10, 20, 30)
+FLOW_INVESTORS = (("외국인", "frgn"), ("기관", "orgn"), ("개인", "prsn"))
+
+
+def investor_flow_frame(inv, today, n: int = FLOW_PANEL_DAYS) -> pd.DataFrame:
+    """일별 수급(inv, 최신순)에서 마감이 확정된 최근 n거래일을 '오래된 날 → 최근 날' 순서의 표로 만든다.
+    열: 일자(YYYY-MM-DD) · 종가 · 외국인/기관/개인(순매수 수량, 주; 음수=순매도)
+        · '<투자자> 누적'(표 첫날부터의 합, 값이 비면 0으로 셈) · '<투자자> 대금'(그날 종가 x 순매수 수량 = 종가 환산 근사, 원)."""
+    valid = [r for r in (inv or []) if not investor_row_pending(r, today)
+             and any(r.get(k) is not None for k in ("frgn", "orgn", "prsn"))]
+    rows = []
+    for r in reversed(valid[:n]):
+        d = r["date"]
+        rows.append({"일자": f"{d[:4]}-{d[4:6]}-{d[6:]}", "종가": r.get("close"),
+                     "외국인": r.get("frgn"), "기관": r.get("orgn"), "개인": r.get("prsn")})
+    df = pd.DataFrame(rows, columns=["일자", "종가", "외국인", "기관", "개인"])
+    for c in ("종가", "외국인", "기관", "개인"):
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    for name, _ in FLOW_INVESTORS:
+        df[f"{name} 누적"] = df[name].fillna(0).cumsum()
+        df[f"{name} 대금"] = df[name] * df["종가"]
+    return df
+
+
+def fmt_won_short(v) -> str:
+    """원 단위 금액을 부호 포함 '조 원 / 억 원'으로. 값이 비면 '—'."""
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return "—"
+    if pd.isna(x):
+        return "—"
+    if abs(x) >= 1e12:
+        return f"{x / 1e12:+,.2f}조 원"
+    if abs(x) >= 1e8:
+        return f"{x / 1e8:+,.0f}억 원"
+    return f"{x:+,.0f}원"
+
+
+def investor_flow_summary(df) -> dict:
+    """investor_flow_frame 결과를 요약한다.
+    rows: 구간별(최근 5/10/20/30일 중 표 길이 이하인 것 + 표가 그보다 짧으면 '전체 n일') 투자자별 누적 수량·대금(근사)
+    sell_days: 외국인이 순매도한 날 수 {10: n, 20: n} (표가 그만큼 길 때만)
+    pace: 외국인 일평균 순매수 — 최근 5일 vs 그 직전 10일(표가 15일 이상일 때). 둘 다 순매도이면 ratio = 최근/직전 (1보다 크면 매도가 빨라짐)
+    max_sell: 표 안에서 외국인 순매도가 가장 컸던 날 {date, qty, days_ago}"""
+    n = len(df)
+    out = {"n": n, "first": df["일자"].iloc[0] if n else None, "last": df["일자"].iloc[-1] if n else None,
+           "rows": [], "sell_days": {}, "pace": None, "max_sell": None}
+    if n == 0:
+        return out
+    windows = [w for w in FLOW_PANEL_WINDOWS if w <= n]
+    labels = {w: f"최근 {w}일" for w in windows}
+    if n >= 2 and n not in windows:
+        windows.append(n)
+        labels[n] = f"전체 {n}일"
+    for w in sorted(windows):
+        tail = df.tail(w)
+        row = {"구간": labels[w]}
+        for name, _ in FLOW_INVESTORS:
+            row[f"{name}(주)"] = tail[name].sum(min_count=1)
+            row[f"{name} 대금(원)"] = tail[f"{name} 대금"].sum(min_count=1)
+        out["rows"].append(row)
+    for w in (10, 20):
+        if w <= n:
+            out["sell_days"][w] = int((df["외국인"].tail(w) < 0).sum())
+    if n >= 15:
+        recent, prior = df["외국인"].tail(5).mean(), df["외국인"].iloc[-15:-5].mean()
+        ratio = recent / prior if pd.notna(recent) and pd.notna(prior) and recent < 0 and prior < 0 else None
+        out["pace"] = {"recent5": recent, "prior10": prior, "ratio": ratio}
+    sells = df["외국인"].dropna()
+    if len(sells) and sells.min() < 0:
+        i = int(sells.idxmin())
+        out["max_sell"] = {"date": df["일자"].iloc[i], "qty": float(df["외국인"].iloc[i]), "days_ago": n - 1 - i}
+    return out
+# ---- 수급 흐름 helpers end
+
+
 def _investor_daily_raw(stock_code: str) -> list:
     resp = requests.get(f"{BASE_URL}{INVESTOR_DAILY_PATH}", headers=kis_headers(INVESTOR_DAILY_TR_ID),
                         params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code}, timeout=10)
@@ -1535,6 +1614,45 @@ def render_investor_section(est, inv):
                "기타 외국인을 합친 값이고, 연속 일수는 마감이 확정된 날만 셉니다. "
                + ("오늘 값은 장 종료 후 제공돼서 지금은 어제까지의 값입니다." if pending_today else
                   "당일 데이터는 장 종료 후 제공됩니다."))
+
+    # ---- 수급 흐름 (최근 30거래일: 구간별 누적 · 일별 막대 · 누적선) ----
+    try:
+        flow = investor_flow_frame(inv, today)
+        if len(flow) >= 5:
+            fs = investor_flow_summary(flow)
+            st.markdown(f"**수급 흐름** — 확정일 기준 최근 {fs['n']}거래일 ({fs['first']} → {fs['last']})")
+            fdf = pd.DataFrame(fs["rows"])
+            show = fdf[["구간", "외국인(주)", "외국인 대금(원)", "기관(주)", "기관 대금(원)", "개인(주)"]].copy()
+            qty_cols = ["외국인(주)", "기관(주)", "개인(주)"]
+            amt_cols = ["외국인 대금(원)", "기관 대금(원)"]
+            show[qty_cols + amt_cols] = show[qty_cols + amt_cols].apply(pd.to_numeric, errors="coerce")
+            styler = _qty_style(show, qty_cols).format(fmt_won_short, subset=amt_cols).map(_signed_style, subset=amt_cols)
+            st.dataframe(styler, use_container_width=True, hide_index=True)
+            c1, c2, c3 = st.columns(3)
+            sd = fs["sell_days"]
+            c1.metric("외국인 순매도한 날", " · ".join(f"최근 {w}일 중 {k}일" for w, k in sd.items()) or "—")
+            pace = fs["pace"]
+            if pace is None:
+                c2.metric("매도 속도 (최근 5일 ÷ 직전 10일)", "15일 미만이라 계산 안 함")
+            elif pace["ratio"] is None:
+                c2.metric("매도 속도 (최근 5일 ÷ 직전 10일)", "비교 불가 (한쪽이 순매수)")
+            else:
+                c2.metric("매도 속도 (최근 5일 ÷ 직전 10일)", f"{pace['ratio']:.2f}배 " + ("빨라짐" if pace["ratio"] > 1 else "느려짐"))
+            ms = fs["max_sell"]
+            c3.metric("외국인 최대 순매도일",
+                      f"{ms['date']} ({fmt_shares(ms['qty'])}, " + ("가장 최근 확정일" if ms["days_ago"] == 0 else f"{ms['days_ago']}거래일 전") + ")"
+                      if ms else "순매도일 없음")
+            st.markdown("외국인 일별 순매수 (위: 순매수, 아래: 순매도)")
+            st.bar_chart(flow.set_index("일자")[["외국인"]], height=220)
+            st.markdown("투자자별 누적 순매수 (표 첫날을 0으로 둔 합계)")
+            st.line_chart(flow.set_index("일자")[["외국인 누적", "기관 누적", "개인 누적"]], height=240)
+            st.caption("대금은 '그날 종가 x 순매수 수량'을 더한 근사값이라 실제 체결 금액과 다릅니다. 이 API에는 외국인 보유 지분율이 없어서 표시하지 않고, "
+                       "한 번에 받아지는 일별 수급이 최근 30거래일이라 그보다 긴 기간은 볼 수 없습니다. 매도 속도는 두 구간 모두 외국인이 순매도일 때만 계산합니다. "
+                       "누적선이 꺾이거나 매도 속도가 느려지는 것은 매도 압력이 줄었다는 참고 신호일 뿐, 반등을 보장하지 않습니다.")
+        else:
+            st.caption("수급 흐름을 그리기에는 확정된 일별 수급이 5일 미만입니다.")
+    except Exception as ex:
+        st.caption(f"수급 흐름을 그리지 못했습니다: {ex}")
 
 
 def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_msg: str):
