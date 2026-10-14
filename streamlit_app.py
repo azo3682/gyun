@@ -1291,6 +1291,11 @@ def tag_sector(s):
     return (s.get("tags") or {}).get("sector") or None
 
 
+def tag_flow(s):
+    """신호 시점의 외국인 수급 상태(전환 / 연속 순매수 / 순매수 1일 / 순매도·보합). 태그가 없으면 None."""
+    return ((s.get("tags") or {}).get("flow") or {}).get("cell") or None
+
+
 def style_tag_table(df: pd.DataFrame):
     avg = [c for c in df.columns if c.endswith("평균(%)")]
     styler = df.style.map(_signed_style, subset=avg)
@@ -1577,20 +1582,23 @@ def render_tracker_section(signals: list, n_days: int, only_active: bool, empty_
                "'지수 대비 초과수익'은 같은 기간 종목이 속한 시장(코스피/코스닥) 지수의 수익률을 뺀 값(%p)이고, 지수는 야후 파이낸스(yfinance) 비공식 "
                "데이터라 받지 못한 날은 비어 있을 수 있습니다(지수 시가가 없으면 신호일 지수 종가를 기준으로 대체). "
                "승률은 진입가 대비 수익률이 0보다 큰 비율입니다. 수수료·세금·슬리피지, 시가에 실제로 체결되는지는 반영하지 않았습니다.")
-    with st.expander("🏷 태그별 성과 (모멘텀 · 공시 · 업종)"):
+    with st.expander("🏷 태그별 성과 (모멘텀 · 공시 · 업종 · 외국인 수급)"):
         n_tagged = sum(1 for s in signals if s.get("tags"))
         if n_tagged == 0:
-            st.info("아직 태그가 붙은 신호가 없습니다. 업종·모멘텀·공시 태그는 이 기능을 올린 뒤 EOD(15:40)에서 새로 기록되는 신호부터 붙고, 과거 신호에는 소급되지 않습니다.")
+            st.info("아직 태그가 붙은 신호가 없습니다. 업종·모멘텀·공시·외국인 수급 태그는 이 기능을 올린 뒤 EOD(15:40)에서 새로 기록되는 신호부터 붙고, 과거 신호에는 소급되지 않습니다.")
         else:
             st.caption(f"태그가 붙은 신호 {n_tagged}건 / 전체 {len(signals)}건. 수익률은 진입가(다음날 시가) 대비 D+n 종가 기준입니다.")
-            for title, fn in (("모멘텀 분류별", tag_momentum), ("주의 공시 여부별", tag_disclosure), ("업종별", tag_sector)):
+            st.caption("외국인 수급 상태는 신호 기록 시점에 판단한 최근 확정일 기준입니다. EOD가 15:40에 돌 때 오늘 일별 수급이 아직 올라오지 않았으면 전 거래일 기준이 됩니다. "
+                       "신호 판단에는 쓰지 않고 기록만 하는 태그이며, 전환·연속 일수 기준(직전 3일 이상 순매도, 순매수 2일 이내)은 검증되지 않은 임시값입니다.")
+            for title, fn in (("모멘텀 분류별", tag_momentum), ("주의 공시 여부별", tag_disclosure), ("업종별", tag_sector),
+                              ("외국인 수급 상태별", tag_flow)):
                 tdf2 = summarize_by_tag(signals, fn)
                 st.markdown(f"**{title}**")
                 if tdf2.empty:
                     st.caption("해당 태그가 있는 신호가 없습니다.")
                 else:
                     st.dataframe(style_tag_table(tdf2), use_container_width=True, hide_index=True)
-            best = max((int(summarize_by_tag(signals, fn)[f"D+{n} 표본"].max() or 0) for fn in (tag_momentum, tag_disclosure, tag_sector)
+            best = max((int(summarize_by_tag(signals, fn)[f"D+{n} 표본"].max() or 0) for fn in (tag_momentum, tag_disclosure, tag_sector, tag_flow)
                         for n in TAG_HORIZONS if not summarize_by_tag(signals, fn).empty), default=0)
             st.warning(f"칸 하나에 표본이 가장 많은 곳도 {best}건입니다. 칸마다 최소 30건, 믿으려면 100건 안팎은 쌓여야 비교가 의미 있습니다. "
                        "그 전에는 '이 칸이 낫다/나쁘다'를 결론으로 삼지 말고 기록으로만 보세요.")
@@ -3251,8 +3259,75 @@ def pick_sector(output) -> str:
     return ""
 
 
-def build_signal_tags(sector, momentum, disclosure_summary) -> dict:
-    """신호를 기록하는 시점의 업종·모멘텀·공시 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
+FLOW_MIN_SELL_RUN = 3           # '전환'으로 보는 조건: 순매수 구간 직전에 외국인이 연속 순매도한 거래일 수 (임시 기본값)
+FLOW_MAX_BUY_RUN = 2            # '전환'으로 보는 조건: 순매수가 이어진 일수가 이 값 이하 (더 길면 '연속 순매수')
+FLOW_CELLS = ("전환", "연속 순매수", "순매수 1일", "순매도·보합")
+FLOW_CELL_NOTES = {
+    "전환": "외국인이 연속 순매도하다가 순매수로 돌아선 지 2거래일 이내",
+    "연속 순매수": "외국인이 2거래일 이상 연속 순매수 (전환 조건에 해당하지 않는 경우)",
+    "순매수 1일": "외국인이 오늘만 순매수 (직전 순매도가 짧거나 없었음)",
+    "순매도·보합": "외국인이 가장 최근 확정일에 순매도 또는 보합",
+}
+
+
+def flow_streak(vals) -> int:
+    """최신순 값 목록에서 맨 앞부터 연속 순매수(+n)/순매도(-n) 일수. 맨 앞이 0이나 None이면 0."""
+    n = 0
+    for v in vals:
+        if v is None or v == 0:
+            break
+        sign = 1 if v > 0 else -1
+        if n == 0:
+            n = sign
+        elif (n > 0) == (sign > 0):
+            n += sign
+        else:
+            break
+    return n
+
+
+def compute_flow_tag(rows, today="") -> dict:
+    """주식현재가 투자자 일별 수급(rows: 최신순 [{date: 'YYYYMMDD', frgn, orgn}], 수량(주), 음수=순매도)으로 외국인 수급 상태를 분류한다.
+    오늘(today) 행이 전부 0/None이면 아직 확정되지 않은 것으로 보고 뺀다. 확정된 행이 없거나 외국인 값이 없으면 빈 dict.
+    cell: 전환 / 연속 순매수 / 순매수 1일 / 순매도·보합 (기준값 FLOW_*는 검증되지 않은 임시값).
+    asof: 판단에 쓴 가장 최근 확정일(오늘 데이터가 아직 안 올라왔으면 전 거래일일 수 있다) / n_rows: 확정 행 수
+    frgn_streak·orgn_streak: 연속 순매수(+)/순매도(-) 일수 / frgn_prior_sell: 현재 순매수 구간 직전의 연속 순매도 일수 / frgn_sum5·orgn_sum5: 최근 5일 합(주, 5행 미만이면 None)
+    수량(주)이라 종목 간 크기를 비교하는 값은 아니고, 분류는 부호와 연속 일수만 쓴다."""
+    valid = []
+    for r in rows or []:
+        if not isinstance(r, dict) or len(str(r.get("date") or "")) != 8:
+            continue
+        if today and str(r["date"]) == str(today) and all(r.get(k) in (None, 0) for k in ("frgn", "orgn")):
+            continue
+        valid.append(r)
+    valid.sort(key=lambda r: str(r["date"]), reverse=True)
+    if not valid or valid[0].get("frgn") is None:
+        return {}
+    f = [r.get("frgn") for r in valid]
+    o = [r.get("orgn") for r in valid]
+    f_streak, o_streak = flow_streak(f), flow_streak(o)
+    prior = flow_streak(f[f_streak:]) if f_streak > 0 else 0
+    prior_sell = -prior if prior < 0 else 0
+    if f_streak > 0 and f_streak <= FLOW_MAX_BUY_RUN and prior_sell >= FLOW_MIN_SELL_RUN:
+        cell = "전환"
+    elif f_streak >= 2:
+        cell = "연속 순매수"
+    elif f_streak == 1:
+        cell = "순매수 1일"
+    else:
+        cell = "순매도·보합"
+
+    def sum5(vals):
+        head = vals[:5]
+        return sum(v or 0 for v in head) if len(head) >= 5 and all(v is not None for v in head) else None
+
+    d = str(valid[0]["date"])
+    return {"cell": cell, "asof": f"{d[:4]}-{d[4:6]}-{d[6:]}", "n_rows": len(valid), "frgn_streak": f_streak, "orgn_streak": o_streak,
+            "frgn_prior_sell": prior_sell, "frgn_sum5": sum5(f), "orgn_sum5": sum5(o)}
+
+
+def build_signal_tags(sector, momentum, disclosure_summary, flow=None) -> dict:
+    """신호를 기록하는 시점의 업종·모멘텀·공시·외국인 수급 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
     tags = {}
     if sector:
         tags["sector"] = sector
@@ -3261,6 +3336,8 @@ def build_signal_tags(sector, momentum, disclosure_summary) -> dict:
     if disclosure_summary is not None:
         tags["disclosures"] = list(disclosure_summary.get("tags") or [])
         tags["disc_risk"] = bool(disclosure_summary.get("risk"))
+    if flow:
+        tags["flow"] = {k: flow.get(k) for k in ("cell", "asof", "n_rows", "frgn_streak", "orgn_streak", "frgn_prior_sell", "frgn_sum5", "orgn_sum5")}
     return tags
 # ---- 모멘텀·공시 분류 shared end
 
