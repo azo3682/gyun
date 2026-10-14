@@ -360,8 +360,75 @@ def pick_sector(output) -> str:
     return ""
 
 
-def build_signal_tags(sector, momentum, disclosure_summary) -> dict:
-    """신호를 기록하는 시점의 업종·모멘텀·공시 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
+FLOW_MIN_SELL_RUN = 3           # '전환'으로 보는 조건: 순매수 구간 직전에 외국인이 연속 순매도한 거래일 수 (임시 기본값)
+FLOW_MAX_BUY_RUN = 2            # '전환'으로 보는 조건: 순매수가 이어진 일수가 이 값 이하 (더 길면 '연속 순매수')
+FLOW_CELLS = ("전환", "연속 순매수", "순매수 1일", "순매도·보합")
+FLOW_CELL_NOTES = {
+    "전환": "외국인이 연속 순매도하다가 순매수로 돌아선 지 2거래일 이내",
+    "연속 순매수": "외국인이 2거래일 이상 연속 순매수 (전환 조건에 해당하지 않는 경우)",
+    "순매수 1일": "외국인이 오늘만 순매수 (직전 순매도가 짧거나 없었음)",
+    "순매도·보합": "외국인이 가장 최근 확정일에 순매도 또는 보합",
+}
+
+
+def flow_streak(vals) -> int:
+    """최신순 값 목록에서 맨 앞부터 연속 순매수(+n)/순매도(-n) 일수. 맨 앞이 0이나 None이면 0."""
+    n = 0
+    for v in vals:
+        if v is None or v == 0:
+            break
+        sign = 1 if v > 0 else -1
+        if n == 0:
+            n = sign
+        elif (n > 0) == (sign > 0):
+            n += sign
+        else:
+            break
+    return n
+
+
+def compute_flow_tag(rows, today="") -> dict:
+    """주식현재가 투자자 일별 수급(rows: 최신순 [{date: 'YYYYMMDD', frgn, orgn}], 수량(주), 음수=순매도)으로 외국인 수급 상태를 분류한다.
+    오늘(today) 행이 전부 0/None이면 아직 확정되지 않은 것으로 보고 뺀다. 확정된 행이 없거나 외국인 값이 없으면 빈 dict.
+    cell: 전환 / 연속 순매수 / 순매수 1일 / 순매도·보합 (기준값 FLOW_*는 검증되지 않은 임시값).
+    asof: 판단에 쓴 가장 최근 확정일(오늘 데이터가 아직 안 올라왔으면 전 거래일일 수 있다) / n_rows: 확정 행 수
+    frgn_streak·orgn_streak: 연속 순매수(+)/순매도(-) 일수 / frgn_prior_sell: 현재 순매수 구간 직전의 연속 순매도 일수 / frgn_sum5·orgn_sum5: 최근 5일 합(주, 5행 미만이면 None)
+    수량(주)이라 종목 간 크기를 비교하는 값은 아니고, 분류는 부호와 연속 일수만 쓴다."""
+    valid = []
+    for r in rows or []:
+        if not isinstance(r, dict) or len(str(r.get("date") or "")) != 8:
+            continue
+        if today and str(r["date"]) == str(today) and all(r.get(k) in (None, 0) for k in ("frgn", "orgn")):
+            continue
+        valid.append(r)
+    valid.sort(key=lambda r: str(r["date"]), reverse=True)
+    if not valid or valid[0].get("frgn") is None:
+        return {}
+    f = [r.get("frgn") for r in valid]
+    o = [r.get("orgn") for r in valid]
+    f_streak, o_streak = flow_streak(f), flow_streak(o)
+    prior = flow_streak(f[f_streak:]) if f_streak > 0 else 0
+    prior_sell = -prior if prior < 0 else 0
+    if f_streak > 0 and f_streak <= FLOW_MAX_BUY_RUN and prior_sell >= FLOW_MIN_SELL_RUN:
+        cell = "전환"
+    elif f_streak >= 2:
+        cell = "연속 순매수"
+    elif f_streak == 1:
+        cell = "순매수 1일"
+    else:
+        cell = "순매도·보합"
+
+    def sum5(vals):
+        head = vals[:5]
+        return sum(v or 0 for v in head) if len(head) >= 5 and all(v is not None for v in head) else None
+
+    d = str(valid[0]["date"])
+    return {"cell": cell, "asof": f"{d[:4]}-{d[4:6]}-{d[6:]}", "n_rows": len(valid), "frgn_streak": f_streak, "orgn_streak": o_streak,
+            "frgn_prior_sell": prior_sell, "frgn_sum5": sum5(f), "orgn_sum5": sum5(o)}
+
+
+def build_signal_tags(sector, momentum, disclosure_summary, flow=None) -> dict:
+    """신호를 기록하는 시점의 업종·모멘텀·공시·외국인 수급 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
     tags = {}
     if sector:
         tags["sector"] = sector
@@ -370,6 +437,8 @@ def build_signal_tags(sector, momentum, disclosure_summary) -> dict:
     if disclosure_summary is not None:
         tags["disclosures"] = list(disclosure_summary.get("tags") or [])
         tags["disc_risk"] = bool(disclosure_summary.get("risk"))
+    if flow:
+        tags["flow"] = {k: flow.get(k) for k in ("cell", "asof", "n_rows", "frgn_streak", "orgn_streak", "frgn_prior_sell", "frgn_sum5", "orgn_sum5")}
     return tags
 # ---- 모멘텀·공시 분류 shared end
 
@@ -421,6 +490,67 @@ def fetch_valuation_and_risk(stock_code: str):
         _to_float(out.get("hts_avls")),
     )
     return valuation, flags
+
+
+# ============================================================
+# 투자자별 일별 수급 (KIS 주식현재가 투자자 v1_국내주식-012, FHKST01010900)
+#   개인·외국인·기관 순매수 수량(주, 음수=순매도)을 일별로 준다. 당일 데이터는 장 종료 후에 제공된다.
+#   [확인 필요] 한 번 호출에 몇 거래일치를 주는지는 명세에 안 나와 있어 이 환경에서는 확인하지 못했다.
+#   eod_snapshot.py가 실행 로그에 '수급 일별 행 수'를 남기니 첫 실행 로그에서 확인할 것.
+# ============================================================
+INVESTOR_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor"
+INVESTOR_DAILY_TR_ID = "FHKST01010900"
+
+
+def _to_qty(value):
+    v = _to_float(value)
+    return int(v) if v is not None else None
+
+
+def parse_investor_daily(output) -> list:
+    """주식현재가 투자자 응답의 output 배열 → [{date, prsn, frgn, orgn}] 최신순. 날짜가 없는 행은 버린다."""
+    if isinstance(output, dict):
+        output = [output]
+    rows = []
+    for r in output or []:
+        if not isinstance(r, dict):
+            continue
+        d = str(r.get("stck_bsop_date") or "").strip()
+        if len(d) != 8:
+            continue
+        rows.append({"date": d, "prsn": _to_qty(r.get("prsn_ntby_qty")), "frgn": _to_qty(r.get("frgn_ntby_qty")),
+                     "orgn": _to_qty(r.get("orgn_ntby_qty"))})
+    rows.sort(key=lambda x: x["date"], reverse=True)
+    return rows
+
+
+def fetch_investor_daily(stock_code: str, retries: int = 3):
+    """종목의 일별 투자자 수급 목록(최신순). 조회에 실패하면 None, 응답이 비었으면 []. 초당 호출 제한이면 쉬었다가 재시도한다."""
+    last_reason, last_msg = "EXCEPTION", ""
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.get(
+                f"{BASE_URL}{INVESTOR_DAILY_PATH}",
+                headers=kis_headers(INVESTOR_DAILY_TR_ID),
+                params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
+                timeout=10,
+            )
+            data = resp.json()
+        except Exception as e:
+            last_reason, last_msg = "EXCEPTION", str(e)[:80]
+            time.sleep(0.5 * (attempt + 1))
+            continue
+        if data.get("rt_cd") == "0":
+            return parse_investor_daily(data.get("output"))
+        msg_cd, msg1 = data.get("msg_cd", "UNKNOWN"), (data.get("msg1") or "")[:80]
+        if msg_cd == "EGW00201":  # 초당 거래건수 초과
+            last_reason, last_msg = "RATE_LIMIT_EXHAUSTED", msg1
+            time.sleep(1.0 * (attempt + 1))
+            continue
+        record_fail(msg_cd, msg1)
+        return None
+    record_fail(last_reason, last_msg)
+    return None
 
 
 def is_cheap(val: dict | None, per_max: float = 15.0, pbr_max: float = 1.5) -> bool:
