@@ -1,25 +1,45 @@
 {
-  "checked_at": "2026-10-13T15:00:31+09:00",
+  "checked_at": "2026-10-14T10:14:21+09:00",
   "kept": [
     {
       "stock_code": "011200",
       "stock_name": "HMM",
       "tech": {
-        "정배열": false,
+        "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 63.9
+        "RSI값": 73.0
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 21900.0,
-      "day_pct": 0.46
+      "current_price": 23350.0,
+      "day_pct": 5.9
     }
   ],
-  "excluded": [],
+  "excluded": [
+    {
+      "stock_code": "010140",
+      "stock_name": "삼성중공업",
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 30.5
+      },
+      "transition": false,
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 18880.0,
+      "day_pct": 2.83,
+      "reason": "전환신호 소멸"
+    }
+  ],
   "new_candidates": []
 }
