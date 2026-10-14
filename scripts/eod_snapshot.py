@@ -25,6 +25,7 @@ from common import (
     check_disclosure_risk, fetch_news, KST,
     fetch_financial_ratio, strip_raw, composite_score, fetch_volume_ranking, fetch_price_detail,
     compute_momentum, fetch_recent_disclosures, summarize_disclosures, get_sector_memo, build_signal_tags,
+    fetch_investor_daily, compute_flow_tag,
 )
 import signal_tracker
 
@@ -89,6 +90,8 @@ def build_snapshot():
         volume_rows, volume_ok = [], False
     volume_rank_map = {v["stock_code"]: v["rank"] for v in volume_rows}
 
+    today_ymd = datetime.now(KST).strftime("%Y%m%d")
+    flow_diag = {"ok": 0, "fail": 0, "rows": []}     # 일별 수급 조회 결과 요약 (한 번에 몇 거래일치가 오는지 확인용)
     enriched = []
     for row in buy_rows:
         code, name = row["stock_code"], row["stock_name"]
@@ -109,15 +112,32 @@ def build_snapshot():
         # 검증된 신호로 인정하지 않는다 (백테스트 표본에 이런 상태의 종목은 없었다)
         transition = raw_transition and not market_flags
 
-        # 신호 시점의 업종·모멘텀·공시 태그 (나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 실패해도 스냅샷은 계속)
+        # 외국인 수급 상태 (일별 수급 → 전환/연속 순매수/순매수 1일/순매도·보합). 실패해도 다른 태그는 그대로 만든다.
+        # 신호 판단에는 쓰지 않고 태그로만 기록한다 (효과가 검증되기 전에 신호 규칙을 바꾸면 기존 기록과 비교할 수 없게 된다).
+        try:
+            flow_rows = fetch_investor_daily(code)
+            if flow_rows is None:
+                flow_diag["fail"] += 1
+                flow = {}
+            else:
+                flow_diag["ok"] += 1
+                flow_diag["rows"].append(len(flow_rows))
+                flow = compute_flow_tag(flow_rows, today_ymd)
+        except Exception as ex:
+            print(f"수급 태그 계산 실패 {code}: {ex}")
+            flow_diag["fail"] += 1
+            flow = {}
+
+        # 신호 시점의 업종·모멘텀·공시·수급 태그 (나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 실패해도 스냅샷은 계속)
         try:
             momentum = compute_momentum(df)
             recent_disc = fetch_recent_disclosures(code)
             disc_summary = summarize_disclosures(recent_disc)
-            tags = build_signal_tags(get_sector_memo(code), momentum, disc_summary)
+            tags = build_signal_tags(get_sector_memo(code), momentum, disc_summary, flow)
         except Exception as ex:
             print(f"태그 계산 실패 {code}: {ex}")
-            momentum, recent_disc, disc_summary, tags = {}, [], None, {}
+            momentum, recent_disc, disc_summary = {}, [], None
+            tags = build_signal_tags("", {}, None, flow)
 
         last_date = str(df["stck_bsop_date"].iloc[-1]) if not df.empty else None
         last_close = float(df["stck_clpr"].iloc[-1]) if not df.empty else None
@@ -130,7 +150,7 @@ def build_snapshot():
             "passed": passed, "total": total,
             "risky_disclosures": risky, "news": news,
             "momentum": momentum, "sector": get_sector_memo(code), "recent_disclosures": recent_disc[:10],
-            "disclosure_summary": disc_summary, "tags": tags,
+            "disclosure_summary": disc_summary, "flow": flow, "tags": tags,
         })
 
     # 전환신호 우선, 그다음 참고점수, 그다음 원래 순위
@@ -156,6 +176,9 @@ def build_snapshot():
         "volume_top": [{"rank": v["rank"], "stock_code": v["stock_code"], "stock_name": v["stock_name"]}
                        for v in volume_rows],
         "value_overlap": value_overlap,
+        "flow_diag": {"ok": flow_diag["ok"], "fail": flow_diag["fail"],
+                      "rows_min": min(flow_diag["rows"]) if flow_diag["rows"] else None,
+                      "rows_max": max(flow_diag["rows"]) if flow_diag["rows"] else None},
     }
     return snapshot
 
@@ -193,6 +216,11 @@ if __name__ == "__main__":
             print("시장 판별 실패(지수 대비 비교 불가): " + ", ".join(f"{c} {n} (KIS 시장명={raw!r})" for c, n, raw in res["unresolved_markets"][:15]))
     except Exception as e:
         print(f"신호 추적 실패(스냅샷에는 영향 없음): {e}")
+    fd = snapshot.get("flow_diag") or {}
+    print(f"수급 일별 조회: 성공 {fd.get('ok', 0)}종목 / 실패 {fd.get('fail', 0)}종목 / 수급 일별 행 수 {fd.get('rows_min')}~{fd.get('rows_max')}"
+          " (한 번에 받아지는 거래일 수 확인용)")
+    flow_cells = [(r.get("flow") or {}).get("cell") for r in snapshot["buy_top10"]]
+    print("외국인 수급 상태: " + (", ".join(f"{c} {flow_cells.count(c)}" for c in dict.fromkeys(flow_cells) if c) or "태그 없음"))
     n_transition = sum(1 for r in snapshot["buy_top10"] if r["transition"])
     n_chased = sum(1 for r in snapshot["buy_top10"]
                    if r["transition"] and r["day_pct"] is not None and r["day_pct"] >= 0.07)
