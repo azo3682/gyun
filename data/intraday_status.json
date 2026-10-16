@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-16T12:02:08+09:00",
+  "checked_at": "2026-10-16T14:02:48+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,36 +11,18 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 75.4
+        "RSI값": 74.0
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5750.0,
-      "day_pct": -0.52,
+      "current_price": 5680.0,
+      "day_pct": -1.73,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
-    {
-      "stock_code": "460860",
-      "stock_name": "동국제강",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 48.5
-      },
-      "transition": true,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 9830.0,
-      "day_pct": 11.7
-    },
     {
       "stock_code": "016380",
       "stock_name": "KG스틸",
@@ -50,14 +32,32 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 43.2
+        "RSI값": 44.9
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5480.0,
-      "day_pct": 0.74
+      "current_price": 5510.0,
+      "day_pct": 1.29
+    },
+    {
+      "stock_code": "460860",
+      "stock_name": "동국제강",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 49.9
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 9920.0,
+      "day_pct": 12.73
     }
   ]
 }
