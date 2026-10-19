@@ -1,63 +1,86 @@
 {
-  "checked_at": "2026-10-16T15:10:59+09:00",
+  "checked_at": "2026-10-19T10:15:10+09:00",
   "kept": [],
   "excluded": [
     {
-      "stock_code": "089590",
-      "stock_name": "제주항공",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 73.4
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 5600.0,
-      "day_pct": -3.11,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
-    {
-      "stock_code": "016380",
-      "stock_name": "KG스틸",
+      "stock_code": "009190",
+      "stock_name": "대양금속",
       "tech": {
         "정배열": false,
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 42.6
+        "RSI값": 51.7
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
-      "risky_disclosures": [],
-      "current_price": 5470.0,
-      "day_pct": 0.55
+      "risky_disclosures": [
+        "20260923 불성실공시법인지정예고              ",
+        "20260922 매매거래정지및정지해제(풍문등조회공시)              ",
+        "20260921 매매거래정지및정지해제(풍문등조회공시)              "
+      ],
+      "current_price": 1010.0,
+      "day_pct": -3.72,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "460860",
       "stock_name": "동국제강",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 48.3
+        "RSI값": 54.9
+      },
+      "transition": false,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 9680.0,
+      "day_pct": -1.63,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "008970",
+      "stock_name": "KBI동양철관",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 71.5
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 9820.0,
-      "day_pct": 11.59
+      "current_price": 1748.0,
+      "day_pct": 29.96
+    },
+    {
+      "stock_code": "419050",
+      "stock_name": "삼기에너지솔루션즈",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 65.4
+      },
+      "transition": true,
+      "passed": 5,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 2390.0,
+      "day_pct": 11.42
     }
   ]
 }
