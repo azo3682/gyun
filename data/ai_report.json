@@ -1,346 +1,113 @@
 {
  "meta": {
-  "generated_at": "2026-10-19 16:37",
-  "phase": "장 마감 후 — 오늘 가격 확정 (일별 수급은 증권사 제공 시점에 따라 아직 어제까지일 수 있음)",
+  "generated_at": "2026-10-20 11:00",
+  "phase": "장중 — 가격은 실시간, 수급은 정해진 시각에만 갱신되는 잠정 값",
   "notes": [],
   "counts": {
-   "universe": 13,
-   "ok": 13
+   "universe": 14,
+   "ok": 14
   }
  },
  "stocks": [
   {
-   "code": "005930",
-   "name": "삼성전자",
+   "code": "396300",
+   "name": "HT로보틱스",
    "sources": [
     "순매수 상위 1위",
-    "신호 추적(2026-10-19 거래량·수급 동시)",
-    "거래량 상위 5위"
+    "거래량 상위 2위"
    ],
    "ranking": {
     "buy_rank": 1,
-    "foreign_net": 1564000.0,
-    "inst_net": 718000.0,
-    "volume_rank": 5
+    "foreign_net": 405000.0,
+    "inst_net": 2000.0,
+    "volume_rank": 2
    },
    "price": {
-    "current": 219000.0,
-    "change_pct": 1.62,
-    "per": 33.36,
-    "pbr": 3.42,
-    "eps": 6564.0,
-    "bps": 63997.0,
-    "mktcap_eok": 12803350.0,
-    "w52_high": 374500.0,
-    "w52_low": 94500.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 속 단기 조정",
-    "rsi": 17.8,
-    "aligned": false,
-    "volume_surge": false,
-    "momentum_20d": false,
-    "vcp": false,
-    "bb_upper": 301940.97325244575,
-    "bb_mid": 256350.0,
-    "bb_lower": 210759.02674755425,
-    "to_upper_pct": 37.87259052623093,
-    "vs_mid_pct": -14.569923932124052
-   },
-   "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 215500.0,
-    "prev_high": 222500.0,
-    "open": 207000.0,
-    "high": 219500.0,
-    "low": 206500.0,
-    "gap_pct": -3.944315545243615,
-    "range_pos_pct": 96.15384615384616,
-    "vs_prev_high_pct": -1.573033707865168,
-    "vwap": 215090.06,
-    "vs_vwap_pct": 1.8178152909530176,
-    "high20": 285500.0,
-    "low20": 204500.0,
-    "from_high20_pct": -23.29246935201401,
-    "from_low20_pct": 7.090464547677255
-   },
-   "volume": {
-    "today": 15858861.0,
-    "prev_day": 18908560.0,
-    "vs_prev_pct": 83.87,
-    "avg5": 23762209.0,
-    "avg20": 18110115.05,
-    "vs_avg20_x": 0.8756907924778755
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": 31.39,
-    "debt_ratio": 31.1,
-    "sales_growth": 98.67,
-    "op_growth": 1191.44,
-    "ni_growth": 790.97,
-    "eps": 17687.0,
-    "bps": 86052.0,
-    "rsrv_rate": 57213.76
-   },
-   "flow": {
-    "daily_asof": "2026-10-19",
-    "streak": {
-     "외국인": 2,
-     "기관": 1,
-     "개인": -2
-    },
-    "sum5": {
-     "외국인": -12354847,
-     "기관": 2297101,
-     "개인": 9825719
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 912000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": 1113000,
-      "orgn": 504000,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 1715000,
-      "orgn": 573000,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 1544000,
-      "orgn": 729000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 1564000,
-      "orgn": 718000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [],
-   "context": {
-    "sector": "전기·전자",
-    "momentum": {
-     "cell": "약세",
-     "ret5": -12.8,
-     "ret20": -12.1,
-     "ret60": -10.5,
-     "from_high": -41.7,
-     "rsi": 17.8,
-     "above_ma60": false,
-     "aligned": false,
-     "ma60_rising": false
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261016",
-      "title": "주식등의대량보유상황보고서(일반)",
-      "rcp_no": "20261016000505",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261016",
-      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-      "rcp_no": "20261016000492",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261013",
-      "title": "최대주주등소유주식변동신고서",
-      "rcp_no": "20261013800651",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261013",
-      "title": "임원ㆍ주요주주특정증권등거래계획보고서",
-      "rcp_no": "20261013000379",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261012",
-      "title": "자기주식취득결과보고서",
-      "rcp_no": "20261012000421",
-      "category": "자사주 취득",
-      "tone": "pos"
-     },
-     {
-      "date": "20261012",
-      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-      "rcp_no": "20261012000021",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [
-      "자사주 취득"
-     ],
-     "neg": [],
-     "risk": false,
-     "text": "자사주 취득"
-    }
-   },
-   "scores": {
-    "app_composite": 68.5,
-    "app_notes": [],
-    "swing_check": {
-     "total": 74,
-     "max": 100,
-     "parts": {
-      "수급": 20,
-      "신호": 0,
-      "추세": 14,
-      "가격부담": 20,
-      "재무": 20
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 0,
-      "볼린저": 0
-     },
-     "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "008970",
-   "name": "KBI동양철관",
-   "sources": [
-    "순매수 상위 2위",
-    "신호 추적(2026-10-19 전환신호)",
-    "신호 추적(2026-10-19 거래량·수급 동시)",
-    "거래량 상위 6위"
-   ],
-   "ranking": {
-    "buy_rank": 2,
-    "foreign_net": 918000.0,
-    "inst_net": 0.0,
-    "volume_rank": 6
-   },
-   "price": {
-    "current": 1748.0,
-    "change_pct": 29.96,
-    "per": -49.94,
-    "pbr": 1.28,
-    "eps": -35.0,
-    "bps": 1363.0,
-    "mktcap_eok": 1814.0,
-    "w52_high": 2970.0,
-    "w52_low": 890.0
+    "current": 10670.0,
+    "change_pct": 17.0,
+    "per": 111.15,
+    "pbr": 3.89,
+    "eps": 96.0,
+    "bps": 2745.0,
+    "mktcap_eok": 2826.0,
+    "w52_high": 11250.0,
+    "w52_low": 2270.0
    },
    "risk_flags": [],
    "technical": {
     "transition": true,
     "trend": "상승추세 · 단기 과열",
-    "rsi": 71.5,
+    "rsi": 85.7,
     "aligned": true,
     "volume_surge": true,
     "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 1618.5773169251374,
-    "bb_mid": 1302.9,
-    "bb_lower": 987.2226830748627,
-    "to_upper_pct": -7.404043654168335,
-    "vs_mid_pct": 34.162253434645784
+    "vcp": true,
+    "bb_upper": 9530.860899529052,
+    "bb_mid": 6327.5,
+    "bb_lower": 3124.139100470948,
+    "to_upper_pct": -10.676092787918911,
+    "vs_mid_pct": 68.62900039510076
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 1345.0,
-    "prev_high": 1414.0,
-    "open": 1432.0,
-    "high": 1748.0,
-    "low": 1386.0,
-    "gap_pct": 6.4684014869888395,
-    "range_pos_pct": 100.0,
-    "vs_prev_high_pct": 23.620933521923625,
-    "vwap": 1586.23,
-    "vs_vwap_pct": 10.198394936421584,
-    "high20": 1748.0,
-    "low20": 1113.0,
-    "from_high20_pct": 0.0,
-    "from_low20_pct": 57.05300988319857
+    "session_date": "2026-10-20",
+    "prev_close": 9120.0,
+    "prev_high": 9500.0,
+    "open": 9500.0,
+    "high": 11250.0,
+    "low": 9470.0,
+    "gap_pct": 4.166666666666674,
+    "range_pos_pct": 67.41573033707866,
+    "vs_prev_high_pct": 12.315789473684212,
+    "vwap": 10738.45,
+    "vs_vwap_pct": -0.6374290516787839,
+    "high20": 11250.0,
+    "low20": 4465.0,
+    "from_high20_pct": -5.155555555555558,
+    "from_low20_pct": 138.96976483762597
    },
    "volume": {
-    "today": 13109715.0,
-    "prev_day": 4717194.0,
-    "vs_prev_pct": 277.91,
-    "avg5": 5194535.8,
-    "avg20": 4950436.35,
-    "vs_avg20_x": 2.648193830428706
+    "today": 15871616.0,
+    "prev_day": 17605395.0,
+    "vs_prev_pct": 90.15,
+    "avg5": 17797050.6,
+    "avg20": 8096437.85,
+    "vs_avg20_x": 1.9603208588824035
    },
    "financial": {
-    "stac_yymm": "202606",
-    "roe": -3.48,
-    "debt_ratio": 75.16,
-    "sales_growth": 29.26,
+    "stac_yymm": "202412",
+    "roe": 3.59,
+    "debt_ratio": 84.09,
+    "sales_growth": 6.41,
     "op_growth": 0.0,
-    "ni_growth": 0.0,
-    "eps": -6.0,
-    "bps": 1361.0,
-    "rsrv_rate": 35.42
+    "ni_growth": -59.94,
+    "eps": 96.0,
+    "bps": 2745.0,
+    "rsrv_rate": 2644.59
    },
    "flow": {
     "daily_asof": "2026-10-19",
     "streak": {
-     "외국인": 2,
-     "기관": 0,
-     "개인": -2
+     "외국인": -1,
+     "기관": -2,
+     "개인": 1
     },
     "sum5": {
-     "외국인": 617996,
-     "기관": 1760,
-     "개인": -619914
+     "외국인": 57179,
+     "기관": 466797,
+     "개인": -417460
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": -65000,
+      "frgn": 382000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": 821000,
-      "orgn": 0,
+      "frgn": 405000,
+      "orgn": 2000,
       "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 918000,
-      "orgn": 0,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 918000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 918000,
-      "orgn": 0,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -351,16 +118,24 @@
     "sector": "금속",
     "momentum": {
      "cell": "강세·과열",
-     "ret5": 35.0,
-     "ret20": 49.0,
-     "ret60": 65.8,
-     "from_high": -4.0,
-     "rsi": 71.5,
+     "ret5": 70.1,
+     "ret20": 128.7,
+     "ret60": 266.4,
+     "from_high": -5.1,
+     "rsi": 85.7,
      "above_ma60": true,
      "aligned": true,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261019",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261019000084",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
      "tags": [],
      "neg": [],
@@ -369,7 +144,7 @@
     }
    },
    "scores": {
-    "app_composite": 39.7,
+    "app_composite": 32.8,
     "app_notes": [
      "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
     ],
@@ -385,7 +160,7 @@
      },
      "penalties": {
       "등락": 10,
-      "RSI": 5,
+      "RSI": 10,
       "볼린저": 5
      },
      "notes": [
@@ -396,121 +171,110 @@
    "data_issues": []
   },
   {
-   "code": "003490",
-   "name": "대한항공",
+   "code": "419050",
+   "name": "삼기에너지솔루션즈",
    "sources": [
-    "순매수 상위 3위"
+    "순매수 상위 2위",
+    "거래량 상위 4위"
    ],
    "ranking": {
-    "buy_rank": 3,
-    "foreign_net": 583000.0,
-    "inst_net": 53000.0,
-    "volume_rank": null
+    "buy_rank": 2,
+    "foreign_net": 297000.0,
+    "inst_net": 0.0,
+    "volume_rank": 4
    },
    "price": {
-    "current": 27000.0,
-    "change_pct": 2.47,
-    "per": 12.79,
-    "pbr": 0.91,
-    "eps": 2111.0,
-    "bps": 29659.0,
-    "mktcap_eok": 99420.0,
-    "w52_high": 32500.0,
-    "w52_low": 21000.0
+    "current": 2515.0,
+    "change_pct": -6.68,
+    "per": -16.12,
+    "pbr": 2.24,
+    "eps": -156.0,
+    "bps": 1122.0,
+    "mktcap_eok": 1438.0,
+    "w52_high": 2755.0,
+    "w52_low": 865.0
    },
    "risk_flags": [],
    "technical": {
     "transition": false,
-    "trend": "상승추세 속 단기 조정",
-    "rsi": 25.8,
-    "aligned": false,
+    "trend": "상승추세 진행중",
+    "rsi": 66.2,
+    "aligned": true,
     "volume_surge": false,
-    "momentum_20d": false,
+    "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 33222.976936271676,
-    "bb_mid": 30182.5,
-    "bb_lower": 27142.023063728324,
-    "to_upper_pct": 23.048062726932137,
-    "vs_mid_pct": -10.544189513791103
+    "bb_upper": 2635.453008006908,
+    "bb_mid": 1970.8,
+    "bb_lower": 1306.1469919930921,
+    "to_upper_pct": 4.7893840161792545,
+    "vs_mid_pct": 27.613152019484467
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 26350.0,
-    "prev_high": 29600.0,
-    "open": 26150.0,
-    "high": 27150.0,
-    "low": 25900.0,
-    "gap_pct": -0.7590132827324458,
-    "range_pos_pct": 88.0,
-    "vs_prev_high_pct": -8.783783783783782,
-    "vwap": 26811.12,
-    "vs_vwap_pct": 0.7044838111947671,
-    "high20": 32500.0,
-    "low20": 25900.0,
-    "from_high20_pct": -16.92307692307692,
-    "from_low20_pct": 4.247104247104239
+    "session_date": "2026-10-20",
+    "prev_close": 2695.0,
+    "prev_high": 2755.0,
+    "open": 2645.0,
+    "high": 2715.0,
+    "low": 2510.0,
+    "gap_pct": -1.855287569573283,
+    "range_pos_pct": 2.4390243902439024,
+    "vs_prev_high_pct": -8.711433756805809,
+    "vwap": 2612.68,
+    "vs_vwap_pct": -3.738689774484427,
+    "high20": 2755.0,
+    "low20": 1513.0,
+    "from_high20_pct": -8.711433756805809,
+    "from_low20_pct": 66.22604097818903
    },
    "volume": {
-    "today": 3099313.0,
-    "prev_day": 8400986.0,
-    "vs_prev_pct": 36.89,
-    "avg5": 3620540.0,
-    "avg20": 2696423.0,
-    "vs_avg20_x": 1.149416467668463
+    "today": 10073022.0,
+    "prev_day": 55303044.0,
+    "vs_prev_pct": 18.21,
+    "avg5": 17088676.4,
+    "avg20": 9565669.85,
+    "vs_avg20_x": 1.0530388522660543
    },
    "financial": {
     "stac_yymm": "202606",
-    "roe": -2.39,
-    "debt_ratio": 390.69,
-    "sales_growth": 9.33,
-    "op_growth": -61.27,
-    "ni_growth": 0.0,
-    "eps": -720.0,
-    "bps": 28464.0,
-    "rsrv_rate": 408.67
+    "roe": -5.99,
+    "debt_ratio": 223.66,
+    "sales_growth": 73.19,
+    "op_growth": -12.38,
+    "ni_growth": 863.18,
+    "eps": 88.0,
+    "bps": 1265.0,
+    "rsrv_rate": 1049.99
    },
    "flow": {
     "daily_asof": "2026-10-19",
     "streak": {
      "외국인": 1,
-     "기관": -2,
+     "기관": -1,
      "개인": -1
     },
     "sum5": {
-     "외국인": -241731,
-     "기관": -1419530,
-     "개인": 1687955
+     "외국인": -323511,
+     "기관": 0,
+     "개인": 258305
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": 62000,
+      "frgn": 359000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": 240000,
-      "orgn": 49000,
+      "frgn": 297000,
+      "orgn": 0,
       "slot": "2"
      },
      {
       "time": "11:20",
-      "frgn": 364000,
-      "orgn": 47000,
+      "frgn": -12000,
+      "orgn": 0,
       "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 509000,
-      "orgn": 61000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 583000,
-      "orgn": 53000,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -518,67 +282,381 @@
    },
    "disclosures": [],
    "context": {
-    "sector": "운송·창고",
+    "sector": "운송장비·부품",
     "momentum": {
-     "cell": "약세",
-     "ret5": -13.2,
-     "ret20": -8.0,
-     "ret60": 6.5,
-     "from_high": -16.9,
-     "rsi": 25.8,
-     "above_ma60": false,
-     "aligned": false,
+     "cell": "강세·과열",
+     "ret5": 11.0,
+     "ret20": 61.5,
+     "ret60": 83.3,
+     "from_high": -8.5,
+     "rsi": 66.2,
+     "above_ma60": true,
+     "aligned": true,
      "ma60_rising": true
     },
     "recent_disclosures": [
      {
-      "date": "20261015",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261015800518",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261015",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261015800509",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261015",
-      "title": "영업(잠정)실적(공정공시)",
-      "rcp_no": "20261015800437",
-      "category": "실적",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261015",
-      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-      "rcp_no": "20261015000018",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261012",
-      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-      "rcp_no": "20261012000353",
+      "date": "20261019",
+      "title": "전환청구권행사",
+      "rcp_no": "20261019900657",
       "category": "기타",
       "tone": "neutral"
      }
     ],
     "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
+     "tags": [],
      "neg": [],
      "risk": false,
-     "text": "실적"
+     "text": "—"
     }
    },
    "scores": {
-    "app_composite": 32.2,
+    "app_composite": 22.5,
     "app_notes": [],
+    "swing_check": {
+     "total": 65,
+     "max": 100,
+     "parts": {
+      "수급": 20,
+      "신호": 0,
+      "추세": 20,
+      "가격부담": 20,
+      "재무": 5
+     },
+     "penalties": {
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 0
+     },
+     "notes": []
+    }
+   },
+   "data_issues": []
+  },
+  {
+   "code": "317240",
+   "name": "TS트릴리온",
+   "sources": [
+    "순매수 상위 3위",
+    "거래량 상위 3위"
+   ],
+   "ranking": {
+    "buy_rank": 3,
+    "foreign_net": 261000.0,
+    "inst_net": 0.0,
+    "volume_rank": 3
+   },
+   "price": {
+    "current": 1303.0,
+    "change_pct": 11.94,
+    "per": -14.81,
+    "pbr": 1.27,
+    "eps": -88.0,
+    "bps": 1028.0,
+    "mktcap_eok": 380.0,
+    "w52_high": 1950.0,
+    "w52_low": 192.0
+   },
+   "risk_flags": [],
+   "technical": {
+    "transition": false,
+    "trend": "하락추세 속 단기 반등 시도",
+    "rsi": 69.5,
+    "aligned": false,
+    "volume_surge": true,
+    "momentum_20d": true,
+    "vcp": false,
+    "bb_upper": 1229.2267901710547,
+    "bb_mid": 1041.9,
+    "bb_lower": 854.5732098289453,
+    "to_upper_pct": -5.661796610049519,
+    "vs_mid_pct": 25.059986563009872
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 1164.0,
+    "prev_high": 1339.0,
+    "open": 1171.0,
+    "high": 1380.0,
+    "low": 1130.0,
+    "gap_pct": 0.6013745704467333,
+    "range_pos_pct": 69.19999999999999,
+    "vs_prev_high_pct": -2.688573562359975,
+    "vwap": 1287.39,
+    "vs_vwap_pct": 1.2125307793287021,
+    "high20": 1380.0,
+    "low20": 869.0,
+    "from_high20_pct": -5.579710144927541,
+    "from_low20_pct": 49.94246260069044
+   },
+   "volume": {
+    "today": 11659364.0,
+    "prev_day": 10782361.0,
+    "vs_prev_pct": 108.13,
+    "avg5": 2699207.6,
+    "avg20": 742202.75,
+    "vs_avg20_x": 15.709136081751247
+   },
+   "financial": {
+    "stac_yymm": "202606",
+    "roe": 0.27,
+    "debt_ratio": 97.92,
+    "sales_growth": 43.64,
+    "op_growth": 0.0,
+    "ni_growth": 0.0,
+    "eps": 27.0,
+    "bps": 1115.0,
+    "rsrv_rate": 88.47
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": -1,
+     "기관": -1,
+     "개인": 1
+    },
+    "sum5": {
+     "외국인": -259401,
+     "기관": 0,
+     "개인": 256681
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": 159000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": 261000,
+      "orgn": 0,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": 82000,
+      "orgn": 0,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "화학",
+    "momentum": {
+     "cell": "강세·과열",
+     "ret5": 37.0,
+     "ret20": 23.4,
+     "ret60": 62.5,
+     "from_high": -13.1,
+     "rsi": 69.5,
+     "above_ma60": true,
+     "aligned": false,
+     "ma60_rising": true
+    },
+    "recent_disclosures": [
+     {
+      "date": "20261014",
+      "title": "주주총회소집공고",
+      "rcp_no": "20261014000319",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261014",
+      "title": "[기재정정]주주총회소집결의              (임시주주총회)",
+      "rcp_no": "20261014900376",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261014",
+      "title": "주식병합결정",
+      "rcp_no": "20261014900374",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261013",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261013000169",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 46.4,
+    "app_notes": [
+     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+    ],
+    "swing_check": {
+     "total": 35,
+     "max": 100,
+     "parts": {
+      "수급": 20,
+      "신호": 0,
+      "추세": 0,
+      "가격부담": 5,
+      "재무": 10
+     },
+     "penalties": {
+      "등락": 10,
+      "RSI": 0,
+      "볼린저": 5
+     },
+     "notes": [
+      "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+     ]
+    }
+   },
+   "data_issues": []
+  },
+  {
+   "code": "122350",
+   "name": "삼기",
+   "sources": [
+    "순매수 상위 4위"
+   ],
+   "ranking": {
+    "buy_rank": 4,
+    "foreign_net": 191000.0,
+    "inst_net": 0.0,
+    "volume_rank": null
+   },
+   "price": {
+    "current": 1632.0,
+    "change_pct": -2.22,
+    "per": -9.43,
+    "pbr": 0.61,
+    "eps": -173.0,
+    "bps": 2656.0,
+    "mktcap_eok": 626.0,
+    "w52_high": 2345.0,
+    "w52_low": 836.0
+   },
+   "risk_flags": [],
+   "technical": {
+    "transition": false,
+    "trend": "상승추세 속 단기 조정",
+    "rsi": 50.0,
+    "aligned": false,
+    "volume_surge": false,
+    "momentum_20d": true,
+    "vcp": true,
+    "bb_upper": 1712.885273466352,
+    "bb_mid": 1616.2,
+    "bb_lower": 1519.5147265336482,
+    "to_upper_pct": 4.956205482006859,
+    "vs_mid_pct": 0.977601781957671
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 1669.0,
+    "prev_high": 1787.0,
+    "open": 1646.0,
+    "high": 1699.0,
+    "low": 1613.0,
+    "gap_pct": -1.3780707010185744,
+    "range_pos_pct": 22.093023255813954,
+    "vs_prev_high_pct": -8.67375489647454,
+    "vwap": 1652.6,
+    "vs_vwap_pct": -1.2465206341522372,
+    "high20": 1997.0,
+    "low20": 1466.0,
+    "from_high20_pct": -18.277416124186274,
+    "from_low20_pct": 11.323328785811725
+   },
+   "volume": {
+    "today": 592791.0,
+    "prev_day": 5822025.0,
+    "vs_prev_pct": 10.18,
+    "avg5": 1653139.8,
+    "avg20": 2398697.6,
+    "vs_avg20_x": 0.24713035940837227
+   },
+   "financial": {
+    "stac_yymm": "202606",
+    "roe": -12.59,
+    "debt_ratio": 348.2,
+    "sales_growth": 16.65,
+    "op_growth": 0.0,
+    "ni_growth": 0.0,
+    "eps": -175.0,
+    "bps": 2563.0,
+    "rsrv_rate": 2378.05
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": -1,
+     "기관": 0,
+     "개인": 1
+    },
+    "sum5": {
+     "외국인": 153467,
+     "기관": 0,
+     "개인": -153151
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": 147000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": 191000,
+      "orgn": 0,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": 228000,
+      "orgn": 0,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "운송장비·부품",
+    "momentum": {
+     "cell": "약세",
+     "ret5": 0.8,
+     "ret20": 0.2,
+     "ret60": -13.1,
+     "from_high": -30.4,
+     "rsi": 50.0,
+     "above_ma60": true,
+     "aligned": true,
+     "ma60_rising": false
+    },
+    "recent_disclosures": [],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 25.3,
+    "app_notes": [
+     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+    ],
     "swing_check": {
      "total": 49,
      "max": 100,
@@ -594,192 +672,6 @@
       "RSI": 0,
       "볼린저": 0
      },
-     "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "012340",
-   "name": "뉴인텍",
-   "sources": [
-    "순매수 상위 4위"
-   ],
-   "ranking": {
-    "buy_rank": 4,
-    "foreign_net": 549000.0,
-    "inst_net": 0.0,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 878.0,
-    "change_pct": 29.88,
-    "per": -0.89,
-    "pbr": 0.77,
-    "eps": -989.0,
-    "bps": 1138.0,
-    "mktcap_eok": 194.0,
-    "w52_high": 2105.0,
-    "w52_low": 278.0
-   },
-   "risk_flags": [
-    "🚨 관리종목",
-    "⚠️ 시가총액 194억(관리종목 요건 200억에 근접/미달)"
-   ],
-   "technical": {
-    "transition": false,
-    "trend": "하락추세 속 단기 반등 시도",
-    "rsi": 71.2,
-    "aligned": false,
-    "volume_surge": true,
-    "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 766.6855587223805,
-    "bb_mid": 485.7,
-    "bb_lower": 204.71444127761947,
-    "to_upper_pct": -12.678182377860992,
-    "vs_mid_pct": 80.77002264772494
-   },
-   "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 676.0,
-    "prev_high": 1000.0,
-    "open": 720.0,
-    "high": 878.0,
-    "low": 692.0,
-    "gap_pct": 6.5088757396449815,
-    "range_pos_pct": 100.0,
-    "vs_prev_high_pct": -12.2,
-    "vwap": 817.09,
-    "vs_vwap_pct": 7.454503175904725,
-    "high20": 1000.0,
-    "low20": 335.0,
-    "from_high20_pct": -12.2,
-    "from_low20_pct": 162.089552238806
-   },
-   "volume": {
-    "today": 8847017.0,
-    "prev_day": 19712278.0,
-    "vs_prev_pct": 44.88,
-    "avg5": 8766515.6,
-    "avg20": 2667549.55,
-    "vs_avg20_x": 3.3165333329984445
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": -45.72,
-    "debt_ratio": 380.52,
-    "sales_growth": 17.72,
-    "op_growth": 0.0,
-    "ni_growth": 0.0,
-    "eps": 5.0,
-    "bps": 1226.0,
-    "rsrv_rate": 178.61
-   },
-   "flow": {
-    "daily_asof": "2026-10-19",
-    "streak": {
-     "외국인": 1,
-     "기관": -3,
-     "개인": -1
-    },
-    "sum5": {
-     "외국인": 358446,
-     "기관": -52099,
-     "개인": -303767
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": -34000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": 18000,
-      "orgn": 0,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 549000,
-      "orgn": 0,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 549000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 549000,
-      "orgn": 0,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [
-    "20261015 기타시장안내              (주가 미달에 따른 상장폐지 우려 관련 안내)",
-    "20261007 기타시장안내              (주가 미달에 따른 상장폐지 우려 관련 안내)"
-   ],
-   "context": {
-    "sector": "운송장비·부품",
-    "momentum": {
-     "cell": "약세·급반등",
-     "ret5": 146.6,
-     "ret20": 96.9,
-     "ret60": 9.5,
-     "from_high": -42.4,
-     "rsi": 71.2,
-     "above_ma60": true,
-     "aligned": false,
-     "ma60_rising": false
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261015",
-      "title": "기타시장안내              (주가 미달에 따른 상장폐지 우려 관련 안내)",
-      "rcp_no": "20261015900582",
-      "category": "위험",
-      "tone": "neg"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [
-      "위험"
-     ],
-     "neg": [
-      "위험"
-     ],
-     "risk": true,
-     "text": "⚠️위험"
-    }
-   },
-   "scores": {
-    "app_composite": 25.3,
-    "app_notes": [
-     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
-    ],
-    "swing_check": {
-     "total": 15,
-     "max": 100,
-     "parts": {
-      "수급": 10,
-      "신호": 0,
-      "추세": 0,
-      "가격부담": 0,
-      "재무": 5
-     },
-     "penalties": {
-      "등락": 10,
-      "RSI": 5,
-      "볼린저": 5
-     },
      "notes": [
       "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
      ]
@@ -788,121 +680,109 @@
    "data_issues": []
   },
   {
-   "code": "011200",
-   "name": "HMM",
+   "code": "028670",
+   "name": "팬오션",
    "sources": [
     "순매수 상위 5위"
    ],
    "ranking": {
     "buy_rank": 5,
-    "foreign_net": 284000.0,
-    "inst_net": 171000.0,
+    "foreign_net": 110000.0,
+    "inst_net": 12000.0,
     "volume_rank": null
    },
    "price": {
-    "current": 23850.0,
-    "change_pct": 1.49,
-    "per": 12.2,
-    "pbr": 0.85,
-    "eps": 1955.0,
-    "bps": 28168.0,
-    "mktcap_eok": 224962.0,
-    "w52_high": 24950.0,
-    "w52_low": 17910.0
+    "current": 6560.0,
+    "change_pct": -3.39,
+    "per": 11.63,
+    "pbr": 0.61,
+    "eps": 564.0,
+    "bps": 10707.0,
+    "mktcap_eok": 35068.0,
+    "w52_high": 7830.0,
+    "w52_low": 3600.0
    },
    "risk_flags": [],
    "technical": {
     "transition": false,
-    "trend": "상승추세 · 단기 과열",
-    "rsi": 77.5,
+    "trend": "상승추세 진행중",
+    "rsi": 63.5,
     "aligned": true,
     "volume_surge": false,
     "momentum_20d": true,
-    "vcp": true,
-    "bb_upper": 23683.4969070051,
-    "bb_mid": 21607.5,
-    "bb_lower": 19531.5030929949,
-    "to_upper_pct": -0.698126176079239,
-    "vs_mid_pct": 10.378340853870194
+    "vcp": false,
+    "bb_upper": 7096.31078465111,
+    "bb_mid": 6167.5,
+    "bb_lower": 5238.68921534889,
+    "to_upper_pct": 8.17546927821815,
+    "vs_mid_pct": 6.36400486420754
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 23500.0,
-    "prev_high": 24250.0,
-    "open": 23450.0,
-    "high": 24000.0,
-    "low": 22900.0,
-    "gap_pct": -0.21276595744680327,
-    "range_pos_pct": 86.36363636363636,
-    "vs_prev_high_pct": -1.6494845360824795,
-    "vwap": 23788.96,
-    "vs_vwap_pct": 0.2565896113154942,
-    "high20": 24250.0,
-    "low20": 20250.0,
-    "from_high20_pct": -1.6494845360824795,
-    "from_low20_pct": 17.777777777777782
+    "session_date": "2026-10-20",
+    "prev_close": 6790.0,
+    "prev_high": 6820.0,
+    "open": 6670.0,
+    "high": 6820.0,
+    "low": 6550.0,
+    "gap_pct": -1.76730486008837,
+    "range_pos_pct": 3.7037037037037033,
+    "vs_prev_high_pct": -3.8123167155425186,
+    "vwap": 6661.5,
+    "vs_vwap_pct": -1.5236808526608137,
+    "high20": 7830.0,
+    "low20": 5560.0,
+    "from_high20_pct": -16.21966794380587,
+    "from_low20_pct": 17.985611510791365
    },
    "volume": {
-    "today": 1856034.0,
-    "prev_day": 2346054.0,
-    "vs_prev_pct": 79.11,
-    "avg5": 3464313.4,
-    "avg20": 1420735.4,
-    "vs_avg20_x": 1.3063896345512331
+    "today": 1321859.0,
+    "prev_day": 3559507.0,
+    "vs_prev_pct": 37.14,
+    "avg5": 10612527.2,
+    "avg20": 4988778.3,
+    "vs_avg20_x": 0.2649664748581832
    },
    "financial": {
     "stac_yymm": "202606",
-    "roe": 5.2,
-    "debt_ratio": 29.42,
-    "sales_growth": 11.74,
-    "op_growth": -26.43,
-    "ni_growth": -36.83,
-    "eps": 811.0,
-    "bps": 30457.0,
-    "rsrv_rate": 348.54
+    "roe": 5.82,
+    "debt_ratio": 103.08,
+    "sales_growth": 27.37,
+    "op_growth": 41.59,
+    "ni_growth": 19.07,
+    "eps": 434.0,
+    "bps": 11826.0,
+    "rsrv_rate": 784.42
    },
    "flow": {
     "daily_asof": "2026-10-19",
     "streak": {
-     "외국인": 12,
-     "기관": 6,
-     "개인": -6
+     "외국인": -1,
+     "기관": 1,
+     "개인": 3
     },
     "sum5": {
-     "외국인": 3019939,
-     "기관": 2171456,
-     "개인": -7204692
+     "외국인": -4535319,
+     "기관": 6810866,
+     "개인": -2360000
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": 32000,
+      "frgn": 61000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": 59000,
-      "orgn": 4000,
+      "frgn": 110000,
+      "orgn": 12000,
       "slot": "2"
      },
      {
       "time": "11:20",
-      "frgn": 141000,
-      "orgn": 35000,
+      "frgn": 153000,
+      "orgn": 42000,
       "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 241000,
-      "orgn": 141000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 284000,
-      "orgn": 171000,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -912,35 +792,28 @@
    "context": {
     "sector": "운송·창고",
     "momentum": {
-     "cell": "강세·과열",
-     "ret5": 9.4,
-     "ret20": 15.5,
-     "ret60": 18.4,
-     "from_high": -1.6,
-     "rsi": 77.5,
+     "cell": "강세·안정",
+     "ret5": 0.5,
+     "ret20": 13.4,
+     "ret60": 31.3,
+     "from_high": -16.0,
+     "rsi": 63.5,
      "above_ma60": true,
      "aligned": true,
      "ma60_rising": true
     },
     "recent_disclosures": [
      {
-      "date": "20261015",
-      "title": "주주총회소집결의",
-      "rcp_no": "20261015800608",
+      "date": "20261020",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261020000045",
       "category": "기타",
       "tone": "neutral"
      },
      {
       "date": "20261015",
-      "title": "주주명부폐쇄기간또는기준일설정",
-      "rcp_no": "20261015800551",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261015",
-      "title": "신규시설투자등",
-      "rcp_no": "20261015800543",
+      "title": "주식등의대량보유상황보고서(일반)",
+      "rcp_no": "20261015000388",
       "category": "기타",
       "tone": "neutral"
      }
@@ -953,193 +826,17 @@
     }
    },
    "scores": {
-    "app_composite": 67.2,
+    "app_composite": 69.8,
     "app_notes": [],
     "swing_check": {
-     "total": 50,
+     "total": 65,
      "max": 100,
      "parts": {
       "수급": 10,
       "신호": 0,
       "추세": 20,
-      "가격부담": 10,
-      "재무": 10
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 5,
-      "볼린저": 5
-     },
-     "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "000660",
-   "name": "SK하이닉스",
-   "sources": [
-    "순매수 상위 6위"
-   ],
-   "ranking": {
-    "buy_rank": 6,
-    "foreign_net": -34000.0,
-    "inst_net": 39000.0,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 1282000.0,
-    "change_pct": 0.79,
-    "per": 21.75,
-    "pbr": 7.46,
-    "eps": 58955.0,
-    "bps": 171751.0,
-    "mktcap_eok": 9364912.0,
-    "w52_high": 2987000.0,
-    "w52_low": 465500.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 속 단기 조정",
-    "rsi": 12.4,
-    "aligned": false,
-    "volume_surge": false,
-    "momentum_20d": false,
-    "vcp": false,
-    "bb_upper": 2090932.2134859716,
-    "bb_mid": 1668700.0,
-    "bb_lower": 1246467.7865140284,
-    "to_upper_pct": 63.09923662137065,
-    "vs_mid_pct": -23.17372805177683
-   },
-   "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 1272000.0,
-    "prev_high": 1325000.0,
-    "open": 1212000.0,
-    "high": 1285000.0,
-    "low": 1208000.0,
-    "gap_pct": -4.716981132075471,
-    "range_pos_pct": 96.1038961038961,
-    "vs_prev_high_pct": -3.2452830188679282,
-    "vwap": 1246953.3,
-    "vs_vwap_pct": 2.8105864108944445,
-    "high20": 1935000.0,
-    "low20": 1208000.0,
-    "from_high20_pct": -33.74677002583979,
-    "from_low20_pct": 6.12582781456954
-   },
-   "volume": {
-    "today": 3510555.0,
-    "prev_day": 4561066.0,
-    "vs_prev_pct": 76.97,
-    "avg5": 4553737.2,
-    "avg20": 3364695.05,
-    "vs_avg20_x": 1.0433501247014942
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": 92.68,
-    "debt_ratio": 32.8,
-    "sales_growth": 230.8,
-    "op_growth": 489.39,
-    "ni_growth": 788.94,
-    "eps": 187361.0,
-    "bps": 368998.0,
-    "rsrv_rate": 6948.33
-   },
-   "flow": {
-    "daily_asof": "2026-10-19",
-    "streak": {
-     "외국인": -17,
-     "기관": -2,
-     "개인": -2
-    },
-    "sum5": {
-     "외국인": -3270722,
-     "기관": 112590,
-     "개인": 835735
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 67000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": 73000,
-      "orgn": 87000,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 54000,
-      "orgn": 59000,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": -13000,
-      "orgn": 52000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": -34000,
-      "orgn": 39000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [],
-   "context": {
-    "sector": "전기·전자",
-    "momentum": {
-     "cell": "약세",
-     "ret5": -20.1,
-     "ret20": -24.1,
-     "ret60": -27.3,
-     "from_high": -57.1,
-     "rsi": 12.4,
-     "above_ma60": false,
-     "aligned": false,
-     "ma60_rising": false
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261014",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261014800385",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
-    }
-   },
-   "scores": {
-    "app_composite": 62.5,
-    "app_notes": [
-     "ROE 40% 초과: 일회성 이익 의심"
-    ],
-    "swing_check": {
-     "total": 64,
-     "max": 100,
-     "parts": {
-      "수급": 10,
-      "신호": 0,
-      "추세": 14,
       "가격부담": 20,
-      "재무": 20
+      "재무": 15
      },
      "penalties": {
       "등락": 0,
@@ -1152,121 +849,109 @@
    "data_issues": []
   },
   {
-   "code": "018880",
-   "name": "한온시스템",
+   "code": "089860",
+   "name": "롯데렌탈",
    "sources": [
-    "순매수 상위 7위"
+    "순매수 상위 6위"
    ],
    "ranking": {
-    "buy_rank": 7,
-    "foreign_net": 165000.0,
-    "inst_net": 210000.0,
+    "buy_rank": 6,
+    "foreign_net": 116000.0,
+    "inst_net": 0.0,
     "volume_rank": null
    },
    "price": {
-    "current": 3990.0,
-    "change_pct": 4.04,
-    "per": -15.53,
-    "pbr": 1.09,
-    "eps": -257.0,
-    "bps": 3671.0,
-    "mktcap_eok": 40947.0,
-    "w52_high": 5940.0,
-    "w52_low": 2755.0
+    "current": 49750.0,
+    "change_pct": -3.21,
+    "per": 14.16,
+    "pbr": 1.15,
+    "eps": 3514.0,
+    "bps": 43125.0,
+    "mktcap_eok": 18064.0,
+    "w52_high": 53100.0,
+    "w52_low": 26650.0
    },
    "risk_flags": [],
    "technical": {
     "transition": false,
-    "trend": "상승추세 · 단기 과열",
-    "rsi": 71.6,
-    "aligned": true,
-    "volume_surge": false,
+    "trend": "상승추세 속 단기 조정",
+    "rsi": 50.3,
+    "aligned": false,
+    "volume_surge": true,
     "momentum_20d": true,
-    "vcp": true,
-    "bb_upper": 4192.632933381482,
-    "bb_mid": 3621.0,
-    "bb_lower": 3049.367066618518,
-    "to_upper_pct": 5.0785196336210925,
-    "vs_mid_pct": 10.190555095277553
+    "vcp": false,
+    "bb_upper": 52106.04796646641,
+    "bb_mid": 50295.0,
+    "bb_lower": 48483.95203353359,
+    "to_upper_pct": 4.735774806967652,
+    "vs_mid_pct": -1.0836067203499389
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 3835.0,
-    "prev_high": 3955.0,
-    "open": 3715.0,
-    "high": 4010.0,
-    "low": 3710.0,
-    "gap_pct": -3.1290743155149903,
-    "range_pos_pct": 93.33333333333333,
-    "vs_prev_high_pct": 0.8849557522123908,
-    "vwap": 3915.48,
-    "vs_vwap_pct": 1.9032149315026503,
-    "high20": 4085.0,
-    "low20": 3165.0,
-    "from_high20_pct": -2.3255813953488413,
-    "from_low20_pct": 26.066350710900466
+    "session_date": "2026-10-20",
+    "prev_close": 51400.0,
+    "prev_high": 51400.0,
+    "open": 50700.0,
+    "high": 51300.0,
+    "low": 49500.0,
+    "gap_pct": -1.3618677042801508,
+    "range_pos_pct": 13.88888888888889,
+    "vs_prev_high_pct": -3.2101167315175094,
+    "vwap": 50006.26,
+    "vs_vwap_pct": -0.5124558405287694,
+    "high20": 52100.0,
+    "low20": 47450.0,
+    "from_high20_pct": -4.510556621881001,
+    "from_low20_pct": 4.847207586933622
    },
    "volume": {
-    "today": 6717762.0,
-    "prev_day": 6244934.0,
-    "vs_prev_pct": 107.57,
-    "avg5": 7869391.2,
-    "avg20": 8139783.55,
-    "vs_avg20_x": 0.8252998324507045
+    "today": 288152.0,
+    "prev_day": 80719.0,
+    "vs_prev_pct": 356.98,
+    "avg5": 144782.2,
+    "avg20": 90000.6,
+    "vs_avg20_x": 3.2016675444385925
    },
    "financial": {
     "stac_yymm": "202606",
-    "roe": -0.15,
-    "debt_ratio": 157.17,
-    "sales_growth": 2.7,
-    "op_growth": 135.27,
-    "ni_growth": 0.0,
-    "eps": 149.0,
-    "bps": 4008.0,
-    "rsrv_rate": 3179.25
+    "roe": 7.73,
+    "debt_ratio": 412.63,
+    "sales_growth": 4.34,
+    "op_growth": 16.69,
+    "ni_growth": -18.85,
+    "eps": 1399.0,
+    "bps": 43521.0,
+    "rsrv_rate": 735.97
    },
    "flow": {
     "daily_asof": "2026-10-19",
     "streak": {
-     "외국인": 1,
-     "기관": 14,
-     "개인": -5
+     "외국인": -1,
+     "기관": 1,
+     "개인": -1
     },
     "sum5": {
-     "외국인": -2300070,
-     "기관": 4701584,
-     "개인": -2193130
+     "외국인": 58434,
+     "기관": 6531,
+     "개인": -47467
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": 28000,
+      "frgn": 60000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": -92000,
-      "orgn": -2000,
+      "frgn": 116000,
+      "orgn": 0,
       "slot": "2"
      },
      {
       "time": "11:20",
-      "frgn": -82000,
-      "orgn": 6000,
+      "frgn": 132000,
+      "orgn": 0,
       "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 63000,
-      "orgn": 185000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 165000,
-      "orgn": 210000,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -1274,30 +959,44 @@
    },
    "disclosures": [],
    "context": {
-    "sector": "기계·장비",
+    "sector": "일반서비스",
     "momentum": {
-     "cell": "강세·과열",
-     "ret5": 3.1,
-     "ret20": 18.4,
-     "ret60": 17.9,
-     "from_high": -32.3,
-     "rsi": 71.6,
+     "cell": "강세·안정",
+     "ret5": -2.3,
+     "ret20": 3.3,
+     "ret60": 35.6,
+     "from_high": -6.3,
+     "rsi": 50.3,
      "above_ma60": true,
-     "aligned": true,
+     "aligned": false,
      "ma60_rising": true
     },
     "recent_disclosures": [
      {
-      "date": "20261016",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261016800172",
+      "date": "20261019",
+      "title": "증권신고서(채무증권)",
+      "rcp_no": "20261019000362",
       "category": "기타",
       "tone": "neutral"
      },
      {
-      "date": "20261016",
-      "title": "결산실적공시예고(안내공시)",
-      "rcp_no": "20261016800170",
+      "date": "20261015",
+      "title": "의결권대리행사권유참고서류",
+      "rcp_no": "20261015000069",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261015",
+      "title": "주주총회소집공고",
+      "rcp_no": "20261015000059",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261013",
+      "title": "최대주주등소유주식변동신고서",
+      "rcp_no": "20261013800304",
       "category": "기타",
       "tone": "neutral"
      }
@@ -1310,21 +1009,21 @@
     }
    },
    "scores": {
-    "app_composite": 34.8,
+    "app_composite": 49.8,
     "app_notes": [],
     "swing_check": {
-     "total": 55,
+     "total": 54,
      "max": 100,
      "parts": {
       "수급": 10,
       "신호": 0,
-      "추세": 20,
-      "가격부담": 15,
+      "추세": 14,
+      "가격부담": 20,
       "재무": 10
      },
      "penalties": {
       "등락": 0,
-      "RSI": 5,
+      "RSI": 0,
       "볼린저": 0
      },
      "notes": []
@@ -1333,297 +1032,109 @@
    "data_issues": []
   },
   {
-   "code": "010580",
-   "name": "에스엠벡셀",
+   "code": "020120",
+   "name": "키다리스튜디오",
    "sources": [
-    "순매수 상위 8위",
-    "신호 추적(2026-10-19 거래량·수급 동시)",
-    "거래량 상위 2위"
+    "순매수 상위 7위"
    ],
    "ranking": {
-    "buy_rank": 8,
-    "foreign_net": 340000.0,
+    "buy_rank": 7,
+    "foreign_net": 100000.0,
     "inst_net": 0.0,
-    "volume_rank": 2
-   },
-   "price": {
-    "current": 4040.0,
-    "change_pct": 29.9,
-    "per": 404.0,
-    "pbr": 6.67,
-    "eps": 10.0,
-    "bps": 606.0,
-    "mktcap_eok": 4495.0,
-    "w52_high": 4040.0,
-    "w52_low": 1321.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 · 단기 과열",
-    "rsi": 70.1,
-    "aligned": true,
-    "volume_surge": true,
-    "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 3510.193393424814,
-    "bb_mid": 2595.0,
-    "bb_lower": 1679.806606575186,
-    "to_upper_pct": -13.114024915227374,
-    "vs_mid_pct": 55.68400770712909
-   },
-   "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 3110.0,
-    "prev_high": 3425.0,
-    "open": 3135.0,
-    "high": 4040.0,
-    "low": 3090.0,
-    "gap_pct": 0.8038585209003246,
-    "range_pos_pct": 100.0,
-    "vs_prev_high_pct": 17.956204379562045,
-    "vwap": 3720.8,
-    "vs_vwap_pct": 8.578800258009034,
-    "high20": 4040.0,
-    "low20": 1994.0,
-    "from_high20_pct": 0.0,
-    "from_low20_pct": 102.60782347041122
-   },
-   "volume": {
-    "today": 26768018.0,
-    "prev_day": 9995066.0,
-    "vs_prev_pct": 267.81,
-    "avg5": 14183732.6,
-    "avg20": 6353968.9,
-    "vs_avg20_x": 4.212802804244132
-   },
-   "financial": {
-    "stac_yymm": "202412",
-    "roe": 1.67,
-    "debt_ratio": 57.36,
-    "sales_growth": -14.88,
-    "op_growth": -44.92,
-    "ni_growth": 62.27,
-    "eps": 10.0,
-    "bps": 606.0,
-    "rsrv_rate": 21.14
-   },
-   "flow": {
-    "daily_asof": "2026-10-19",
-    "streak": {
-     "외국인": 3,
-     "기관": 0,
-     "개인": -3
-    },
-    "sum5": {
-     "외국인": 548635,
-     "기관": -16189,
-     "개인": -551662
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 215000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": -12000,
-      "orgn": 0,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 174000,
-      "orgn": 0,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 340000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 340000,
-      "orgn": 0,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [],
-   "context": {
-    "sector": "운송장비·부품",
-    "momentum": {
-     "cell": "강세·과열",
-     "ret5": 84.5,
-     "ret20": 44.8,
-     "ret60": 152.5,
-     "from_high": 0.0,
-     "rsi": 70.1,
-     "above_ma60": true,
-     "aligned": true,
-     "ma60_rising": true
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261016",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261016800753",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
-    }
-   },
-   "scores": {
-    "app_composite": 22.0,
-    "app_notes": [],
-    "swing_check": {
-     "total": 45,
-     "max": 100,
-     "parts": {
-      "수급": 20,
-      "신호": 0,
-      "추세": 20,
-      "가격부담": 0,
-      "재무": 5
-     },
-     "penalties": {
-      "등락": 10,
-      "RSI": 5,
-      "볼린저": 5
-     },
-     "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "000100",
-   "name": "유한양행",
-   "sources": [
-    "순매수 상위 9위"
-   ],
-   "ranking": {
-    "buy_rank": 9,
-    "foreign_net": 225000.0,
-    "inst_net": 116000.0,
     "volume_rank": null
    },
    "price": {
-    "current": 86500.0,
-    "change_pct": 7.59,
-    "per": 36.21,
-    "pbr": 2.8,
-    "eps": 2389.0,
-    "bps": 30855.0,
-    "mktcap_eok": 63678.0,
-    "w52_high": 129200.0,
-    "w52_low": 65000.0
+    "current": 4550.0,
+    "change_pct": -12.33,
+    "per": 25.42,
+    "pbr": 0.83,
+    "eps": 179.0,
+    "bps": 5485.0,
+    "mktcap_eok": 1687.0,
+    "w52_high": 9450.0,
+    "w52_low": 2800.0
    },
    "risk_flags": [],
    "technical": {
     "transition": false,
-    "trend": "하락추세 속 단기 반등 시도",
-    "rsi": 73.5,
+    "trend": "상승추세 속 단기 조정",
+    "rsi": 20.3,
     "aligned": false,
     "volume_surge": true,
-    "momentum_20d": true,
+    "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 82090.62229805443,
-    "bb_mid": 75505.0,
-    "bb_lower": 68919.37770194557,
-    "to_upper_pct": -5.097546476237658,
-    "vs_mid_pct": 14.561949539765573
+    "bb_upper": 9783.428409152373,
+    "bb_mid": 7202.0,
+    "bb_lower": 4620.571590847627,
+    "to_upper_pct": 115.02040459675547,
+    "vs_mid_pct": -36.8231046931408
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 80400.0,
-    "prev_high": 82100.0,
-    "open": 80500.0,
-    "high": 87800.0,
-    "low": 79800.0,
-    "gap_pct": 0.12437810945273853,
-    "range_pos_pct": 83.75,
-    "vs_prev_high_pct": 5.35931790499391,
-    "vwap": 85802.28,
-    "vs_vwap_pct": 0.8131718644306396,
-    "high20": 87800.0,
-    "low20": 69000.0,
-    "from_high20_pct": -1.4806378132118492,
-    "from_low20_pct": 25.36231884057971
+    "session_date": "2026-10-20",
+    "prev_close": 5190.0,
+    "prev_high": 6460.0,
+    "open": 5140.0,
+    "high": 5200.0,
+    "low": 4520.0,
+    "gap_pct": -0.9633911368015391,
+    "range_pos_pct": 4.411764705882353,
+    "vs_prev_high_pct": -29.56656346749226,
+    "vwap": 4746.55,
+    "vs_vwap_pct": -4.140902339594021,
+    "high20": 9360.0,
+    "low20": 4520.0,
+    "from_high20_pct": -51.388888888888886,
+    "from_low20_pct": 0.6637168141592875
    },
    "volume": {
-    "today": 965988.0,
-    "prev_day": 411748.0,
-    "vs_prev_pct": 234.61,
-    "avg5": 279894.4,
-    "avg20": 222038.65,
-    "vs_avg20_x": 4.350539872224949
+    "today": 1263523.0,
+    "prev_day": 3488122.0,
+    "vs_prev_pct": 36.22,
+    "avg5": 1296838.2,
+    "avg20": 725983.05,
+    "vs_avg20_x": 1.740430441179033
    },
    "financial": {
     "stac_yymm": "202606",
-    "roe": 10.45,
-    "debt_ratio": 34.78,
-    "sales_growth": 8.94,
-    "op_growth": 34.48,
-    "ni_growth": 69.25,
-    "eps": 1204.0,
-    "bps": 31931.0,
-    "rsrv_rate": 2952.88
+    "roe": 6.04,
+    "debt_ratio": 68.51,
+    "sales_growth": 22.76,
+    "op_growth": 274.66,
+    "ni_growth": 226.28,
+    "eps": 223.0,
+    "bps": 5707.0,
+    "rsrv_rate": 1137.62
    },
    "flow": {
     "daily_asof": "2026-10-19",
     "streak": {
-     "외국인": 5,
-     "기관": 3,
-     "개인": -6
+     "외국인": 1,
+     "기관": -1,
+     "개인": -1
     },
     "sum5": {
-     "외국인": 419332,
-     "기관": 556416,
-     "개인": -963851
+     "외국인": 152189,
+     "기관": -56153,
+     "개인": -15942
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": -5000,
+      "frgn": -8000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": 8000,
-      "orgn": 7000,
+      "frgn": 100000,
+      "orgn": 0,
       "slot": "2"
      },
      {
       "time": "11:20",
-      "frgn": 86000,
-      "orgn": 37000,
+      "frgn": 118000,
+      "orgn": 0,
       "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 184000,
-      "orgn": 97000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 225000,
-      "orgn": 116000,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -1631,15 +1142,15 @@
    },
    "disclosures": [],
    "context": {
-    "sector": "제약",
+    "sector": "IT 서비스",
     "momentum": {
-     "cell": "강세·과열",
-     "ret5": 20.1,
-     "ret20": 9.1,
-     "ret60": 25.0,
-     "from_high": -1.5,
-     "rsi": 73.5,
-     "above_ma60": true,
+     "cell": "약세",
+     "ret5": -23.0,
+     "ret20": -49.3,
+     "ret60": 26.9,
+     "from_high": -51.9,
+     "rsi": 20.3,
+     "above_ma60": false,
      "aligned": false,
      "ma60_rising": true
     },
@@ -1652,24 +1163,182 @@
     }
    },
    "scores": {
-    "app_composite": 67.5,
+    "app_composite": 71.2,
     "app_notes": [],
     "swing_check": {
-     "total": 34,
+     "total": 59,
+     "max": 100,
+     "parts": {
+      "수급": 10,
+      "신호": 0,
+      "추세": 14,
+      "가격부담": 20,
+      "재무": 15
+     },
+     "penalties": {
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 0
+     },
+     "notes": []
+    }
+   },
+   "data_issues": []
+  },
+  {
+   "code": "389030",
+   "name": "지니너스",
+   "sources": [
+    "순매수 상위 8위"
+   ],
+   "ranking": {
+    "buy_rank": 8,
+    "foreign_net": 115000.0,
+    "inst_net": 0.0,
+    "volume_rank": null
+   },
+   "price": {
+    "current": 1570.0,
+    "change_pct": -7.1,
+    "per": -3.01,
+    "pbr": 5.75,
+    "eps": -521.0,
+    "bps": 273.0,
+    "mktcap_eok": 618.0,
+    "w52_high": 6480.0,
+    "w52_low": 1555.0
+   },
+   "risk_flags": [],
+   "technical": {
+    "transition": false,
+    "trend": "추세적 하락 지속",
+    "rsi": 20.3,
+    "aligned": false,
+    "volume_surge": false,
+    "momentum_20d": false,
+    "vcp": true,
+    "bb_upper": 2353.9997076022387,
+    "bb_mid": 1926.5,
+    "bb_lower": 1499.0002923977613,
+    "to_upper_pct": 49.93628710842284,
+    "vs_mid_pct": -18.50506099143524
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 1690.0,
+    "prev_high": 1751.0,
+    "open": 1699.0,
+    "high": 1699.0,
+    "low": 1565.0,
+    "gap_pct": 0.5325443786982298,
+    "range_pos_pct": 3.731343283582089,
+    "vs_prev_high_pct": -10.33695031410623,
+    "vwap": 1606.8,
+    "vs_vwap_pct": -2.2902663679362667,
+    "high20": 2500.0,
+    "low20": 1555.0,
+    "from_high20_pct": -37.2,
+    "from_low20_pct": 0.9646302250803762
+   },
+   "volume": {
+    "today": 298606.0,
+    "prev_day": 258050.0,
+    "vs_prev_pct": 115.72,
+    "avg5": 275204.0,
+    "avg20": 374625.75,
+    "vs_avg20_x": 0.7970781506610264
+   },
+   "financial": {
+    "stac_yymm": "202606",
+    "roe": -72.44,
+    "debt_ratio": 33.4,
+    "sales_growth": 15.27,
+    "op_growth": 0.0,
+    "ni_growth": 0.0,
+    "eps": -258.0,
+    "bps": 902.0,
+    "rsrv_rate": 58.33
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": 2,
+     "기관": -2,
+     "개인": -1
+    },
+    "sum5": {
+     "외국인": -8585,
+     "기관": -44502,
+     "개인": 27275
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": 15000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": 115000,
+      "orgn": 0,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": 110000,
+      "orgn": 0,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "일반서비스",
+    "momentum": {
+     "cell": "약세",
+     "ret5": -9.7,
+     "ret20": -19.0,
+     "ret60": -23.0,
+     "from_high": -49.3,
+     "rsi": 20.3,
+     "above_ma60": false,
+     "aligned": false,
+     "ma60_rising": false
+    },
+    "recent_disclosures": [],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 33.3,
+    "app_notes": [
+     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+    ],
+    "swing_check": {
+     "total": 40,
      "max": 100,
      "parts": {
       "수급": 10,
       "신호": 0,
       "추세": 0,
-      "가격부담": 4,
-      "재무": 20
+      "가격부담": 20,
+      "재무": 10
      },
      "penalties": {
-      "등락": 6,
-      "RSI": 5,
-      "볼린저": 5
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 0
      },
-     "notes": []
+     "notes": [
+      "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+     ]
     }
    },
    "data_issues": []
@@ -1678,22 +1347,22 @@
    "code": "000400",
    "name": "롯데손해보험",
    "sources": [
-    "순매수 상위 10위"
+    "순매수 상위 9위"
    ],
    "ranking": {
-    "buy_rank": 10,
-    "foreign_net": 287000.0,
-    "inst_net": 0.0,
+    "buy_rank": 9,
+    "foreign_net": 113000.0,
+    "inst_net": 8000.0,
     "volume_rank": null
    },
    "price": {
-    "current": 2470.0,
-    "change_pct": -2.56,
+    "current": 2565.0,
+    "change_pct": 4.27,
     "per": 0.0,
     "pbr": 0.0,
     "eps": 0.0,
     "bps": 0.0,
-    "mktcap_eok": 7665.0,
+    "mktcap_eok": 7960.0,
     "w52_high": 3280.0,
     "w52_low": 1576.0
    },
@@ -1701,41 +1370,41 @@
    "technical": {
     "transition": false,
     "trend": "상승추세 · 단기 과열",
-    "rsi": 73.6,
+    "rsi": 74.6,
     "aligned": true,
     "volume_surge": false,
     "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 2641.6368857437983,
-    "bb_mid": 2223.0,
-    "bb_lower": 1804.363114256202,
-    "to_upper_pct": 6.948861771003978,
-    "vs_mid_pct": 11.111111111111116
+    "vcp": true,
+    "bb_upper": 2683.251927850768,
+    "bb_mid": 2249.0,
+    "bb_lower": 1814.748072149232,
+    "to_upper_pct": 4.6102116121157,
+    "vs_mid_pct": 14.050689195197874
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 2535.0,
-    "prev_high": 2625.0,
-    "open": 2500.0,
-    "high": 2525.0,
-    "low": 2375.0,
-    "gap_pct": -1.3806706114398382,
-    "range_pos_pct": 63.33333333333333,
-    "vs_prev_high_pct": -5.9047619047619015,
-    "vwap": 2458.14,
-    "vs_vwap_pct": 0.4824786220475774,
+    "session_date": "2026-10-20",
+    "prev_close": 2460.0,
+    "prev_high": 2525.0,
+    "open": 2465.0,
+    "high": 2570.0,
+    "low": 2465.0,
+    "gap_pct": 0.20325203252031798,
+    "range_pos_pct": 95.23809523809523,
+    "vs_prev_high_pct": 1.5841584158415856,
+    "vwap": 2531.43,
+    "vs_vwap_pct": 1.3261279197923859,
     "high20": 2835.0,
     "low20": 1988.0,
-    "from_high20_pct": -12.874779541446213,
-    "from_low20_pct": 24.24547283702214
+    "from_high20_pct": -9.523809523809524,
+    "from_low20_pct": 29.024144869215295
    },
    "volume": {
-    "today": 1781989.0,
-    "prev_day": 1644519.0,
-    "vs_prev_pct": 108.36,
-    "avg5": 6338042.6,
-    "avg20": 1848248.4,
-    "vs_avg20_x": 0.964150165096856
+    "today": 816693.0,
+    "prev_day": 1834072.0,
+    "vs_prev_pct": 44.53,
+    "avg5": 6511959.8,
+    "avg20": 1930507.85,
+    "vs_avg20_x": 0.4230456768150412
    },
    "financial": {
     "stac_yymm": "202509",
@@ -1756,40 +1425,28 @@
      "개인": -11
     },
     "sum5": {
-     "외국인": 1781288,
+     "외국인": 1780626,
      "기관": 709924,
-     "개인": -2547632
+     "개인": -2546870
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": 77000,
+      "frgn": 71000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": 45000,
-      "orgn": 0,
+      "frgn": 113000,
+      "orgn": 8000,
       "slot": "2"
      },
      {
       "time": "11:20",
-      "frgn": 129000,
-      "orgn": 0,
+      "frgn": 157000,
+      "orgn": 21000,
       "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 258000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 287000,
-      "orgn": 0,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -1799,17 +1456,24 @@
    "context": {
     "sector": "보험",
     "momentum": {
-     "cell": "약세",
-     "ret5": 6.0,
-     "ret20": 20.8,
-     "ret60": 3.8,
-     "from_high": -12.9,
-     "rsi": 73.6,
+     "cell": "강세·과열",
+     "ret5": 2.0,
+     "ret20": 26.0,
+     "ret60": 17.7,
+     "from_high": -9.5,
+     "rsi": 74.6,
      "above_ma60": true,
      "aligned": true,
      "ma60_rising": true
     },
     "recent_disclosures": [
+     {
+      "date": "20261019",
+      "title": "주식등의대량보유상황보고서(일반)",
+      "rcp_no": "20261019000349",
+      "category": "기타",
+      "tone": "neutral"
+     },
      {
       "date": "20261013",
       "title": "투자판단관련주요경영사항",
@@ -1853,6 +1517,683 @@
    ]
   },
   {
+   "code": "144960",
+   "name": "뉴파워프라즈마",
+   "sources": [
+    "순매수 상위 10위"
+   ],
+   "ranking": {
+    "buy_rank": 10,
+    "foreign_net": 62000.0,
+    "inst_net": 33000.0,
+    "volume_rank": null
+   },
+   "price": {
+    "current": 13430.0,
+    "change_pct": 6.33,
+    "per": 68.87,
+    "pbr": 1.9,
+    "eps": 195.0,
+    "bps": 7057.0,
+    "mktcap_eok": 5868.0,
+    "w52_high": 14470.0,
+    "w52_low": 4710.0
+   },
+   "risk_flags": [],
+   "technical": {
+    "transition": false,
+    "trend": "상승추세 속 단기 조정",
+    "rsi": 54.5,
+    "aligned": false,
+    "volume_surge": false,
+    "momentum_20d": true,
+    "vcp": false,
+    "bb_upper": 14992.175917509472,
+    "bb_mid": 12574.5,
+    "bb_lower": 10156.824082490528,
+    "to_upper_pct": 11.631987472147976,
+    "vs_mid_pct": 6.8034514294802895
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 12630.0,
+    "prev_high": 12630.0,
+    "open": 12640.0,
+    "high": 13630.0,
+    "low": 12640.0,
+    "gap_pct": 0.07917656373712667,
+    "range_pos_pct": 79.7979797979798,
+    "vs_prev_high_pct": 6.334125098970711,
+    "vwap": 13333.82,
+    "vs_vwap_pct": 0.7213236716859805,
+    "high20": 14470.0,
+    "low20": 9140.0,
+    "from_high20_pct": -7.187284035936425,
+    "from_low20_pct": 46.93654266958425
+   },
+   "volume": {
+    "today": 1303287.0,
+    "prev_day": 1701954.0,
+    "vs_prev_pct": 76.58,
+    "avg5": 1989892.0,
+    "avg20": 1490065.85,
+    "vs_avg20_x": 0.8746506068842528
+   },
+   "financial": {
+    "stac_yymm": "202606",
+    "roe": 11.91,
+    "debt_ratio": 115.41,
+    "sales_growth": 31.59,
+    "op_growth": 160.96,
+    "ni_growth": 14245.1,
+    "eps": 765.0,
+    "bps": 8140.0,
+    "rsrv_rate": 7531.54
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": -2,
+     "기관": 2,
+     "개인": -1
+    },
+    "sum5": {
+     "외국인": -364160,
+     "기관": 579930,
+     "개인": -127319
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": 20000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": 62000,
+      "orgn": 33000,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": 98000,
+      "orgn": 74000,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "기계·장비",
+    "momentum": {
+     "cell": "강세·안정",
+     "ret5": -2.9,
+     "ret20": 46.0,
+     "ret60": 34.3,
+     "from_high": -7.2,
+     "rsi": 54.5,
+     "above_ma60": true,
+     "aligned": true,
+     "ma60_rising": true
+    },
+    "recent_disclosures": [
+     {
+      "date": "20261016",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261016000080",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 57.0,
+    "app_notes": [],
+    "swing_check": {
+     "total": 64,
+     "max": 100,
+     "parts": {
+      "수급": 10,
+      "신호": 0,
+      "추세": 14,
+      "가격부담": 20,
+      "재무": 20
+     },
+     "penalties": {
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 0
+     },
+     "notes": []
+    }
+   },
+   "data_issues": []
+  },
+  {
+   "code": "010580",
+   "name": "에스엠벡셀",
+   "sources": [
+    "신호 추적(2026-10-19 거래량·수급 동시)",
+    "거래량 상위 8위"
+   ],
+   "ranking": {
+    "buy_rank": null,
+    "foreign_net": null,
+    "inst_net": null,
+    "volume_rank": 8
+   },
+   "price": {
+    "current": 3815.0,
+    "change_pct": -5.57,
+    "per": 381.5,
+    "pbr": 6.3,
+    "eps": 10.0,
+    "bps": 606.0,
+    "mktcap_eok": 4244.0,
+    "w52_high": 4100.0,
+    "w52_low": 1321.0
+   },
+   "risk_flags": [
+    "⚠️ 투자주의"
+   ],
+   "technical": {
+    "transition": false,
+    "trend": "상승추세 진행중",
+    "rsi": 67.5,
+    "aligned": true,
+    "volume_surge": false,
+    "momentum_20d": true,
+    "vcp": false,
+    "bb_upper": 3722.68624716521,
+    "bb_mid": 2657.75,
+    "bb_lower": 1592.8137528347902,
+    "to_upper_pct": -2.419757610348372,
+    "vs_mid_pct": 43.54247013451227
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 4040.0,
+    "prev_high": 4040.0,
+    "open": 4045.0,
+    "high": 4100.0,
+    "low": 3715.0,
+    "gap_pct": 0.12376237623761277,
+    "range_pos_pct": 25.97402597402597,
+    "vs_prev_high_pct": -5.569306930693074,
+    "vwap": 3919.97,
+    "vs_vwap_pct": -2.677826616020018,
+    "high20": 4100.0,
+    "low20": 1994.0,
+    "from_high20_pct": -6.951219512195117,
+    "from_low20_pct": 91.32397191574724
+   },
+   "volume": {
+    "today": 8493716.0,
+    "prev_day": 26776903.0,
+    "vs_prev_pct": 31.72,
+    "avg5": 19310928.6,
+    "avg20": 6619979.9,
+    "vs_avg20_x": 1.2830425663377014
+   },
+   "financial": {
+    "stac_yymm": "202412",
+    "roe": 1.67,
+    "debt_ratio": 57.36,
+    "sales_growth": -14.88,
+    "op_growth": -44.92,
+    "ni_growth": 62.27,
+    "eps": 10.0,
+    "bps": 606.0,
+    "rsrv_rate": 21.14
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": 3,
+     "기관": 0,
+     "개인": -3
+    },
+    "sum5": {
+     "외국인": 548635,
+     "기관": -16189,
+     "개인": -551662
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": -190000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": -298000,
+      "orgn": 0,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": -478000,
+      "orgn": 0,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "운송장비·부품",
+    "momentum": {
+     "cell": "강세·과열",
+     "ret5": 85.6,
+     "ret20": 49.0,
+     "ret60": 141.6,
+     "from_high": -7.0,
+     "rsi": 67.5,
+     "above_ma60": true,
+     "aligned": true,
+     "ma60_rising": true
+    },
+    "recent_disclosures": [
+     {
+      "date": "20261016",
+      "title": "기업설명회(IR)개최(안내공시)",
+      "rcp_no": "20261016800753",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 22.0,
+    "app_notes": [],
+    "swing_check": {
+     "total": 50,
+     "max": 100,
+     "parts": {
+      "수급": 10,
+      "신호": 0,
+      "추세": 20,
+      "가격부담": 15,
+      "재무": 5
+     },
+     "penalties": {
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 5
+     },
+     "notes": []
+    }
+   },
+   "data_issues": []
+  },
+  {
+   "code": "008970",
+   "name": "KBI동양철관",
+   "sources": [
+    "신호 추적(2026-10-19 전환신호)",
+    "신호 추적(2026-10-19 거래량·수급 동시)",
+    "거래량 상위 1위"
+   ],
+   "ranking": {
+    "buy_rank": null,
+    "foreign_net": null,
+    "inst_net": null,
+    "volume_rank": 1
+   },
+   "price": {
+    "current": 1631.0,
+    "change_pct": -6.69,
+    "per": -46.6,
+    "pbr": 1.2,
+    "eps": -35.0,
+    "bps": 1363.0,
+    "mktcap_eok": 1692.0,
+    "w52_high": 2970.0,
+    "w52_low": 890.0
+   },
+   "risk_flags": [],
+   "technical": {
+    "transition": false,
+    "trend": "상승추세 진행중",
+    "rsi": 65.2,
+    "aligned": true,
+    "volume_surge": true,
+    "momentum_20d": true,
+    "vcp": true,
+    "bb_upper": 1666.9638576159239,
+    "bb_mid": 1326.35,
+    "bb_lower": 985.736142384076,
+    "to_upper_pct": 2.2050188605716725,
+    "vs_mid_pct": 22.96905040147774
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 1748.0,
+    "prev_high": 1748.0,
+    "open": 1706.0,
+    "high": 1895.0,
+    "low": 1603.0,
+    "gap_pct": -2.4027459954233388,
+    "range_pos_pct": 9.58904109589041,
+    "vs_prev_high_pct": -6.6933638443935966,
+    "vwap": 1778.15,
+    "vs_vwap_pct": -8.275454826645678,
+    "high20": 1895.0,
+    "low20": 1113.0,
+    "from_high20_pct": -13.931398416886543,
+    "from_low20_pct": 46.54088050314464
+   },
+   "volume": {
+    "today": 36509792.0,
+    "prev_day": 13145583.0,
+    "vs_prev_pct": 277.73,
+    "avg5": 7422646.4,
+    "avg20": 5582075.25,
+    "vs_avg20_x": 6.540540993244403
+   },
+   "financial": {
+    "stac_yymm": "202606",
+    "roe": -3.48,
+    "debt_ratio": 75.16,
+    "sales_growth": 29.26,
+    "op_growth": 0.0,
+    "ni_growth": 0.0,
+    "eps": -6.0,
+    "bps": 1361.0,
+    "rsrv_rate": 35.42
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": 2,
+     "기관": 0,
+     "개인": -2
+    },
+    "sum5": {
+     "외국인": 611751,
+     "기관": 1760,
+     "개인": -613669
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": 260000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": -149000,
+      "orgn": 0,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": -457000,
+      "orgn": 0,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "금속",
+    "momentum": {
+     "cell": "강세·과열",
+     "ret5": 28.3,
+     "ret20": 40.3,
+     "ret60": 52.5,
+     "from_high": -13.9,
+     "rsi": 65.2,
+     "above_ma60": true,
+     "aligned": true,
+     "ma60_rising": true
+    },
+    "recent_disclosures": [],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 39.7,
+    "app_notes": [
+     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+    ],
+    "swing_check": {
+     "total": 60,
+     "max": 100,
+     "parts": {
+      "수급": 10,
+      "신호": 0,
+      "추세": 20,
+      "가격부담": 20,
+      "재무": 10
+     },
+     "penalties": {
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 0
+     },
+     "notes": [
+      "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
+     ]
+    }
+   },
+   "data_issues": []
+  },
+  {
+   "code": "005930",
+   "name": "삼성전자",
+   "sources": [
+    "신호 추적(2026-10-19 거래량·수급 동시)"
+   ],
+   "ranking": {
+    "buy_rank": null,
+    "foreign_net": null,
+    "inst_net": null,
+    "volume_rank": null
+   },
+   "price": {
+    "current": 214000.0,
+    "change_pct": -1.83,
+    "per": 32.6,
+    "pbr": 3.34,
+    "eps": 6564.0,
+    "bps": 63997.0,
+    "mktcap_eok": 12511036.0,
+    "w52_high": 374500.0,
+    "w52_low": 94500.0
+   },
+   "risk_flags": [],
+   "technical": {
+    "transition": false,
+    "trend": "상승추세 속 단기 조정",
+    "rsi": 19.6,
+    "aligned": false,
+    "volume_surge": false,
+    "momentum_20d": false,
+    "vcp": false,
+    "bb_upper": 303802.9015699201,
+    "bb_mid": 254350.0,
+    "bb_lower": 204897.09843007987,
+    "to_upper_pct": 41.96397269622436,
+    "vs_mid_pct": -15.863966974641242
+   },
+   "structure": {
+    "session_date": "2026-10-20",
+    "prev_close": 218000.0,
+    "prev_high": 219500.0,
+    "open": 219500.0,
+    "high": 219500.0,
+    "low": 210000.0,
+    "gap_pct": 0.6880733944954143,
+    "range_pos_pct": 42.10526315789473,
+    "vs_prev_high_pct": -2.505694760820043,
+    "vwap": 214623.95,
+    "vs_vwap_pct": -0.2907177880194678,
+    "high20": 285500.0,
+    "low20": 204500.0,
+    "from_high20_pct": -25.04378283712785,
+    "from_low20_pct": 4.645476772616131
+   },
+   "volume": {
+    "today": 5914722.0,
+    "prev_day": 17617415.0,
+    "vs_prev_pct": 33.57,
+    "avg5": 23331301.0,
+    "avg20": 18419210.5,
+    "vs_avg20_x": 0.3211170207322404
+   },
+   "financial": {
+    "stac_yymm": "202606",
+    "roe": 31.39,
+    "debt_ratio": 31.1,
+    "sales_growth": 98.67,
+    "op_growth": 1191.44,
+    "ni_growth": 790.97,
+    "eps": 17687.0,
+    "bps": 86052.0,
+    "rsrv_rate": 57213.76
+   },
+   "flow": {
+    "daily_asof": "2026-10-19",
+    "streak": {
+     "외국인": 2,
+     "기관": -2,
+     "개인": -2
+    },
+    "sum5": {
+     "외국인": -11905253,
+     "기관": 2227830,
+     "개인": 9464399
+    },
+    "estimate": [
+     {
+      "time": "09:30",
+      "frgn": 244000,
+      "orgn": 0,
+      "slot": "1"
+     },
+     {
+      "time": "10:00",
+      "frgn": 400000,
+      "orgn": -408000,
+      "slot": "2"
+     },
+     {
+      "time": "11:20",
+      "frgn": 356000,
+      "orgn": -501000,
+      "slot": "3"
+     }
+    ],
+    "daily_ok": true,
+    "estimate_ok": true
+   },
+   "disclosures": [],
+   "context": {
+    "sector": "전기·전자",
+    "momentum": {
+     "cell": "약세",
+     "ret5": -7.8,
+     "ret20": -15.6,
+     "ret60": -17.4,
+     "from_high": -42.9,
+     "rsi": 19.6,
+     "above_ma60": false,
+     "aligned": false,
+     "ma60_rising": false
+    },
+    "recent_disclosures": [
+     {
+      "date": "20261019",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261019000318",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261016",
+      "title": "주식등의대량보유상황보고서(일반)",
+      "rcp_no": "20261016000505",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261016",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261016000492",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261013",
+      "title": "최대주주등소유주식변동신고서",
+      "rcp_no": "20261013800651",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261013",
+      "title": "임원ㆍ주요주주특정증권등거래계획보고서",
+      "rcp_no": "20261013000379",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
+    "disclosure_summary": {
+     "tags": [],
+     "neg": [],
+     "risk": false,
+     "text": "—"
+    }
+   },
+   "scores": {
+    "app_composite": 68.5,
+    "app_notes": [],
+    "swing_check": {
+     "total": 54,
+     "max": 100,
+     "parts": {
+      "수급": 0,
+      "신호": 0,
+      "추세": 14,
+      "가격부담": 20,
+      "재무": 20
+     },
+     "penalties": {
+      "등락": 0,
+      "RSI": 0,
+      "볼린저": 0
+     },
+     "notes": []
+    }
+   },
+   "data_issues": []
+  },
+  {
    "code": "460860",
    "name": "동국제강",
    "sources": [
@@ -1865,55 +2206,55 @@
     "volume_rank": null
    },
    "price": {
-    "current": 10040.0,
-    "change_pct": 2.03,
+    "current": 9720.0,
+    "change_pct": -3.76,
     "per": 0.0,
     "pbr": 0.0,
     "eps": 0.0,
     "bps": 0.0,
-    "mktcap_eok": 4981.0,
+    "mktcap_eok": 4822.0,
     "w52_high": 17710.0,
     "w52_low": 7760.0
    },
    "risk_flags": [],
    "technical": {
     "transition": false,
-    "trend": "추세적 하락 지속",
-    "rsi": 60.9,
+    "trend": "하락추세 속 기술적 반등",
+    "rsi": 53.3,
     "aligned": false,
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 10461.242325491241,
-    "bb_mid": 9608.5,
-    "bb_lower": 8755.757674508759,
-    "to_upper_pct": 4.195640692143843,
-    "vs_mid_pct": 4.490815423843464
+    "bb_upper": 10445.132121084891,
+    "bb_mid": 9599.5,
+    "bb_lower": 8753.867878915109,
+    "to_upper_pct": 7.460207007046193,
+    "vs_mid_pct": 1.255273712172511
    },
    "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 9840.0,
-    "prev_high": 9990.0,
-    "open": 9400.0,
-    "high": 10100.0,
-    "low": 9390.0,
-    "gap_pct": -4.471544715447151,
-    "range_pos_pct": 91.54929577464789,
-    "vs_prev_high_pct": 0.5005005005005003,
-    "vwap": 9842.89,
-    "vs_vwap_pct": 2.002562255597695,
+    "session_date": "2026-10-20",
+    "prev_close": 10100.0,
+    "prev_high": 10100.0,
+    "open": 9950.0,
+    "high": 10120.0,
+    "low": 9690.0,
+    "gap_pct": -1.4851485148514865,
+    "range_pos_pct": 6.976744186046512,
+    "vs_prev_high_pct": -3.7623762376237657,
+    "vwap": 9826.81,
+    "vs_vwap_pct": -1.0869244444534853,
     "high20": 11780.0,
     "low20": 8660.0,
-    "from_high20_pct": -14.770797962648551,
-    "from_low20_pct": 15.935334872979222
+    "from_high20_pct": -17.487266553480474,
+    "from_low20_pct": 12.240184757505768
    },
    "volume": {
-    "today": 343873.0,
-    "prev_day": 988381.0,
-    "vs_prev_pct": 34.79,
-    "avg5": 457155.4,
-    "avg20": 429189.85,
-    "vs_avg20_x": 0.8012141946040896
+    "today": 102424.0,
+    "prev_day": 358350.0,
+    "vs_prev_pct": 28.58,
+    "avg5": 495147.4,
+    "avg20": 438806.4,
+    "vs_avg20_x": 0.23341500944380025
    },
    "financial": {
     "stac_yymm": "202509",
@@ -1934,40 +2275,28 @@
      "개인": -3
     },
     "sum5": {
-     "외국인": 432073,
+     "외국인": 432171,
      "기관": 139498,
-     "개인": -571230
+     "개인": -571328
     },
     "estimate": [
      {
       "time": "09:30",
-      "frgn": -3000,
+      "frgn": 10000,
       "orgn": 0,
       "slot": "1"
      },
      {
       "time": "10:00",
-      "frgn": -19000,
+      "frgn": 10000,
       "orgn": 0,
       "slot": "2"
      },
      {
       "time": "11:20",
-      "frgn": -8000,
-      "orgn": 0,
+      "frgn": 22000,
+      "orgn": -1000,
       "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 29000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 59000,
-      "orgn": 0,
-      "slot": "5"
      }
     ],
     "daily_ok": true,
@@ -1977,12 +2306,12 @@
    "context": {
     "sector": "금속",
     "momentum": {
-     "cell": "강세·과열",
-     "ret5": 11.3,
-     "ret20": -2.9,
-     "ret60": 20.4,
-     "from_high": -14.8,
-     "rsi": 60.9,
+     "cell": "강세·안정",
+     "ret5": 8.6,
+     "ret20": -2.4,
+     "ret60": 15.9,
+     "from_high": -17.5,
+     "rsi": 53.3,
      "above_ma60": true,
      "aligned": false,
      "ma60_rising": true
@@ -2021,364 +2350,6 @@
    "data_issues": [
     "재무비율이 비어 있음(KIS가 0을 돌려줌) — 재무 판단 불가"
    ]
-  },
-  {
-   "code": "009190",
-   "name": "대양금속",
-   "sources": [
-    "신호 추적(2026-10-16 전환신호)",
-    "신호 추적(2026-10-16 거래량·수급 동시)",
-    "거래량 상위 4위"
-   ],
-   "ranking": {
-    "buy_rank": null,
-    "foreign_net": null,
-    "inst_net": null,
-    "volume_rank": 4
-   },
-   "price": {
-    "current": 967.0,
-    "change_pct": -7.82,
-    "per": 5.72,
-    "pbr": 0.54,
-    "eps": 169.0,
-    "bps": 1789.0,
-    "mktcap_eok": 435.0,
-    "w52_high": 2545.0,
-    "w52_low": 545.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "하락추세 속 단기 반등 시도",
-    "rsi": 50.1,
-    "aligned": false,
-    "volume_surge": true,
-    "momentum_20d": false,
-    "vcp": true,
-    "bb_upper": 1257.8955571167762,
-    "bb_mid": 844.7,
-    "bb_lower": 431.5044428832239,
-    "to_upper_pct": 30.082270642893082,
-    "vs_mid_pct": 14.478513081567424
-   },
-   "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 1049.0,
-    "prev_high": 1049.0,
-    "open": 1135.0,
-    "high": 1198.0,
-    "low": 966.0,
-    "gap_pct": 8.198284080076256,
-    "range_pos_pct": 0.43103448275862066,
-    "vs_prev_high_pct": -7.816968541468061,
-    "vwap": 1048.96,
-    "vs_vwap_pct": -7.813453325198294,
-    "high20": 1290.0,
-    "low20": 545.0,
-    "from_high20_pct": -25.038759689922486,
-    "from_low20_pct": 77.43119266055045
-   },
-   "volume": {
-    "today": 16081460.0,
-    "prev_day": 28224220.0,
-    "vs_prev_pct": 56.98,
-    "avg5": 15913008.0,
-    "avg20": 5845052.55,
-    "vs_avg20_x": 2.751294340373381
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": 0.0,
-    "debt_ratio": 57.91,
-    "sales_growth": -2.97,
-    "op_growth": 14.85,
-    "ni_growth": 0.0,
-    "eps": -7.0,
-    "bps": 1785.0,
-    "rsrv_rate": 254.45
-   },
-   "flow": {
-    "daily_asof": "2026-10-19",
-    "streak": {
-     "외국인": -1,
-     "기관": -1,
-     "개인": 1
-    },
-    "sum5": {
-     "외국인": -543808,
-     "기관": 894,
-     "개인": 1011281
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": -358000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": -811000,
-      "orgn": 0,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": -1112000,
-      "orgn": 0,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": -1101000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": -1151000,
-      "orgn": 0,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [
-    "20260923 불성실공시법인지정예고              ",
-    "20260922 매매거래정지및정지해제(풍문등조회공시)              ",
-    "20260921 매매거래정지및정지해제(풍문등조회공시)              "
-   ],
-   "context": {
-    "sector": "금속",
-    "momentum": {
-     "cell": "약세·급반등",
-     "ret5": 74.2,
-     "ret20": -14.8,
-     "ret60": -45.1,
-     "from_high": -58.3,
-     "rsi": 50.1,
-     "above_ma60": false,
-     "aligned": false,
-     "ma60_rising": false
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261013",
-      "title": "[기재정정]주주총회소집결의",
-      "rcp_no": "20261013800552",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261013",
-      "title": "[기재정정]주주명부폐쇄기간또는기준일설정",
-      "rcp_no": "20261013800554",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
-    }
-   },
-   "scores": {
-    "app_composite": 57.0,
-    "app_notes": [],
-    "swing_check": {
-     "total": 40,
-     "max": 100,
-     "parts": {
-      "수급": 10,
-      "신호": 0,
-      "추세": 0,
-      "가격부담": 20,
-      "재무": 10
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 0,
-      "볼린저": 0
-     },
-     "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "089590",
-   "name": "제주항공",
-   "sources": [
-    "신호 추적(2026-10-15 전환신호)"
-   ],
-   "ranking": {
-    "buy_rank": null,
-    "foreign_net": null,
-    "inst_net": null,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 5590.0,
-    "change_pct": 0.54,
-    "per": -3.87,
-    "pbr": 1.64,
-    "eps": -1443.0,
-    "bps": 3415.0,
-    "mktcap_eok": 4508.0,
-    "w52_high": 6790.0,
-    "w52_low": 3985.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 · 단기 과열",
-    "rsi": 73.4,
-    "aligned": true,
-    "volume_surge": false,
-    "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 5665.741780249151,
-    "bb_mid": 4733.5,
-    "bb_lower": 3801.2582197508495,
-    "to_upper_pct": 1.3549513461386553,
-    "vs_mid_pct": 18.094433294602297
-   },
-   "structure": {
-    "session_date": "2026-10-19",
-    "prev_close": 5560.0,
-    "prev_high": 5890.0,
-    "open": 5470.0,
-    "high": 5630.0,
-    "low": 5360.0,
-    "gap_pct": -1.618705035971224,
-    "range_pos_pct": 85.18518518518519,
-    "vs_prev_high_pct": -5.093378607809851,
-    "vwap": 5502.91,
-    "vs_vwap_pct": 1.5826171970829916,
-    "high20": 5890.0,
-    "low20": 4310.0,
-    "from_high20_pct": -5.093378607809851,
-    "from_low20_pct": 29.698375870069604
-   },
-   "volume": {
-    "today": 430133.0,
-    "prev_day": 1193063.0,
-    "vs_prev_pct": 36.05,
-    "avg5": 1785725.6,
-    "avg20": 610961.15,
-    "vs_avg20_x": 0.7040267617670943
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": -38.69,
-    "debt_ratio": 1009.03,
-    "sales_growth": 36.38,
-    "op_growth": 0.0,
-    "ni_growth": 0.0,
-    "eps": -403.0,
-    "bps": 2971.0,
-    "rsrv_rate": 77.55
-   },
-   "flow": {
-    "daily_asof": "2026-10-19",
-    "streak": {
-     "외국인": 5,
-     "기관": 1,
-     "개인": -6
-    },
-    "sum5": {
-     "외국인": 703702,
-     "기관": 1034480,
-     "개인": -1735102
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 27000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": 39000,
-      "orgn": 0,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 52000,
-      "orgn": 0,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 73000,
-      "orgn": 0,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 94000,
-      "orgn": -3000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [],
-   "context": {
-    "sector": "운송·창고",
-    "momentum": {
-     "cell": "강세·과열",
-     "ret5": 26.6,
-     "ret20": 18.9,
-     "ret60": 33.7,
-     "from_high": -5.1,
-     "rsi": 73.4,
-     "above_ma60": true,
-     "aligned": true,
-     "ma60_rising": true
-    },
-    "recent_disclosures": [],
-    "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
-    }
-   },
-   "scores": {
-    "app_composite": 16.1,
-    "app_notes": [
-     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외",
-     "부채비율 500% 초과: 금융업이면 구조적으로 높을 수 있음"
-    ],
-    "swing_check": {
-     "total": 35,
-     "max": 100,
-     "parts": {
-      "수급": 0,
-      "신호": 0,
-      "추세": 20,
-      "가격부담": 10,
-      "재무": 5
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 5,
-      "볼린저": 5
-     },
-     "notes": [
-      "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
-     ]
-    }
-   },
-   "data_issues": []
   }
  ]
 }
