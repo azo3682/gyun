@@ -1,51 +1,7 @@
 {
-  "checked_at": "2026-10-19T15:11:16+09:00",
+  "checked_at": "2026-10-20T14:13:36+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "009190",
-      "stock_name": "대양금속",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 50.9
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [
-        "20260923 불성실공시법인지정예고              ",
-        "20260922 매매거래정지및정지해제(풍문등조회공시)              ",
-        "20260921 매매거래정지및정지해제(풍문등조회공시)              "
-      ],
-      "current_price": 990.0,
-      "day_pct": -5.62,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "460860",
-      "stock_name": "동국제강",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 61.2
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 10060.0,
-      "day_pct": 2.24,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "008970",
       "stock_name": "KBI동양철관",
@@ -53,16 +9,55 @@
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 71.5
+        "RSI값": 62.9
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1748.0,
-      "day_pct": 29.96
+      "current_price": 1581.0,
+      "day_pct": -9.55,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "396300",
+      "stock_name": "HT로보틱스",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 83.3
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 9740.0,
+      "day_pct": 6.8
+    },
+    {
+      "stock_code": "340450",
+      "stock_name": "지씨지놈",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 62.2
+      },
+      "transition": true,
+      "passed": 5,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 10170.0,
+      "day_pct": 8.77
     }
   ]
 }
