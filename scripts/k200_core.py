@@ -89,6 +89,22 @@ def norm_minute(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+FLAT_FILL_MAX = 0.10   # 정규장 봉 중 '거래 없는 평평한 봉'이 이 비율을 넘으면 선채움(가짜 봉)으로 본다
+
+
+def flat_fill_ratio(bars: pd.DataFrame) -> float:
+    """09:00–15:19 봉 중 거래량 0이고 시고저종이 같은 봉의 비율. KIS가 아직 오지 않은 시각을 마지막 가격으로
+    채워 보내는 것이 실제 확인되어(2026-10-22), 그런 날을 걸러내는 데 쓴다."""
+    if bars is None or len(bars) == 0:
+        return 0.0
+    b = bars if "mins" in bars.columns else norm_minute(bars)
+    sess = b[(b["mins"] >= OPEN_MIN) & (b["mins"] <= CUTOFF_MIN)]
+    if len(sess) == 0:
+        return 0.0
+    flat = (sess["volume"].fillna(0) == 0) & (sess["open"] == sess["high"]) & (sess["high"] == sess["low"]) & (sess["low"] == sess["close"])
+    return float(flat.mean())
+
+
 # ============================================================
 # 지표
 # ============================================================
