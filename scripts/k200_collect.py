@@ -405,6 +405,9 @@ PROBES = [
                 "FID_COND_MRKT_CLS_CODE1": "", "FID_INPUT_HOUR_1": ""}),
     ("종목별 프로그램매매 일별", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily", "FHPPG04650200",
      lambda d: {"FID_INPUT_ISCD": "005930", "FID_INPUT_DATE_1": ""}),
+    ("외국인·기관 매매종목 가집계(장중)", "/uapi/domestic-stock/v1/quotations/foreign-institution-total", "FHPTJ04400000",
+     lambda d: {"FID_COND_MRKT_DIV_CODE": "V", "FID_COND_SCR_DIV_CODE": "16449", "FID_INPUT_ISCD": "0000",
+                "FID_DIV_CLS_CODE": "1", "FID_RANK_SORT_CLS_CODE": "0", "FID_ETC_CLS_CODE": "0"}),
     ("종목별 프로그램매매 시간대", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock", "FHPPG04650100",
      lambda d: {"FID_INPUT_ISCD": "005930"}),
 ]
