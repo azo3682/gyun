@@ -60,7 +60,9 @@ jobs:
           git add data/k200
           git commit -m "Update K200 data [skip ci]" || { echo "no changes"; exit 0; }
           for i in 1 2 3; do
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            # 데이터 파일이 충돌하면 이번 실행에서 새로 받은 쪽을 우선한다 (일봉·수급은 누적 병합 방식이라 안전)
+            git pull --rebase -X theirs --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            git rebase --abort 2>/dev/null || true
             sleep 5
           done
           echo "push failed after 3 attempts"
