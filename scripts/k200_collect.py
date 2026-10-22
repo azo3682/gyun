@@ -123,6 +123,15 @@ def merge_daily(old, new):
     return [m[k] for k in sorted(m)]
 
 
+def flat_ratio(rows):
+    """09:00–15:19 봉 중 거래량 0이고 시고저종이 같은 봉의 비율."""
+    sess = [r for r in rows if "090000" <= r["time"] <= "151900"]
+    if not sess:
+        return 0.0
+    z = sum(1 for r in sess if (r["volume"] or 0) == 0 and r["open"] == r["high"] == r["low"] == r["close"])
+    return z / len(sess)
+
+
 INTRADAY_CUTOFF_MIN = 15 * 60 + 35   # 이 시각 전에 받은 오늘 자료는 미완성으로 본다
 
 
@@ -138,6 +147,9 @@ def validate_minute_day(rows, date, intraday=False):
         if rows and any(r["time"] > "153000" for r in rows):
             issues.append("장중인데 마감 이후 시각의 봉이 있음(전일 자료 혼입 의심)")
         return issues
+    ratio = flat_ratio(rows)
+    if ratio > 0.10:
+        issues.append(f"거래 없는 평평한 봉 {ratio:.0%} (선채움 의심)")
     if len(rows) < 300:
         issues.append(f"봉 수 부족({len(rows)})")
     if rows:
@@ -315,6 +327,7 @@ def main():
     # 2) 오늘 분봉 (일봉에 오늘 날짜가 있어야 거래일이다)
     if is_trading_day:
         rows, diag = fetch_minutes_today(today)
+        diag["flat_ratio_raw"] = round(flat_ratio(rows), 3)
         if intraday:
             nowt = now.strftime("%H%M") + "00"
             future = [r for r in rows if r["time"] > nowt]
