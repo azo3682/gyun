@@ -59,7 +59,10 @@ def load_minute_days(dates: tuple):
         if not obj or not obj.get("bars"):
             return None
         df = pd.DataFrame(obj["bars"], columns=["time", "open", "high", "low", "close", "volume"])
-        return {"date": d, "bars": K.norm_minute(df), "issues": obj.get("issues") or []}
+        issues = obj.get("issues") or []
+        if any(("장중" in x) or ("혼입" in x) for x in issues):
+            return None          # 미완성·오염 의심인 날은 검증에서 제외한다
+        return {"date": d, "bars": K.norm_minute(df), "issues": issues}
     with ThreadPoolExecutor(max_workers=8) as ex:
         res = list(ex.map(one, dates))
     return [r for r in res if r]
