@@ -1,28 +1,7 @@
 {
-  "checked_at": "2026-10-21T19:35:16+09:00",
+  "checked_at": "2026-10-22T14:21:51+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "340450",
-      "stock_name": "지씨지놈",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 58.3
-      },
-      "transition": false,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 9850.0,
-      "day_pct": -3.9,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "009900",
       "stock_name": "명신산업",
@@ -32,14 +11,53 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 66.1
+        "RSI값": 62.8
       },
-      "transition": true,
+      "transition": false,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 10100.0,
-      "day_pct": 16.76
+      "current_price": 9880.0,
+      "day_pct": -3.04,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "028050",
+      "stock_name": "삼성E&A",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 65.9
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 55600.0,
+      "day_pct": 16.56
+    },
+    {
+      "stock_code": "357880",
+      "stock_name": "SKAI",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 51.4
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 1851.0,
+      "day_pct": 29.99
     }
   ]
 }
