@@ -178,6 +178,12 @@ def _live_quote():
         rows, _ = C.fetch_minutes_today(today, upper=now.strftime("%H%M") + "00")
         rows = [r for r in rows if r["time"] <= now.strftime("%H%M") + "00"]
         q["minutes"] = rows
+        mdata, _e = C.kis_get(C.MKT_TIME_PATH, C.MKT_TIME_TR, {"FID_INPUT_ISCD": "KSP", "FID_INPUT_ISCD_2": "0001"})
+        mo = (mdata or {}).get("output") or []
+        if isinstance(mo, dict):
+            mo = [mo]
+        if mo:
+            q["mkt_flow"] = {k: C._iv(mo[0].get(f)) for k, f in C.MKT_AMT.items()}
         q["fetched_at"] = now.strftime("%H:%M:%S")
         if q["close"] <= 0:
             return None, "현재가가 0으로 왔습니다(장 시작 전이거나 응답 이상)."
@@ -296,25 +302,61 @@ with tab_now:
             st.caption("장중 위치는 위 버튼으로 지금 값을 불러왔을 때만 표시합니다.")
 
         st.subheader("수급")
+        # (1) 시장 전체(코스피)
+        mk_obj = load_json("market_flow.json") or {}
+        mk_rows = mk_obj.get("rows") or []
+        if mk_rows:
+            mdf = pd.DataFrame(mk_rows).sort_values("date", ascending=False).reset_index(drop=True)
+            eok = lambda x: None if x is None or pd.isna(x) else x / 100.0       # 백만원 -> 억원
+            last = mdf.iloc[0]
+            st.markdown(f"**코스피 전체 투자자별 순매수 (확정치, 기준일 {last['date']}, 지수 {fmt(last.get('idx'), 2)} / {fmt(last.get('idx_chg_pct'), 2, '%')})**")
+            names = [("frgn", "외국인"), ("orgn", "기관 합계"), ("prsn", "개인"), ("etc", "기타법인"),
+                     ("scrt", "  금융투자"), ("ivtr", "  투신"), ("pe", "  사모펀드"), ("insu", "  보험"), ("bank", "  은행"), ("fund", "  연기금 등")]
+            trs = []
+            for k, nm in names:
+                col = f"{k}_amt"
+                if col not in mdf.columns:
+                    continue
+                ser = mdf[col]
+                tot = lambda n: ser.head(n).sum(min_count=1)
+                streak = V._streak(list(ser.head(30)))
+                trs.append({"구분": nm, "당일(억원)": fmt(eok(ser.iloc[0]), 0), "3일 합": fmt(eok(tot(3)), 0), "5일 합": fmt(eok(tot(5)), 0),
+                            "20일 합": fmt(eok(tot(20)), 0),
+                            "연속": (f"{streak}일 순매수" if streak > 0 else f"{-streak}일 순매도" if streak < 0 else "-")})
+            st.dataframe(pd.DataFrame(trs), hide_index=True, use_container_width=True)
+            hist = mdf.head(10)[["date", "idx_chg_pct", "frgn_amt", "orgn_amt", "prsn_amt"]].copy()
+            for c_ in ("frgn_amt", "orgn_amt", "prsn_amt"):
+                hist[c_] = (hist[c_] / 100.0).round(0)
+            hist.columns = ["날짜", "지수 등락 %", "외국인 억", "기관 억", "개인 억"]
+            st.caption("최근 10거래일 흐름 (지수 등락과 함께)")
+            st.dataframe(hist, hide_index=True, use_container_width=True)
+            st.caption("금액은 억원. 수량(주)과 금액의 부호가 다를 수 있습니다(싼 종목을 팔고 비싼 종목을 샀을 때). 판단에는 금액을 기준으로 봅니다. 기관 합계는 아래 세부 항목의 합입니다.")
+        else:
+            st.info("코스피 전체 수급이 아직 없습니다. 수집기를 새 버전으로 실행하면 market_flow.json이 생깁니다.")
+        mf = live.get("mkt_flow") if use_live else None
+        if mf:
+            st.markdown(f"**코스피 장중 누적 ({live['fetched_at']} 기준, 잠정치, 억원)**: 외국인 {fmt(mf['frgn'] / 100 if mf.get('frgn') is not None else None, 0)}, "
+                        f"기관 {fmt(mf['orgn'] / 100 if mf.get('orgn') is not None else None, 0)}, 개인 {fmt(mf['prsn'] / 100 if mf.get('prsn') is not None else None, 0)}, "
+                        f"금융투자 {fmt(mf['scrt'] / 100 if mf.get('scrt') is not None else None, 0)}")
+        # (2) 개별 종목
         flow_obj = load_json("flow.json") or {}
         fr = V.flow_read(flow_obj.get("series") or {})
-        if not fr["rows"]:
-            st.info("수급 데이터가 아직 없습니다. 수집기를 새 버전으로 한 번 실행하면 KODEX 200, 삼성전자, SK하이닉스의 투자자별 순매수가 쌓입니다. "
-                    "한 번에 30거래일치가 들어옵니다.")
-        else:
+        if fr["rows"]:
+            st.markdown("**개별 종목 투자자별 순매수 (확정치)**")
             for ln in fr["lines"]:
-                st.markdown(f"- {ln}")
-            has_amt = any(r["amt5"] is not None for r in fr["rows"])
+                st.markdown(f"- {ln.replace('5일 합 ', '5일 합 ')}")
             trows = []
             for r in fr["rows"]:
-                u = "금액(백만원)" if has_amt else "수량(주)"
-                lastv, v5, v20 = (r["last_amt"], r["amt5"], r["amt20"]) if has_amt else (r["last_qty"], r["qty5"], r["qty20"])
-                trows.append({"종목": r["name"], "투자자": r["investor"], "기준일": r["last_date"], f"당일 {u}": fmt(lastv, 0),
-                              "5일 합": fmt(v5, 0), "20일 합": fmt(v20, 0),
+                trows.append({"종목": r["name"], "투자자": r["investor"], "기준일": r["last_date"],
+                              "당일(억원)": fmt(None if r["last_amt"] is None else r["last_amt"] / 100, 0),
+                              "5일 합": fmt(None if r["amt5"] is None else r["amt5"] / 100, 0),
+                              "20일 합": fmt(None if r["amt20"] is None else r["amt20"] / 100, 0),
                               "연속": (f"{r['streak']}일 순매수" if r["streak"] > 0 else f"{-r['streak']}일 순매도" if r["streak"] < 0 else "-"),
                               "비고": r["flip"] or ""})
             st.dataframe(pd.DataFrame(trows), hide_index=True, use_container_width=True)
-            st.caption("당일 수치는 장 마감 후 확정된 값입니다. 장중 잠정치와 다를 수 있습니다. 시장 전체(코스피) 투자자 흐름과 프로그램 매매는 API 확인 후 추가 예정입니다.")
+            st.caption("연속 일수는 수량 기준, 합계는 금액(억원) 기준입니다. 프로그램 매매는 API 확인 후 추가 예정입니다.")
+        else:
+            st.info("종목별 수급 데이터가 없습니다.")
 
 # ---------- 규칙 검증 ----------
 with tab_rules:
