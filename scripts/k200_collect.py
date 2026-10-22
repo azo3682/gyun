@@ -171,7 +171,7 @@ def fetch_daily_history(years=3, today=None):
     start_limit = (today - timedelta(days=int(365 * years))).strftime("%Y%m%d")
     end = today.strftime("%Y%m%d")
     rows, pages = [], 0
-    while pages < 20:
+    while pages < 60:     # 100개씩 60번 = 약 24년치까지
         time.sleep(0.2)
         data, err = kis_get(DAILY_PATH, DAILY_TR, {
             "fid_cond_mrkt_div_code": "J", "fid_input_iscd": CODE,
