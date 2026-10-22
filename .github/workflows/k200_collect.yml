@@ -13,6 +13,10 @@ on:
         description: "일봉 수집 기간(년)"
         required: false
         default: "3"
+      probe:
+        description: "미검증 수급 API 탐침 (1이면 data/k200/probe.json 생성)"
+        required: false
+        default: "1"
 
 permissions:
   contents: write
@@ -45,6 +49,7 @@ jobs:
           KIS_TOKEN_CACHE: ${{ github.workspace }}/.kis_token_cache/token.json
           K200_BACKFILL_DAYS: ${{ github.event.inputs.backfill_days || '0' }}
           K200_DAILY_YEARS: ${{ github.event.inputs.daily_years || '3' }}
+          K200_PROBE: ${{ github.event.inputs.probe || '0' }}
         run: |
           cd scripts
           python k200_collect.py
