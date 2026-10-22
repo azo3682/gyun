@@ -123,9 +123,21 @@ def merge_daily(old, new):
     return [m[k] for k in sorted(m)]
 
 
-def validate_minute_day(rows, date):
+INTRADAY_CUTOFF_MIN = 15 * 60 + 35   # 이 시각 전에 받은 오늘 자료는 미완성으로 본다
+
+
+def is_intraday(now):
+    return now.hour * 60 + now.minute < INTRADAY_CUTOFF_MIN
+
+
+def validate_minute_day(rows, date, intraday=False):
     """하루치 분봉이 쓸 만한지 검사한다. 문제가 있으면 사유 목록을 돌려준다(저장은 하되 표시)."""
     issues = []
+    if intraday:
+        issues.append("장중 수집(미완성)")
+        if rows and any(r["time"] > "153000" for r in rows):
+            issues.append("장중인데 마감 이후 시각의 봉이 있음(전일 자료 혼입 의심)")
+        return issues
     if len(rows) < 300:
         issues.append(f"봉 수 부족({len(rows)})")
     if rows:
@@ -181,7 +193,10 @@ def fetch_minutes_today(date, upper="153000"):
         if data is None:
             diag["errors"].append(err)
             break
-        got = [r for r in parse_minute_rows(data.get("output2")) if not r["date"] or r["date"] == date]
+        parsed = parse_minute_rows(data.get("output2"))
+        diag["empty_date_rows"] = diag.get("empty_date_rows", 0) + sum(1 for r in parsed if not r["date"])
+        # 과거 포함('Y') 모드에서는 날짜가 비어 있는 행을 믿지 않는다(전일 자료가 섞일 수 있음)
+        got = [r for r in parsed if r["date"] == date or (not r["date"] and incl == "N")]
         if not got:
             if incl == "N" and not rows:
                 incl = "Y"          # 'N'에서 비어 있으면 'Y'로 한 번 더 시도
@@ -199,7 +214,10 @@ def fetch_minutes_today(date, upper="153000"):
         tot = hh * 60 + mm - 1
         cursor = f"{tot // 60:02d}{tot % 60:02d}00"
     diag["pages"] = pages
+    diag["mode"] = incl
     out = [rows[k] for k in sorted(rows)]
+    if out:
+        diag["first_bar"], diag["last_bar"] = out[0], out[-1]
     return out, diag
 
 
@@ -276,21 +294,35 @@ def main():
     status = {"run_at": now.isoformat(timespec="seconds"), "code": CODE, "daily": {}, "minute_today": {},
               "etf_snapshot": {}, "backfill": {}}
 
+    intraday = is_intraday(now)
+    status["intraday_run"] = intraday
+
     # 1) 일봉
     years = float(os.environ.get("K200_DAILY_YEARS", "3") or 3)
     new_rows, err = fetch_daily_history(years, now)
     old = _load(os.path.join(DATA_DIR, "daily.json"), {}).get("rows", [])
     merged = merge_daily(old, new_rows)
+    is_trading_day = bool(merged) and merged[-1]["date"] == today
+    if intraday and is_trading_day:
+        # 장중에 받은 오늘 일봉은 미완성(시가·고가·저가·종가가 계속 변함)이라 저장하지 않는다
+        merged = [r for r in merged if r["date"] != today]
+        status["daily_today_dropped"] = True
     if merged:
         _save(os.path.join(DATA_DIR, "daily.json"), {"code": CODE, "updated": now.isoformat(timespec="seconds"), "rows": merged})
     status["daily"] = {"fetched": len(new_rows), "total": len(merged), "error": err,
                        "first": merged[0]["date"] if merged else None, "last": merged[-1]["date"] if merged else None}
 
     # 2) 오늘 분봉 (일봉에 오늘 날짜가 있어야 거래일이다)
-    is_trading_day = bool(merged) and merged[-1]["date"] == today
     if is_trading_day:
         rows, diag = fetch_minutes_today(today)
-        issues = validate_minute_day(rows, today) if rows else ["수집 0건"]
+        if intraday:
+            nowt = now.strftime("%H%M") + "00"
+            future = [r for r in rows if r["time"] > nowt]
+            diag["future_bars_dropped"] = len(future)
+            rows = [r for r in rows if r["time"] <= nowt]
+        issues = validate_minute_day(rows, today, intraday) if rows else ["수집 0건"]
+        if intraday and diag.get("future_bars_dropped"):
+            issues.append(f"장중인데 미래 시각 봉 {diag['future_bars_dropped']}개 수신(전일 자료 혼입 또는 선채움 의심)")
         if rows:
             save_minute_day(today, rows, issues)
         status["minute_today"] = {"bars": len(rows), "issues": issues, **diag}
