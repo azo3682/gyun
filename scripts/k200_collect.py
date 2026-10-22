@@ -321,16 +321,92 @@ def fetch_flow(code):
     return parse_investor_rows(out), None, sorted(out[0].keys()) if out else []
 
 
+# ---------------- 시장 전체(코스피) 투자자 수급 ----------------
+
+MKT_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market"
+MKT_DAILY_TR = "FHPTJ04040000"
+MKT_TIME_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market"
+MKT_TIME_TR = "FHPTJ04030000"
+# 응답 필드 → 저장 키 (금액은 백만원, 수량은 천주로 보인다. 금액 합계가 0이 되는 것으로 확인함)
+MKT_AMT = {"frgn": "frgn_ntby_tr_pbmn", "orgn": "orgn_ntby_tr_pbmn", "prsn": "prsn_ntby_tr_pbmn",
+           "scrt": "scrt_ntby_tr_pbmn", "ivtr": "ivtr_ntby_tr_pbmn", "pe": "pe_fund_ntby_tr_pbmn",
+           "insu": "insu_ntby_tr_pbmn", "bank": "bank_ntby_tr_pbmn", "mrbn": "mrbn_ntby_tr_pbmn",
+           "fund": "fund_ntby_tr_pbmn", "etc": "etc_corp_ntby_tr_pbmn"}
+MKT_QTY = {"frgn": "frgn_ntby_qty", "orgn": "orgn_ntby_qty", "prsn": "prsn_ntby_qty"}
+
+
+def parse_market_flow_rows(output):
+    rows = []
+    for r in output or []:
+        d = str(r.get("stck_bsop_date") or "")
+        if len(d) != 8:
+            continue
+        row = {"date": d, "idx": _iv(r.get("bstp_nmix_prpr")), "idx_chg_pct": _iv(r.get("bstp_nmix_prdy_ctrt"))}
+        for k, f in MKT_QTY.items():
+            row[k] = _iv(r.get(f))
+        for k, f in MKT_AMT.items():
+            v = _iv(r.get(f))
+            if v is not None:
+                row[f"{k}_amt"] = v
+        if row.get("frgn_amt") is None and row.get("orgn_amt") is None and row.get("prsn_amt") is None:
+            continue
+        rows.append(row)
+    return rows
+
+
+def amounts_balance(row, tol=5):
+    """외국인+기관+개인+기타법인 금액 합이 0에 가까운지 (파싱·단위 점검용)."""
+    ks = ("frgn_amt", "orgn_amt", "prsn_amt", "etc_amt")
+    if any(row.get(k) is None for k in ks):
+        return None
+    return abs(sum(row[k] for k in ks)) <= tol
+
+
+def fetch_market_flow(today, pages=6):
+    """오늘부터 과거로 거슬러 올라가며 최대 pages번 호출한다. 새 행이 없으면 멈춘다."""
+    got, err, first_keys = {}, None, []
+    cur = today
+    for _ in range(pages):
+        data, e = kis_get(MKT_DAILY_PATH, MKT_DAILY_TR,
+                          {"FID_COND_MRKT_DIV_CODE": "U", "FID_INPUT_ISCD": "0001", "FID_INPUT_DATE_1": cur,
+                           "FID_INPUT_ISCD_1": "KSP", "FID_INPUT_DATE_2": cur, "FID_INPUT_ISCD_2": "0001"})
+        if data is None:
+            err = e
+            break
+        out = data.get("output") or []
+        if out and not first_keys:
+            first_keys = sorted(out[0].keys())
+        rows = parse_market_flow_rows(out)
+        new = [r for r in rows if r["date"] not in got]
+        if not new:
+            break
+        for r in new:
+            got[r["date"]] = r
+        oldest = min(got)
+        prev = (datetime.strptime(oldest, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
+        if prev >= cur:
+            break
+        cur = prev
+        time.sleep(0.3)
+    return [got[k] for k in sorted(got)], err, first_keys
+
+
 PROBES = [
     ("시장별 투자자 일별", "/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market", "FHPTJ04040000",
      lambda d: {"FID_COND_MRKT_DIV_CODE": "U", "FID_INPUT_ISCD": "0001", "FID_INPUT_DATE_1": d, "FID_INPUT_ISCD_1": "KSP",
                 "FID_INPUT_DATE_2": d, "FID_INPUT_ISCD_2": "0001"}),
     ("시장별 투자자 시간대", "/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market", "FHPTJ04030000",
      lambda d: {"FID_INPUT_ISCD": "KSP", "FID_INPUT_ISCD_2": "0001"}),
-    ("종목별 프로그램매매 일별", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily", "FHPPG04600001",
-     lambda d: {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930", "FID_INPUT_DATE_1": d}),
-    ("종목별 프로그램매매 시간대", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock", "FHPPG04600101",
-     lambda d: {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930"}),
+    ("프로그램매매 종합 일별", "/uapi/domestic-stock/v1/quotations/comp-program-trade-daily", "FHPPG04600001",
+     lambda d: {"FID_COND_MRKT_DIV_CODE": "J", "FID_MRKT_CLS_CODE": "K", "FID_SCTN_CLS_CODE": "", "FID_INPUT_ISCD": "",
+                "FID_COND_MRKT_CLS_CODE1": "", "FID_INPUT_DATE_1": d, "FID_INPUT_DATE_2": d}),
+    ("프로그램매매 종합 시간대", "/uapi/domestic-stock/v1/quotations/comp-program-trade-today", "FHPPG04600101",
+     lambda d: {"FID_COND_MRKT_DIV_CODE": "J", "FID_MRKT_CLS_CODE": "K", "FID_SCTN_CLS_CODE": "", "FID_INPUT_ISCD": "",
+                "FID_COND_MRKT_CLS_CODE1": "", "FID_INPUT_HOUR_1": ""}),
+    ("종목별 프로그램매매 일별", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily", "FHPPG04650200",
+     lambda d: {"FID_INPUT_ISCD": "005930", "FID_INPUT_DATE_1": ""}),
+    ("종목별 프로그램매매 시간대", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock", "FHPPG04650100",
+     lambda d: {"FID_INPUT_ISCD": "005930"}),
 ]
 
 
@@ -459,6 +535,18 @@ def main():
         fstat[code] = {"fetched": len(rows_f), "total": len(flow[code]["rows"]), "error": err_f, "fields": keys}
     _save(flow_path, {"updated": now.isoformat(timespec="seconds"), "series": flow})
     status["flow"] = fstat
+
+    # 5-b) 시장 전체(코스피) 투자자 수급
+    mf_path = os.path.join(DATA_DIR, "market_flow.json")
+    mf_old = _load(mf_path, {}).get("rows", [])
+    mf_new, mf_err, mf_keys = fetch_market_flow(today)
+    if intraday:
+        mf_new = [r for r in mf_new if r["date"] != today]       # 장중 잠정치는 저장하지 않는다
+    mf_rows = merge_flow(mf_old, mf_new)[-750:]
+    if mf_rows:
+        _save(mf_path, {"updated": now.isoformat(timespec="seconds"), "market": "KOSPI", "unit": "금액 백만원, 수량 천주", "rows": mf_rows})
+    status["market_flow"] = {"fetched": len(mf_new), "total": len(mf_rows), "error": mf_err, "last": mf_rows[-1]["date"] if mf_rows else None,
+                             "balance_ok": amounts_balance(mf_rows[-1]) if mf_rows else None, "fields": mf_keys}
 
     # 6) 미검증 엔드포인트 탐침 (선택)
     if os.environ.get("K200_PROBE", "0") == "1":
