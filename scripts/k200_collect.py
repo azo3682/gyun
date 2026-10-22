@@ -270,6 +270,86 @@ def fetch_etf_snapshot():
     return parse_etf_price(data.get("output")), None
 
 
+# ---------------- 수급(투자자별) ----------------
+
+INVESTOR_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor"
+INVESTOR_TR = "FHKST01010900"
+FLOW_CODES = {"069500": "KODEX 200", "005930": "삼성전자", "000660": "SK하이닉스"}
+
+
+def _iv(v):
+    """빈 문자열·None은 None, 그 외 숫자(부호 유지)."""
+    try:
+        if v is None or str(v).strip() == "":
+            return None
+        return float(str(v).replace(",", ""))
+    except Exception:
+        return None
+
+
+def parse_investor_rows(output):
+    """inquire-investor 응답 → [{date, frgn, orgn, prsn, [frgn_amt, orgn_amt, prsn_amt]}] (수량: 주, 금액: 백만원 추정)."""
+    rows = []
+    for r in output or []:
+        d = str(r.get("stck_bsop_date") or "")
+        if len(d) != 8:
+            continue
+        row = {"date": d, "frgn": _iv(r.get("frgn_ntby_qty")), "orgn": _iv(r.get("orgn_ntby_qty")),
+               "prsn": _iv(r.get("prsn_ntby_qty"))}
+        for k, f in (("frgn_amt", "frgn_ntby_tr_pbmn"), ("orgn_amt", "orgn_ntby_tr_pbmn"), ("prsn_amt", "prsn_ntby_tr_pbmn")):
+            v = _iv(r.get(f))
+            if v is not None:
+                row[k] = v
+        if row["frgn"] is None and row["orgn"] is None and row["prsn"] is None:
+            continue       # 장중이라 아직 비어 있는 오늘 행
+        rows.append(row)
+    return rows
+
+
+def merge_flow(old, new):
+    m = {r["date"]: r for r in old or []}
+    for r in new or []:
+        m[r["date"]] = r
+    return [m[k] for k in sorted(m)]
+
+
+def fetch_flow(code):
+    data, err = kis_get(INVESTOR_PATH, INVESTOR_TR, {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": code})
+    if data is None:
+        return [], err, []
+    out = data.get("output") or []
+    return parse_investor_rows(out), None, sorted(out[0].keys()) if out else []
+
+
+PROBES = [
+    ("시장별 투자자 일별", "/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market", "FHPTJ04040000",
+     lambda d: {"FID_COND_MRKT_DIV_CODE": "U", "FID_INPUT_ISCD": "0001", "FID_INPUT_DATE_1": d, "FID_INPUT_ISCD_1": "KSP",
+                "FID_INPUT_DATE_2": d, "FID_INPUT_ISCD_2": "0001"}),
+    ("시장별 투자자 시간대", "/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market", "FHPTJ04030000",
+     lambda d: {"FID_INPUT_ISCD": "KSP", "FID_INPUT_ISCD_2": "0001"}),
+    ("종목별 프로그램매매 일별", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily", "FHPPG04600001",
+     lambda d: {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930", "FID_INPUT_DATE_1": d}),
+    ("종목별 프로그램매매 시간대", "/uapi/domestic-stock/v1/quotations/program-trade-by-stock", "FHPPG04600101",
+     lambda d: {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930"}),
+]
+
+
+def run_probe(today):
+    """미검증 엔드포인트가 열리는지, 어떤 필드가 오는지 원본 샘플을 남긴다 (판단 근거 수집용)."""
+    out = {}
+    for name, path, tr, mk in PROBES:
+        data, err = kis_get(path, tr, mk(today))
+        if data is None:
+            out[name] = {"tr_id": tr, "ok": False, "error": err}
+            continue
+        sample = {}
+        for k, v in data.items():
+            if k.startswith("output"):
+                sample[k] = (v[:2] if isinstance(v, list) else v)
+        out[name] = {"tr_id": tr, "ok": True, "sample": sample}
+    return out
+
+
 # ---------------- 저장 ----------------
 
 def _load(path, default):
@@ -367,6 +447,23 @@ def main():
                 fail += 1
             sample = sample or {"date": d, "bars": len(rows), "issues": issues, **diag}
         status["backfill"] = {"tried": len(cands), "ok": ok, "fail": fail, "first_attempt": sample}
+
+    # 5) 투자자별 수급 (KODEX 200, 삼성전자, SK하이닉스)
+    flow_path = os.path.join(DATA_DIR, "flow.json")
+    flow = _load(flow_path, {"series": {}}).get("series", {})
+    fstat = {}
+    for code, nm in FLOW_CODES.items():
+        rows_f, err_f, keys = fetch_flow(code)
+        cur = flow.get(code, {}).get("rows", [])
+        flow[code] = {"name": nm, "rows": merge_flow(cur, rows_f)[-750:]}
+        fstat[code] = {"fetched": len(rows_f), "total": len(flow[code]["rows"]), "error": err_f, "fields": keys}
+    _save(flow_path, {"updated": now.isoformat(timespec="seconds"), "series": flow})
+    status["flow"] = fstat
+
+    # 6) 미검증 엔드포인트 탐침 (선택)
+    if os.environ.get("K200_PROBE", "0") == "1":
+        _save(os.path.join(DATA_DIR, "probe.json"), {"run_at": now.isoformat(timespec="seconds"), "probes": run_probe(today)})
+        status["probe"] = "probe.json 저장"
 
     dates = list_minute_dates()
     status["minute_days_total"] = len(dates)
