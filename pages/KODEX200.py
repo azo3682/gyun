@@ -19,6 +19,7 @@ import streamlit as st
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
 import k200_core as K  # noqa: E402
+import k200_view as V  # noqa: E402
 
 st.set_page_config(page_title="KODEX 200 매매 분석기", layout="wide")
 
@@ -101,9 +102,9 @@ def trades_frame(trades):
 
 # ---------------- 화면 ----------------
 
-st.title("KODEX 200 매매 분석기")
-st.caption("목적: 어떤 매매 규칙이 비용을 빼고도 돈이 되는지 데이터로 가려낸다. 신호만 보여주며 주문 기능은 없다. "
-           "규칙은 미리 고정해 두고 개수만큼 통계 기준을 높인다. 표본이 모자라면 '표본부족'으로 판정한다.")
+st.title("KODEX 200 판단 보조")
+st.caption("지금 사도 되는지, 저점인지 고점인지, 수급은 어떤지를 지표로 보여줍니다. 매수·매도를 대신 결정하지 않고 주문 기능도 없습니다. "
+           "규칙 검증과 비용 계산은 뒤쪽 탭으로 옮겼습니다.")
 
 with st.sidebar:
     st.header("비용 가정")
@@ -148,35 +149,172 @@ if status.get("minute_today", {}).get("issues"):
 daily_n = K.norm_daily(daily)
 ev = K.evaluate_all(daily_n, days if len(days) else None, cost)
 
-tab_now, tab_rules, tab_day, tab_method = st.tabs(["오늘 스윙 상태", "규칙 검증 (일봉)", "단타·스켈핑 진단 (분봉)", "방법과 한계"])
+tab_now, tab_rules, tab_day, tab_method = st.tabs(["판단 보조", "규칙 검증 (일봉)", "단타·스켈핑 진단 (분봉)", "방법과 한계"])
 
-# ---------- 오늘 ----------
+PANEL_ORDER = V.GROUPS
+
+
+def _live_quote():
+    """KIS에서 지금 값을 받아온다. 실패하면 (None, 사유). 수집기 함수를 그대로 쓴다."""
+    try:
+        sec = st.secrets
+        os.environ["KIS_APP_KEY"] = str(sec["KIS_APP_KEY"])
+        os.environ["KIS_APP_SECRET"] = str(sec["KIS_APP_SECRET"])
+    except Exception:
+        return None, "Streamlit secrets에 KIS_APP_KEY, KIS_APP_SECRET이 없습니다."
+    try:
+        import k200_collect as C
+        from datetime import datetime
+        now = datetime.now(C.KST)
+        today = now.strftime("%Y%m%d")
+        data, err = C.kis_get("/uapi/domestic-stock/v1/quotations/inquire-price", "FHKST01010100",
+                              {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": C.CODE})
+        if data is None:
+            return None, f"현재가 조회 실패: {err}"
+        o = data.get("output") or {}
+        f = lambda k: float(str(o.get(k, "0")).replace(",", "") or 0)
+        q = {"today": today, "open": f("stck_oprc"), "high": f("stck_hgpr"), "low": f("stck_lwpr"),
+             "close": f("stck_prpr"), "volume": f("acml_vol")}
+        rows, _ = C.fetch_minutes_today(today, upper=now.strftime("%H%M") + "00")
+        rows = [r for r in rows if r["time"] <= now.strftime("%H%M") + "00"]
+        q["minutes"] = rows
+        q["fetched_at"] = now.strftime("%H:%M:%S")
+        if q["close"] <= 0:
+            return None, "현재가가 0으로 왔습니다(장 시작 전이거나 응답 이상)."
+        return q, None
+    except Exception as e:
+        return None, f"라이브 조회 오류: {str(e)[:120]}"
+
+
+# ---------- 판단 보조 ----------
 with tab_now:
-    today = K.swing_today(daily_n)
-    if not today:
-        st.info("일봉이 부족합니다.")
+    base_daily = daily_n.copy()
+    last_date = str(base_daily["date"].iloc[-1])
+    live = st.session_state.get("k200_live")
+    use_live = bool(live)
+    cols = st.columns([1, 1, 3])
+    if cols[0].button("지금 값으로 다시 계산 (장중)"):
+        q, err = _live_quote()
+        if q:
+            st.session_state["k200_live"] = q
+            st.rerun()
+        else:
+            st.error(err)
+    if live and cols[1].button("라이브 해제"):
+        st.session_state.pop("k200_live", None)
+        st.rerun()
+
+    work = base_daily
+    partial = False
+    if use_live:
+        work = V.with_live_bar(base_daily, live["today"], live["open"], live["high"], live["low"], live["close"], live["volume"])
+        partial = True
+        st.warning(f"{live['fetched_at']} 현재가 {fmt(live['close'], 0)}원을 오늘 일봉으로 가정해 계산했습니다. "
+                   "장 마감 전 값이라 종가가 달라지면 지표도 바뀝니다.")
+    elif last_date == pd.Timestamp.now(tz="Asia/Seoul").strftime("%Y%m%d") and pd.Timestamp.now(tz="Asia/Seoul").strftime("%H%M") < "1535":
+        st.warning("저장된 오늘 일봉이 장중 값일 수 있습니다. 확정 전 값이면 위 버튼으로 지금 값을 반영하거나 15:50 이후 보세요.")
+
+    view = V.build_view(work)
+    if not view:
+        st.info("일봉이 30개 미만이라 지표를 계산할 수 없습니다.")
     else:
-        m = today["metrics"]
+        m, cards, stt = view["m"], view["cards"], view["state"]
+        st.subheader(f"지금 상태: {stt['state']}")
+        st.markdown(f"**{stt['headline']}**")
         a, b, c, d = st.columns(4)
-        a.metric("기준일 종가", fmt(m["close"], 0, "원"), fmt(m["day_ret_pct"], 2, "%") if m["day_ret_pct"] is not None else None)
-        b.metric("RSI(2) / RSI(14)", f"{fmt(m['rsi2'], 0)} / {fmt(m['rsi14'], 0)}")
-        c.metric("20일 고점 대비", fmt(m["from_20d_high_pct"], 1, "%"))
-        d.metric("20일 변동성(연율)", fmt(m["vol20_ann_pct"], 0, "%"))
-        e, f, g = st.columns(3)
-        e.metric("20일선 대비", fmt(m["vs_sma20_pct"], 1, "%"))
-        f.metric("60일선 대비", fmt(m["vs_sma60_pct"], 1, "%"))
-        g.metric("200일선 대비", fmt(m["vs_sma200_pct"], 1, "%"))
-        rt = cost.round_trip_bps(m["close"])
-        st.info(f"현재 가정에서 왕복 비용은 약 {fmt(rt, 1)}bp (1주당 약 {fmt(rt / 1e4 * m['close'], 0)}원)입니다. "
-                f"한 번 사고팔아 이 폭 이상 움직여야 본전입니다.")
-        rows = []
-        for name, s in today["rules"].items():
-            v = ev["swing"].get(name, {}).get("verdict", "-")
-            rows.append({"규칙": name, "오늘 매수 조건": "충족" if s["enter"] else "-", "오늘 청산 조건": "충족" if s["exit"] else "-",
-                         "과거 검증 판정": v, "설명": K.SWING_RULES.get(name, "")})
-        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-        st.caption("조건 충족은 종가 기준이며 체결은 다음 거래일 시가를 가정합니다. '과거 검증 판정'이 '후보'가 아닌 규칙의 신호는 "
-                   "근거 없이 따라가는 것과 같습니다.")
+        a.metric(f"종가 ({m['date']})", fmt(m["close"], 0, "원"), fmt(m["day_ret_pct"], 2, "%"))
+        b.metric("RSI(14) / RSI(2)", f"{fmt(m['rsi14'], 0)} / {fmt(m['rsi2'], 0)}")
+        c.metric("20일 고점 대비", fmt(m["dd20_pct"], 1, "%"))
+        d.metric("52주 범위 내 위치", fmt(m["pos52_pct"], 0, "%"), f"고점 대비 {fmt(m['dd52_pct'], 1)}%", delta_color="off")
+        sc = stt["score"]
+        st.markdown(" · ".join(f"**{g}** {sc[g]['on']}/{sc[g]['total']}" for g in PANEL_ORDER))
+        for r in stt["reasons"]:
+            st.markdown(f"- {r}")
+        st.info("참고 가이드: " + stt["guide"])
+        st.markdown(f"**무효화 기준 가격 약 {fmt(stt['invalidation_price'], 0)}원** ({stt['invalidation_note']}). 이 아래로 마감하면 위 판독의 근거가 깨집니다.")
+        if stt["pending_confirmations"]:
+            st.markdown("**아직 안 켜진 반등 확인 신호:** " + ", ".join(stt["pending_confirmations"]))
+
+        st.subheader("신호 점검표")
+        for g in PANEL_ORDER:
+            with st.expander(f"{g} ({sc[g]['on']}/{sc[g]['total']} 충족)", expanded=(g in PANEL_ORDER[1:3])):
+                rows = [{"상태": "켜짐" if x["on"] else ("꺼짐" if x["on"] is False else "계산불가"), "항목": x["name"],
+                         "현재 값": x["value"], "의미": x["note"]} for x in cards if x["group"] == g]
+                st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+
+        st.subheader("과거에 비슷했던 때 이후 성과")
+        an = V.analog_stats(work)
+        if not an["rows"]:
+            st.info("일봉이 260개 미만이라 계산하지 않습니다. Actions에서 daily_years를 12로 올려 다시 수집하세요.")
+        else:
+            st.caption(f"{an['first']} 부터 {an['last']} 까지 {an['n_bars']}거래일. 같은 사건이 이어지면 첫날만 세고(10거래일 간격), 오늘은 제외했습니다. "
+                       "사건 수가 적으면 우연일 수 있습니다. 비교 기준은 아무 날이나 샀을 때입니다.")
+            tab_rows = []
+            for r in an["rows"]:
+                row = {"상황": r["name"], "오늘 해당": "예" if r["active_today"] else "-", "사건 수": r["episodes"]}
+                for h in V.HORIZONS:
+                    s_ = r["stats"][h]
+                    row[f"{h}일 후 승률/평균/최악"] = (f"{s_['win_pct']:.0f}% / {s_['mean']:+.1f}% / {s_['worst']:+.1f}%  (n={s_['n']})" if s_.get("n") else "-")
+                tab_rows.append(row)
+            row = {"상황": "(기준) 아무 날이나 매수", "오늘 해당": "-", "사건 수": an["baseline"][5].get("n", 0)}
+            for h in V.HORIZONS:
+                s_ = an["baseline"][h]
+                row[f"{h}일 후 승률/평균/최악"] = f"{s_['win_pct']:.0f}% / {s_['mean']:+.1f}% / {s_['worst']:+.1f}%  (n={s_['n']})"
+            tab_rows.append(row)
+            st.dataframe(pd.DataFrame(tab_rows), hide_index=True, use_container_width=True)
+            mae = [f"{r['name'].split(' (')[0]} {r['stats'][10]['mae_median']:+.1f}%" for r in an["rows"] if r["stats"][10].get("n")]
+            if mae:
+                st.caption("10일 안에 겪은 중앙값 최대 평가손실: " + " / ".join(mae))
+
+        st.subheader("가격 지도 (지지·저항)")
+        lv = V.levels(work, price=m["close"], last_is_partial=partial)
+        if lv:
+            near = sorted(lv, key=lambda x: abs(x["dist_pct"]))[:12]
+            near = sorted(near, key=lambda x: x["price"], reverse=True)
+            st.dataframe(pd.DataFrame([{"구분": x["side"], "기준": x["name"], "가격": f"{x['price']:,.0f}", "현재가 대비": f"{x['dist_pct']:+.1f}%"} for x in near]),
+                         hide_index=True, use_container_width=True)
+            st.caption("피벗은 직전 완성 일봉 기준. 이동평균선과 최근 고저점은 여러 개가 가까이 몰린 가격일수록 의미가 큽니다.")
+
+        st.subheader("오늘 장중 위치")
+        mins = None
+        if use_live and live.get("minutes"):
+            mins = pd.DataFrame(live["minutes"])
+        elif days:
+            mins = None
+        if mins is not None and len(mins):
+            ir = V.intraday_read(K.norm_minute(mins[["time", "open", "high", "low", "close", "volume"]]), prev_close=m["prev_close"])
+        else:
+            ir = {}
+        if ir:
+            x1, x2, x3, x4 = st.columns(4)
+            x1.metric("VWAP 대비", fmt(ir["vs_vwap_pct"], 2, "%"))
+            x2.metric("시가 대비", fmt(ir["vs_open_pct"], 2, "%"))
+            x3.metric("당일 범위 내 위치", fmt(ir["range_pos_pct"], 0, "%"), "0이 저가, 100이 고가", delta_color="off")
+            x4.metric("최근 30분", fmt(ir["last30_pct"], 2, "%"))
+            st.caption(f"{ir['time']} 기준. 시초 갭 {fmt(ir.get('gap_pct'), 2, '%')}, 고점에서 {fmt(ir['from_high_pct'], 2, '%')}, 저점에서 {fmt(ir['from_low_pct'], 2, '%')}.")
+        else:
+            st.caption("장중 위치는 위 버튼으로 지금 값을 불러왔을 때만 표시합니다.")
+
+        st.subheader("수급")
+        flow_obj = load_json("flow.json") or {}
+        fr = V.flow_read(flow_obj.get("series") or {})
+        if not fr["rows"]:
+            st.info("수급 데이터가 아직 없습니다. 수집기를 새 버전으로 한 번 실행하면 KODEX 200, 삼성전자, SK하이닉스의 투자자별 순매수가 쌓입니다. "
+                    "한 번에 30거래일치가 들어옵니다.")
+        else:
+            for ln in fr["lines"]:
+                st.markdown(f"- {ln}")
+            has_amt = any(r["amt5"] is not None for r in fr["rows"])
+            trows = []
+            for r in fr["rows"]:
+                u = "금액(백만원)" if has_amt else "수량(주)"
+                lastv, v5, v20 = (r["last_amt"], r["amt5"], r["amt20"]) if has_amt else (r["last_qty"], r["qty5"], r["qty20"])
+                trows.append({"종목": r["name"], "투자자": r["investor"], "기준일": r["last_date"], f"당일 {u}": fmt(lastv, 0),
+                              "5일 합": fmt(v5, 0), "20일 합": fmt(v20, 0),
+                              "연속": (f"{r['streak']}일 순매수" if r["streak"] > 0 else f"{-r['streak']}일 순매도" if r["streak"] < 0 else "-"),
+                              "비고": r["flip"] or ""})
+            st.dataframe(pd.DataFrame(trows), hide_index=True, use_container_width=True)
+            st.caption("당일 수치는 장 마감 후 확정된 값입니다. 장중 잠정치와 다를 수 있습니다. 시장 전체(코스피) 투자자 흐름과 프로그램 매매는 API 확인 후 추가 예정입니다.")
 
 # ---------- 규칙 검증 ----------
 with tab_rules:
