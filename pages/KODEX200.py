@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
 import k200_core as K  # noqa: E402
 import k200_view as V  # noqa: E402
+import k200_charts as CH  # noqa: E402
 
 st.set_page_config(page_title="KODEX 200 매매 분석기", layout="wide")
 
@@ -192,6 +193,16 @@ def _live_quote():
         return None, f"라이브 조회 오류: {str(e)[:120]}"
 
 
+def draw(spec):
+    """Vega-Lite 명세를 그린다. 실패해도 페이지는 계속 진행한다."""
+    if not spec:
+        return
+    try:
+        st.vega_lite_chart(spec, use_container_width=True)
+    except Exception as e:      # noqa: BLE001
+        st.caption(f"차트를 그리지 못했습니다: {str(e)[:100]}")
+
+
 # ---------- 판단 보조 ----------
 with tab_now:
     base_daily = daily_n.copy()
@@ -225,8 +236,10 @@ with tab_now:
         st.info("일봉이 30개 미만이라 지표를 계산할 수 없습니다.")
     else:
         m, cards, stt = view["m"], view["cards"], view["state"]
-        st.subheader(f"지금 상태: {stt['state']}")
+        mk_rows_all = (load_json("market_flow.json") or {}).get("rows") or []
+        st.subheader(f"지금 상태: {stt['state']}" + ("  (장중 잠정)" if partial else ""))
         st.markdown(f"**{stt['headline']}**")
+        st.markdown(CH.cards_html(CH.traffic_cards(view, mk_rows_all, provisional=partial)), unsafe_allow_html=True)
         a, b, c, d = st.columns(4)
         a.metric(f"종가 ({m['date']})", fmt(m["close"], 0, "원"), fmt(m["day_ret_pct"], 2, "%"))
         b.metric("RSI(14) / RSI(2)", f"{fmt(m['rsi14'], 0)} / {fmt(m['rsi2'], 0)}")
@@ -241,6 +254,15 @@ with tab_now:
         if stt["pending_confirmations"]:
             st.markdown("**아직 안 켜진 반등 확인 신호:** " + ", ".join(stt["pending_confirmations"]))
 
+        st.subheader("가격 차트")
+        lv_for_chart = V.levels(work, price=m["close"], last_is_partial=partial)
+        draw(CH.price_spec(work, lv_for_chart, m["close"]))
+        st.caption("빨강은 상승 봉, 파랑은 하락 봉. 주황선 20일선, 보라선 60일선, 회색 점선 200일선. 점선 가로선은 가까운 지지(파랑)·저항(빨강), 검은 선은 현재가.")
+
+        st.subheader("지표 게이지")
+        draw(CH.gauge_spec(CH.gauge_rows(m)))
+        st.caption("파란 영역은 과매도, 빨간 영역은 과열 구간이고 검은 막대가 현재 값입니다.")
+
         st.subheader("신호 점검표")
         for g in PANEL_ORDER:
             with st.expander(f"{g} ({sc[g]['on']}/{sc[g]['total']} 충족)", expanded=(g in PANEL_ORDER[1:3])):
@@ -253,6 +275,8 @@ with tab_now:
         if not an["rows"]:
             st.info("일봉이 260개 미만이라 계산하지 않습니다. Actions에서 daily_years를 12로 올려 다시 수집하세요.")
         else:
+            draw(CH.analog_spec(an, 10))
+            st.caption("막대는 10일 후 상승한 비율, 검은 점선은 아무 날이나 샀을 때의 비율입니다. 회색 막대는 사건 수가 8건 미만이라 신뢰하기 어렵습니다.")
             st.caption(f"{an['first']} 부터 {an['last']} 까지 {an['n_bars']}거래일. 같은 사건이 이어지면 첫날만 세고(10거래일 간격), 오늘은 제외했습니다. "
                        "사건 수가 적으면 우연일 수 있습니다. 비교 기준은 아무 날이나 샀을 때입니다.")
             tab_rows = []
@@ -323,6 +347,8 @@ with tab_now:
                 trs.append({"구분": nm, "당일(억원)": fmt(eok(ser.iloc[0]), 0), "3일 합": fmt(eok(tot(3)), 0), "5일 합": fmt(eok(tot(5)), 0),
                             "20일 합": fmt(eok(tot(20)), 0),
                             "연속": (f"{streak}일 순매수" if streak > 0 else f"{-streak}일 순매도" if streak < 0 else "-")})
+            draw(CH.flow_spec(mk_rows, 20))
+            st.caption("막대는 일별 순매수 금액(억원)이며 빨강은 순매수, 파랑은 순매도. 맨 위 선은 코스피 지수입니다. 장중 값은 포함하지 않습니다.")
             st.dataframe(pd.DataFrame(trs), hide_index=True, use_container_width=True)
             hist = mdf.head(10)[["date", "idx_chg_pct", "frgn_amt", "orgn_amt", "prsn_amt"]].copy()
             for c_ in ("frgn_amt", "orgn_amt", "prsn_amt"):
