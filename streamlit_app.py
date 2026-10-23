@@ -314,8 +314,65 @@ def get_sector_memo(stock_code: str) -> str:
     return _sector_memo().get(stock_code, "")
 
 
+@st.cache_resource
+def _price_errors() -> dict:
+    """종목코드 -> 마지막 현재가 조회 실패 사유(화면에 원인을 보여주려는 용도)."""
+    return {}
+
+
+def last_price_error(stock_code: str) -> str:
+    return _price_errors().get(stock_code, "")
+
+
+def _fetch_etf_price_fallback(stock_code: str):
+    """ETF 전용 현재가 API로 (현재가, 등락률%)를 구한다. 일반 현재가 API가 ETF에서 실패할 때만 쓴다."""
+    resp = requests.get(
+        f"{BASE_URL}/uapi/etfetn/v1/quotations/inquire-price",
+        headers=kis_headers("FHPST02400000"),
+        params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("rt_cd") != "0":
+        raise RuntimeError(f"{data.get('msg_cd', '')} {data.get('msg1', '')}".strip() or "ETF 현재가 조회 실패")
+    out = data.get("output") or {}
+    if isinstance(out, list):
+        out = out[0] if out else {}
+    price = float(out.get("stck_prpr", 0) or 0)
+    if price <= 0:
+        raise RuntimeError("ETF 현재가가 비어 있음")
+    if out.get("prdy_ctrt") not in (None, ""):
+        pct = float(out["prdy_ctrt"])
+    else:
+        diff = float(out.get("prdy_vrss", 0) or 0)
+        if str(out.get("prdy_vrss_sign") or "") in ("4", "5"):
+            diff = -abs(diff)
+        base = price - diff
+        pct = diff / base * 100 if base else 0.0
+    return price, pct
+
+
 def _fetch_current_price_raw(stock_code: str):
-    """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트). 실패하거나 응답이 비어 있으면 예외를 던진다."""
+    """(현재가, 전일대비 등락률%, 거래소 위험 플래그 리스트). 실패하거나 응답이 비어 있으면 예외를 던진다.
+    일반 현재가 API가 실패하면 ETF 전용 API로 한 번 더 시도하고, 실패 사유는 last_price_error()로 확인할 수 있다."""
+    try:
+        res = _fetch_current_price_stock(stock_code)
+        _price_errors().pop(stock_code, None)
+        return res
+    except Exception as e1:                                     # noqa: BLE001
+        msg = f"{type(e1).__name__}: {str(e1)[:140]}"
+        try:
+            price, pct = _fetch_etf_price_fallback(stock_code)
+        except Exception as e2:                                 # noqa: BLE001
+            _price_errors()[stock_code] = f"{msg} / ETF API도 실패 - {type(e2).__name__}: {str(e2)[:140]}"
+            raise e1
+        _price_errors()[stock_code] = f"일반 현재가 API 실패({msg}) 후 ETF API로 대체함"
+        return price, pct, []
+
+
+def _fetch_current_price_stock(stock_code: str):
+    """일반 종목 현재가 API. 실패하거나 응답이 비어 있으면 예외를 던진다."""
     resp = requests.get(
         f"{BASE_URL}{CURRENT_PRICE_API_PATH}",
         headers=kis_headers(CURRENT_PRICE_TR_ID),
@@ -4673,7 +4730,8 @@ with tab_lookup:
                 st.error("🚨 거래소 지정 상태: " + " · ".join(lookup_flags) +
                          " — 아래 전환신호·국면 판단은 이 상태를 반영하지 않으니 근거로 쓰지 마세요.")
         else:
-            st.warning("현재가 조회 실패 — 종목코드를 확인하거나 잠시 후 다시 시도해 주세요 (일시적인 조회 실패일 수 있습니다).")
+            st.warning("현재가 조회 실패 — 종목코드를 확인하거나 잠시 후 다시 시도해 주세요 (일시적인 조회 실패일 수 있습니다)."
+                       + (f" 원인: {last_price_error(lookup_code)}" if last_price_error(lookup_code) else ""))
 
         if not lookup_df.empty:
             st.markdown("**추천 손절 (변동폭 기준 참고선)**")
