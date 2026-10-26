@@ -1,7 +1,6 @@
 {
-  "checked_at": "2026-10-26T19:25:02+09:00",
-  "kept": [],
-  "excluded": [
+  "checked_at": "2026-10-26T20:35:43+09:00",
+  "kept": [
     {
       "stock_code": "028050",
       "stock_name": "삼성E&A",
@@ -11,17 +10,17 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 71.3
+        "RSI값": 71.6
       },
-      "transition": false,
+      "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 59900.0,
-      "day_pct": 0.17,
-      "reason": "전환신호 소멸"
+      "current_price": 60100.0,
+      "day_pct": 0.5
     }
   ],
+  "excluded": [],
   "new_candidates": [
     {
       "stock_code": "328130",
@@ -50,14 +49,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 54.0
+        "RSI값": 53.0
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 28350.0,
-      "day_pct": 19.62
+      "current_price": 28000.0,
+      "day_pct": 18.14
     }
   ]
 }
