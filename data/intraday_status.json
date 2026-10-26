@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-23T19:31:34+09:00",
+  "checked_at": "2026-10-26T14:14:38+09:00",
   "kept": [
     {
       "stock_code": "028050",
@@ -10,36 +10,53 @@
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 70.9
+        "RSI값": 71.8
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 59100.0,
-      "day_pct": 6.68
+      "current_price": 60400.0,
+      "day_pct": 1.0
     }
   ],
-  "excluded": [
+  "excluded": [],
+  "new_candidates": [
     {
-      "stock_code": "357880",
-      "stock_name": "SKAI",
+      "stock_code": "328130",
+      "stock_name": "루닛",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 71.3
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 14690.0,
+      "day_pct": 30.0
+    },
+    {
+      "stock_code": "458870",
+      "stock_name": "씨어스",
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": false,
+        "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 45.1
+        "RSI값": 50.9
       },
-      "transition": false,
-      "passed": 2,
+      "transition": true,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1677.0,
-      "day_pct": -9.4,
-      "reason": "순매수 상위 10에서 이탈"
+      "current_price": 27300.0,
+      "day_pct": 15.19
     }
-  ],
-  "new_candidates": []
+  ]
 }
