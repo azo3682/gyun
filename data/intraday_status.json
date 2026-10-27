@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-27T14:36:28+09:00",
+  "checked_at": "2026-10-27T15:19:24+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,7 +11,7 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 48.1
+        "RSI값": 49.4
       },
       "transition": false,
       "passed": 2,
@@ -19,8 +19,8 @@
       "risky_disclosures": [
         "20261022 주요사항보고서(유상증자결정)"
       ],
-      "current_price": 9920.0,
-      "day_pct": 5.87,
+      "current_price": 10060.0,
+      "day_pct": 7.36,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -28,18 +28,18 @@
       "stock_name": "삼성E&A",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 73.2
+        "RSI값": 73.0
       },
       "transition": false,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 62100.0,
-      "day_pct": 3.85,
+      "current_price": 61900.0,
+      "day_pct": 3.51,
       "reason": "전환신호 소멸"
     },
     {
@@ -51,14 +51,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 67.9
+        "RSI값": 69.7
       },
       "transition": false,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 14470.0,
-      "day_pct": -1.5,
+      "current_price": 14710.0,
+      "day_pct": 0.14,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -76,12 +76,30 @@
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 26250.0,
-      "day_pct": -5.75,
+      "current_price": 26200.0,
+      "day_pct": -5.92,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
+    {
+      "stock_code": "001510",
+      "stock_name": "SK증권",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 37.1
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 2080.0,
+      "day_pct": 4.79
+    },
     {
       "stock_code": "138930",
       "stock_name": "BNK금융지주",
@@ -91,14 +109,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 21.2
+        "RSI값": 22.0
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 12590.0,
-      "day_pct": 6.88
+      "current_price": 12650.0,
+      "day_pct": 7.39
     }
   ]
 }
