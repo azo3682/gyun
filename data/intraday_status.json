@@ -1,87 +1,7 @@
 {
-  "checked_at": "2026-10-27T20:02:44+09:00",
+  "checked_at": "2026-10-28T15:18:20+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "200470",
-      "stock_name": "에이팩트",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 49.9
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [
-        "20261022 주요사항보고서(유상증자결정)"
-      ],
-      "current_price": 10140.0,
-      "day_pct": 8.22,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "028050",
-      "stock_name": "삼성E&A",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 73.8
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 62800.0,
-      "day_pct": 5.02,
-      "reason": "전환신호 소멸"
-    },
-    {
-      "stock_code": "328130",
-      "stock_name": "루닛",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 70.8
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 15070.0,
-      "day_pct": 2.59,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "458870",
-      "stock_name": "씨어스",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 48.9
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 26650.0,
-      "day_pct": -4.31,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "001510",
       "stock_name": "SK증권",
@@ -91,32 +11,71 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 41.1
+        "RSI값": 38.1
       },
-      "transition": true,
+      "transition": false,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 2150.0,
-      "day_pct": 8.31
-    },
+      "current_price": 2040.0,
+      "day_pct": -2.16,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
     {
-      "stock_code": "138930",
-      "stock_name": "BNK금융지주",
+      "stock_code": "069540",
+      "stock_name": "빛과전자",
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": false,
+        "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 22.4
+        "RSI값": 33.4
       },
       "transition": true,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 12680.0,
-      "day_pct": 7.64
+      "current_price": 4195.0,
+      "day_pct": 29.88
+    },
+    {
+      "stock_code": "059090",
+      "stock_name": "미코",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 57.5
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 25750.0,
+      "day_pct": 17.31
+    },
+    {
+      "stock_code": "012030",
+      "stock_name": "DB",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 71.2
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 2530.0,
+      "day_pct": 6.3
     }
   ]
 }
