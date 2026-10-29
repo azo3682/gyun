@@ -1,28 +1,26 @@
 {
-  "checked_at": "2026-10-28T20:41:45+09:00",
+  "checked_at": "2026-10-29T15:24:38+09:00",
   "kept": [],
   "excluded": [
     {
-      "stock_code": "001510",
-      "stock_name": "SK증권",
+      "stock_code": "012030",
+      "stock_name": "DB",
       "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
+        "정배열": true,
+        "거래량급증": false,
+        "20일모멘텀": true,
         "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 37.5
+        "변동성수축(VCP)": true,
+        "RSI값": 56.2
       },
       "transition": false,
-      "passed": 2,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 2025.0,
-      "day_pct": -2.88,
+      "current_price": 2425.0,
+      "day_pct": -4.53,
       "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
+    },
     {
       "stock_code": "069540",
       "stock_name": "빛과전자",
@@ -32,50 +30,35 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 33.4
+        "RSI값": 35.5
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4195.0,
-      "day_pct": 29.88
+      "current_price": 4030.0,
+      "day_pct": -3.93,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "059090",
       "stock_name": "미코",
       "tech": {
-        "정배열": false,
-        "거래량급증": true,
+        "정배열": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 58.0
+        "RSI값": 51.3
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 26000.0,
-      "day_pct": 18.45
-    },
-    {
-      "stock_code": "012030",
-      "stock_name": "DB",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 71.4
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 2555.0,
-      "day_pct": 7.35
+      "current_price": 25250.0,
+      "day_pct": -1.37,
+      "reason": "순매수 상위 10에서 이탈"
     }
-  ]
+  ],
+  "new_candidates": []
 }
