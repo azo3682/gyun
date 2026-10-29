@@ -10,15 +10,11 @@ scripts/value_screen.py
   돌려주므로, DART 상장사 목록 전체를 이 API로 훑어서 우리가 직접 걸러낸다.
 
 결과: data/value_screen.json (대시보드 '저평가 후보' 탭과 아침 이메일이 읽음)
-  - balanced: 균형형 (PER <= BAL_PER_MAX 이고 PBR <= BAL_PBR_MAX 이면서 ROE BAL_ROE_MIN~MAX)
+  - balanced: 균형형 (PER <= BAL_PER_MAX 이고 PBR <= BAL_PBR_MAX 이면서 ROE(추정) BAL_ROE_MIN~MAX)
               — PER·PBR이 둘 다 낮고 수익성도 적당한 종목. 처음 볼 때 권하는 목록.
-              ROE는 KIS 재무비율 API의 정식 값(조회 실패 시에만 PBR÷PER 역산 추정으로 대체).
-              순서는 종합점수(ROE·부채비율·성장률·PER/PBR) 높은 순. PER이 PER_CAUTION_BELOW 미만은 뒤로(표시는 유지)
+              PER이 PER_CAUTION_BELOW 미만인 종목은 목록 뒤로 보낸다(표시는 유지)
   - low_per : 저PER 우량 (0 < PER <= LOW_PER_MAX 이면서 PBR <= LOW_PER_PBR_MAX)
   - low_pbr : 저PBR 자산가치 (0 < PBR <= LOW_PBR_MAX 이면서 흑자)
-
-재무비율(정식 ROE·부채비율·매출/영업이익 증가율)은 전 종목이 아니라 PER/PBR 1차 필터를 통과한
-'후보 풀'에만 조회한다 (전 종목에 하면 호출이 2배가 됨). 풀 밖 종목은 종합점수가 없다.
 
 주의: KIS PER은 '가장 최근 확정된 연간 EPS' 기준이라, 실적이 막 좋아지는 회사는 PER이
 아직 높게, 막 나빠지는 회사는 낮게 보일 수 있다. 이 스크린은 관심 종목 '풀'을 만들 뿐,
@@ -34,10 +30,11 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import common
+import fundamentals as fnd
 from common import (
-    KST, fetch_price_detail, get_access_token, load_dart_name_map,
+    KST, fetch_price_detail, get_access_token, load_dart_name_map, load_dart_corp_code_map,
     check_disclosure_risk, is_fund_product, record_fail, _to_float,
-    fetch_financial_ratio, strip_raw, composite_score, SCORE_WEIGHTS,
+    fetch_daily_ohlcv_long, market_risk_flags,
 )
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "value_screen.json")
@@ -56,13 +53,9 @@ BAL_ROE_MAX = 25.0
 TOP_N = 50                  # 저PER·저PBR 목록에 저장할 최대 종목 수
 BAL_TOP_N = 100             # 균형형은 통과 종목을 사실상 전부 저장 (표 머리글을 눌러 직접 정렬해 볼 수 있게)
 RISK_CHECK_N = 20           # 상위 몇 개까지 DART 공시 리스크를 확인할지
+MIDLONG_N = 40              # 중장기 뱃지(DART 재무지표·장기추세)를 계산할 후보 수 — 목록별 상위부터 채운다
 PER_CAUTION_BELOW = 3.0     # PER이 이 값 미만이면 '이익 지속성 확인 필요' 표시 (정상 영업이익으로는 드문 수준)
 ROE_SUSPECT_PCT = 40.0      # PBR÷PER로 역산한 ROE가 이 값을 넘으면 '일회성 이익 의심' — 목록 뒤로 밀고 표시
-
-# ---- 재무비율(정식 ROE·부채비율·성장률) 조회 설정 ----
-FIN_POOL_MAX = 600          # 재무비율을 조회할 후보 풀 최대 종목 수 (PER/PBR이 낮은 순으로 자름)
-FIN_DEADLINE_SEC = 10 * 60  # 재무비율 조회 단계 제한 시간 — 넘기면 지금까지 모은 것만 반영
-BAL_MIN_SCORE = None        # 균형형에 최소 종합점수를 걸고 싶으면 숫자로 (예: 55). None이면 점수로는 거르지 않고 정렬에만 씀
 
 # ---- 호출 설정 ----
 CALLS_PER_SEC = 9.0         # KIS 실전 계좌 제한(초당 20건)보다 넉넉히 낮게
@@ -137,12 +130,16 @@ def _availability(rows: list, key: str) -> float:
     return sum(1 for r in rows if r.get(key) is not None) / len(rows) if rows else 0.0
 
 
-def _eligible(rows: list):
-    """시총·거래대금·거래소 상태 기준을 통과한 종목과, 시총/거래대금 필터 적용 여부를 반환."""
+def build_output(rows: list, meta: dict) -> dict:
+    """파싱된 전 종목 데이터(rows)에서 저평가 목록과 시장 통계를 만든다. (순수 함수 — 테스트 가능)"""
     # 시총·거래대금 필드가 아예 안 내려오는 경우(필드명 불일치 등)엔 그 필터를 끄고 기록한다
     use_mktcap = _availability(rows, "mktcap_eok") >= 0.5
     use_liquidity = _availability(rows, "tr_value_eok") >= 0.5 and \
         sum(1 for r in rows if (r.get("tr_value_eok") or 0) > 0) / max(len(rows), 1) >= 0.3
+
+    stat_counts = {}
+    for r in rows:
+        stat_counts[r["stat_code"]] = stat_counts.get(r["stat_code"], 0) + 1
 
     def base_ok(r):
         if "KONEX" in r["market"].upper():
@@ -155,55 +152,7 @@ def _eligible(rows: list):
             return False
         return True
 
-    return [r for r in rows if base_ok(r)], use_mktcap, use_liquidity
-
-
-def select_fin_pool(rows: list, max_n: int = FIN_POOL_MAX) -> list:
-    """재무비율을 조회할 종목코드 목록: 세 목록(균형형·저PER·저PBR)의 PER/PBR 조건을 하나라도 만족하는 종목.
-    (세 목록은 모두 이 풀의 부분집합이라, 풀 안에서는 전부 종합점수가 계산된다.)"""
-    eligible, _, _ = _eligible(rows)
-    pool = [r for r in eligible
-            if r["per"] is not None and r["pbr"] is not None and r["per"] > 0 and r["pbr"] > 0
-            and ((r["per"] <= LOW_PER_MAX and r["pbr"] <= LOW_PER_PBR_MAX)
-                 or r["pbr"] <= LOW_PBR_MAX
-                 or (r["per"] <= BAL_PER_MAX and r["pbr"] <= BAL_PBR_MAX))]
-    pool.sort(key=lambda r: r["per"] / max(LOW_PER_MAX, 1e-9) + r["pbr"] / max(BAL_PBR_MAX, 1e-9))
-    return [r["code"] for r in pool[:max_n]]
-
-
-def attach_fundamentals(r: dict, fin: dict | None):
-    """행에 정식 재무비율과 종합점수를 붙인다. fin이 None이면 재무 항목은 비우고 점수도 계산하지 않는다
-    (PER/PBR만으로 계산한 점수가 다른 종목의 점수와 섞여 보이는 걸 막기 위해)."""
-    r["roe"] = fin.get("roe") if fin else None
-    r["debt_ratio"] = fin.get("debt_ratio") if fin else None
-    r["sales_growth"] = fin.get("sales_growth") if fin else None
-    r["op_growth"] = fin.get("op_growth") if fin else None
-    r["ni_growth"] = fin.get("ni_growth") if fin else None
-    r["fin_yymm"] = fin.get("stac_yymm") if fin else None
-    # ROE: 정식 값 우선, 없으면 PBR÷PER 역산 추정
-    roe_used = r["roe"] if r["roe"] is not None else r.get("roe_pct")
-    r["roe_used"] = roe_used
-    r["roe_source"] = "KIS" if r["roe"] is not None else ("추정" if r.get("roe_pct") is not None else "")
-    r["oneoff_suspect"] = bool(roe_used is not None and roe_used > ROE_SUSPECT_PCT)
-    if fin:
-        sc = composite_score(r["per"], r["pbr"], fin)
-        r["score"], r["score_parts"] = sc["score"], sc["parts"]
-        r["score_coverage"], r["score_notes"] = sc["coverage"], sc["notes"]
-    else:
-        r["score"], r["score_parts"], r["score_coverage"], r["score_notes"] = None, {}, 0.0, []
-
-
-def build_output(rows: list, meta: dict, fin_map: dict | None = None) -> dict:
-    """파싱된 전 종목 데이터(rows)에서 저평가 목록과 시장 통계를 만든다. (순수 함수 — 테스트 가능)
-    fin_map: {종목코드: fetch_financial_ratio 결과}. 없으면 예전처럼 PBR÷PER 역산 ROE로만 동작한다."""
-    eligible, use_mktcap, use_liquidity = _eligible(rows)
-    fin_map = fin_map or {}
-    for r in eligible:
-        attach_fundamentals(r, fin_map.get(r["code"]))
-
-    stat_counts = {}
-    for r in rows:
-        stat_counts[r["stat_code"]] = stat_counts.get(r["stat_code"], 0) + 1
+    eligible = [r for r in rows if base_ok(r)]
 
     low_per_all = sorted(
         [r for r in eligible if r["per"] is not None and r["pbr"] is not None
@@ -217,15 +166,11 @@ def build_output(rows: list, meta: dict, fin_map: dict | None = None) -> dict:
     # 균형형: 각 상한 대비 비율의 합이 작은 순 (PER·PBR을 똑같이 중요하게 본다)
     # PER이 PER_CAUTION_BELOW 미만인 종목은 이익 지속성이 가장 의심스러운 극단값이라 목록 뒤로 보낸다
     # (점수가 가장 낮은, 즉 가장 극단적인 종목이 맨 위에 오는 것을 막기 위함. 표시는 그대로 남는다)
-    # 정렬: PER<caution은 뒤로 → 종합점수 높은 순(점수 없는 종목은 맨 뒤) → 동점이면 PER·PBR 상한 대비 합이 작은 순
     balanced_all = sorted(
-        [r for r in eligible if r["per"] is not None and r["pbr"] is not None and r["roe_used"] is not None
+        [r for r in eligible if r["per"] is not None and r["pbr"] is not None and r["roe_pct"] is not None
          and 0 < r["per"] <= BAL_PER_MAX and 0 < r["pbr"] <= BAL_PBR_MAX
-         and BAL_ROE_MIN <= r["roe_used"] <= BAL_ROE_MAX
-         and (BAL_MIN_SCORE is None or (r["score"] is not None and r["score"] >= BAL_MIN_SCORE))],
-        key=lambda r: (r["per"] < PER_CAUTION_BELOW,
-                       -(r["score"] if r["score"] is not None else -1),
-                       r["per"] / BAL_PER_MAX + r["pbr"] / BAL_PBR_MAX))
+         and BAL_ROE_MIN <= r["roe_pct"] <= BAL_ROE_MAX],
+        key=lambda r: (r["per"] < PER_CAUTION_BELOW, r["per"] / BAL_PER_MAX + r["pbr"] / BAL_PBR_MAX))
     # 목록별 상위 N개만 저장하지만, 실제로 몇 개가 조건을 통과했는지는 따로 기록한다
     list_totals = {"balanced": len(balanced_all), "low_per": len(low_per_all), "low_pbr": len(low_pbr_all)}
     balanced, low_per, low_pbr = balanced_all[:BAL_TOP_N], low_per_all[:TOP_N], low_pbr_all[:TOP_N]
@@ -240,8 +185,14 @@ def build_output(rows: list, meta: dict, fin_map: dict | None = None) -> dict:
         "loss_making_pct": round(100 * sum(1 for r in eligible if r["per"] is not None and r["per"] <= 0) / len(eligible), 1) if eligible else None,
     }
 
+    # 업종 상대평가용 통계 (적격 종목 전체 기준) + 저장 행마다 업종 대비 판정을 붙인다
+    sector_stats = fnd.compute_sector_stats(eligible)
+    for r in balanced + low_per + low_pbr:
+        r["relative"] = fnd.relative_valuation(r["per"], r["pbr"], r["sector"], sector_stats)
+
     return {
         **meta,
+        "sector_stats": sector_stats,
         "criteria": {
             "min_mktcap_eok": MIN_MKTCAP_EOK if use_mktcap else None,
             "min_tr_value_eok": MIN_TR_VALUE_EOK if use_liquidity else None,
@@ -249,7 +200,6 @@ def build_output(rows: list, meta: dict, fin_map: dict | None = None) -> dict:
             "bal_per_max": BAL_PER_MAX, "bal_pbr_max": BAL_PBR_MAX,
             "bal_roe_min": BAL_ROE_MIN, "bal_roe_max": BAL_ROE_MAX,
             "per_caution_below": PER_CAUTION_BELOW, "top_n": TOP_N, "bal_top_n": BAL_TOP_N,
-            "bal_min_score": BAL_MIN_SCORE, "score_weights": dict(SCORE_WEIGHTS),
             "mktcap_filter_applied": use_mktcap, "liquidity_filter_applied": use_liquidity,
         },
         "market_stats": market_stats,
@@ -301,35 +251,60 @@ def scan(codes_names: list, fetcher=fetch_price_detail, calls_per_sec=CALLS_PER_
     return rows, failed, raw_sample, timed_out
 
 
-def scan_financials(codes: list, fetcher=fetch_financial_ratio, calls_per_sec=CALLS_PER_SEC,
-                    workers=WORKERS, deadline_sec=FIN_DEADLINE_SEC):
-    """후보 풀 종목의 재무비율을 조회해 (fin_map, 실패 수, 중단 여부, 원본 샘플)을 반환."""
-    limiter = RateLimiter(calls_per_sec)
-    deadline = time.monotonic() + deadline_sec
-    fin_map, failed, timed_out, raw_sample = {}, 0, False, {}
+def select_midlong_targets(result: dict, n: int = MIDLONG_N) -> list:
+    """균형형 → 저PER → 저PBR 순으로 번갈아 상위부터 중복 없이 n개의 후보 행을 고른다."""
+    picked, seen = [], set()
+    lists = [result["balanced"], result["low_per"], result["low_pbr"]]
+    i = 0
+    while len(picked) < n and any(i < len(l) for l in lists):
+        for l in lists:
+            if i < len(l) and l[i]["code"] not in seen and len(picked) < n:
+                seen.add(l[i]["code"])
+                picked.append(l[i])
+        i += 1
+    return picked
 
-    def work(code):
-        if time.monotonic() > deadline:
-            return "timeout", code, None
-        limiter.wait()
-        fin = fetcher(code)
-        return ("ok" if fin else "fail"), code, fin
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        for status, code, fin in pool.map(work, codes):
-            if status == "timeout":
-                timed_out = True
-            elif status == "fail":
-                failed += 1
-            else:
-                if not raw_sample and fin.get("raw"):
-                    raw_sample = fin["raw"]
-                fin_map[code] = strip_raw(fin)
-    return fin_map, failed, timed_out, raw_sample
+def enrich_midlong(result: dict, corp_map: dict, dart_key: str, *, indicators_fn=None, titles_fn=None,
+                   ohlcv_fn=None, n: int = MIDLONG_N) -> int:
+    """후보 종목에 중장기 뱃지(mid_long)를 붙인다. 반환: 처리 종목 수. 개별 실패는 뱃지를 '데이터 부족'으로 남긴다."""
+    indicators_fn = indicators_fn or (lambda cc: fnd.fetch_dart_indicators(dart_key, cc))
+    titles_fn = titles_fn or (lambda cc: fnd.fetch_dart_titles(dart_key, cc))
+    ohlcv_fn = ohlcv_fn or fetch_daily_ohlcv_long
+    stats = result.get("sector_stats") or {}
+    targets = select_midlong_targets(result, n)
+    computed = {}
+    for r in targets:
+        cc = corp_map.get(r["code"], "")
+        flags = market_risk_flags(r["stat_code"], r["warn_code"], r["halted"], r["mktcap_eok"])
+        try:
+            ind = indicators_fn(cc) if cc else None
+        except Exception:
+            ind = None
+        try:
+            titles = titles_fn(cc) if cc else []
+        except Exception:
+            titles = []
+        try:
+            df = ohlcv_fn(r["code"])
+        except Exception:
+            df = None
+        if ind and ind.get("raw") and "dart_raw_sample" not in result:
+            result["dart_raw_sample"] = {"code": r["code"], "name": r["name"], "period": ind.get("period"),
+                                         "unit_note": ind.get("unit_note"),
+                                         "raw": {k: (v or [])[:30] for k, v in ind["raw"].items()}}
+        if ind and ind.get("values"):
+            result["dart_indicator_ok"] = result.get("dart_indicator_ok", 0) + 1
+        computed[r["code"]] = fnd.build_mid_long(r, stats, ind, df, titles, flags)
+    for key in ("balanced", "low_per", "low_pbr"):
+        for r in result[key]:
+            if r["code"] in computed:
+                r["mid_long"] = computed[r["code"]]
+    return len(computed)
 
 
 def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str = OUT_PATH,
-        fin_fetcher=None, **scan_kwargs):
+        midlong: bool = True, regime_fn=None, midlong_kwargs: dict | None = None, **scan_kwargs):
     started = time.monotonic()
     common.FAIL_REASONS.clear()
     universe = universe if universe is not None else load_dart_name_map()
@@ -349,33 +324,17 @@ def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str 
     if not rows:
         raise SystemExit("한 종목도 조회하지 못했습니다 (KIS 키/네트워크 확인)")
 
-    # 재무비율은 PER/PBR 1차 필터를 통과한 후보 풀에만 조회한다.
-    # fin_fetcher를 따로 주지 않았을 때는 진짜 KIS 조회기를 쓰되, 테스트용 가짜 fetcher로 돌릴 땐 건너뛴다.
-    if fin_fetcher is None and fetcher is fetch_price_detail:
-        fin_fetcher = fetch_financial_ratio
-    fin_map, fin_failed, fin_timed_out, fin_raw_sample = {}, 0, False, {}
-    pool_codes = select_fin_pool(rows) if fin_fetcher else []
-    if pool_codes:
-        print(f"재무비율 조회 대상 {len(pool_codes)}개 (PER/PBR 1차 필터 통과 후보 풀)")
-        fin_map, fin_failed, fin_timed_out, fin_raw_sample = scan_financials(pool_codes, fetcher=fin_fetcher)
-        print(f"재무비율 조회 성공 {len(fin_map)} / 실패 {fin_failed}" + (" (시간 초과로 일부 생략)" if fin_timed_out else ""))
-
     meta = {
         "generated_at": datetime.now(KST).isoformat(timespec="seconds"),
         "universe_size": len(codes_names),
         "scanned_ok": len(rows),
         "scanned_failed": failed,
         "partial": timed_out,
-        "fin_pool_size": len(pool_codes),
-        "fin_ok": len(fin_map),
-        "fin_failed": fin_failed,
-        "fin_partial": fin_timed_out,
         "fail_reasons": dict(common.FAIL_REASONS),
         "elapsed_sec": round(time.monotonic() - started),
         "raw_sample": raw_sample,
-        "fin_raw_sample": fin_raw_sample,
     }
-    result = build_output(rows, meta, fin_map)
+    result = build_output(rows, meta)
 
     # 상위 후보에만 DART 공시 리스크를 붙인다 (전 종목에 하면 호출이 너무 많음)
     lists = ("balanced", "low_per", "low_pbr")
@@ -388,9 +347,25 @@ def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str 
         for r in result[key]:
             r["risky_disclosures"] = checked.get(r["code"])   # 조회하지 않은 종목은 None(미확인)
 
+    # 탑다운 1단계: 시장 국면 (코스피/코스닥 지수 이동평균 기반). 실패해도 나머지는 저장한다.
+    try:
+        result["market_regime"] = (regime_fn or fnd.market_regime_snapshot)()
+    except Exception as e:
+        result["market_regime"] = {"overall_label": "❔ 시장국면 판단불가", "overall_advice": "", "error": str(e)[:100]}
+
+    # 중장기 뱃지 (DART 재무지표 + 장기추세 + 공시 사건태그) — 후보 종목에만 계산
+    result["midlong_count"] = 0
+    if midlong:
+        try:
+            result["midlong_count"] = enrich_midlong(
+                result, load_dart_corp_code_map(), common.DART_API_KEY,
+                **(midlong_kwargs or {}))
+        except Exception as e:
+            result["midlong_error"] = str(e)[:100]
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(result, f, ensure_ascii=False, indent=2, default=str)
     return result
 
 
@@ -406,10 +381,7 @@ if __name__ == "__main__":
     print(f"적용된 필터: {result['criteria']}")
     print(f"종목상태코드 분포: {result['stat_code_counts']}")
     print(f"실패 사유: {result['fail_reasons']}")
-    print(f"재무비율 — 후보 풀 {result['fin_pool_size']} / 성공 {result['fin_ok']} / 실패 {result['fin_failed']}"
-          f" (중단여부 {result['fin_partial']})")
-    scored = [r for r in result['balanced'] if r.get('score') is not None]
-    print(f"균형형 {len(result['balanced'])}개 중 종합점수 산출 {len(scored)}개"
-          + (f", 최고 {max(r['score'] for r in scored):.0f}점" if scored else ""))
+    print(f"시장 국면: {result.get('market_regime', {}).get('overall_label')} · 중장기 뱃지 계산 {result.get('midlong_count')}종목 "
+          f"(DART 재무지표 확보 {result.get('dart_indicator_ok', 0)}종목)")
     n_sus = sum(1 for r in result['low_per'] if r['oneoff_suspect'])
     print(f"저PER 목록 중 일회성 이익 의심(ROE>{ROE_SUSPECT_PCT:.0f}%) {n_sus}개")
