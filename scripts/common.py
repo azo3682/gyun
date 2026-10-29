@@ -153,39 +153,6 @@ def fetch_investor_ranking(rank_type: str, top_n: int = 10) -> list[dict]:
     return rows
 
 
-VOLUME_RANK_API_PATH = "/uapi/domestic-stock/v1/quotations/volume-rank"
-VOLUME_RANK_TR_ID = "FHPST01710000"
-
-
-def fetch_volume_ranking(top_n: int = 30) -> list[dict]:
-    """거래량 상위 순위 (streamlit_app.py의 fetch_volume_rank와 같은 요청). 실패하면 예외를 그대로 던진다.
-    반환: [{"rank","stock_code","stock_name","volume","day_pct"}, ...] — 펀드/ETF 계열은 제외."""
-    params = {
-        "FID_COND_MRKT_DIV_CODE": "J", "FID_COND_SCR_DIV_CODE": "20171", "FID_INPUT_ISCD": "0000",
-        "FID_DIV_CLS_CODE": "0", "FID_BLNG_CLS_CODE": "0", "FID_TRGT_CLS_CODE": "111111111",
-        "FID_TRGT_EXLS_CLS_CODE": "0000000000", "FID_INPUT_PRICE_1": "0", "FID_INPUT_PRICE_2": "0",
-        "FID_VOL_CNT": "0", "FID_INPUT_DATE_1": "",
-    }
-    resp = requests.get(f"{BASE_URL}{VOLUME_RANK_API_PATH}", headers=kis_headers(VOLUME_RANK_TR_ID),
-                         params=params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("rt_cd") != "0":
-        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
-    rows = []
-    for item in data.get("output", []):
-        name = item.get("hts_kor_isnm", "")
-        if is_fund_product(name):
-            continue
-        rows.append({
-            "rank": len(rows) + 1, "stock_code": item.get("mksc_shrn_iscd", ""), "stock_name": name,
-            "volume": _to_float(item.get("acml_vol")), "day_pct": _to_float(item.get("prdy_ctrt")),
-        })
-        if len(rows) >= top_n:
-            break
-    return rows
-
-
 FAIL_REASONS = {}          # {사유코드: {"count": n, "msg": 예시 메시지}} — 어떤 이유로 실패했는지 진단용
 _fail_lock = threading.Lock()
 
@@ -242,207 +209,6 @@ def fetch_valuation(stock_code: str):
     return {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
 
 
-# ---- 모멘텀·공시 분류 shared begin
-# 이 블록은 scripts/common.py와 streamlit_app.py에 글자 그대로 똑같이 들어 있다.
-# EOD가 신호 시점에 기록하는 값과 앱 화면의 값이 어긋나지 않게 하려는 것이라서, 한쪽만 고치지 말고 두 파일을 같이 고칠 것
-# (tests/test_shared_block.py가 두 파일의 블록이 같은지 검사한다). pandas만 쓰고 다른 모듈에 의존하지 않는다.
-#
-# 아래 기준값(60일 +10%, 5일 +10%, RSI 70, 급반등 +8%)은 데이터로 검증된 값이 아니라 임시 기본값이다.
-MOM_MIN_ROWS = 61               # 60거래일 수익률을 내려면 일봉이 61개 필요하다 (앱이 받는 일봉은 최근 약 4개월 = 90개 안팎)
-MOM_STRONG_RET60 = 10.0         # 중기 강세: 60거래일 수익률이 이 % 이상이고, 종가가 60일선 위, 60일선이 최근 5일 전보다 낮아지지 않음
-MOM_HOT_RET5 = 10.0             # 단기 과열: 5거래일 수익률이 이 % 이상이거나 RSI가 아래 값 이상
-MOM_HOT_RSI = 70.0
-MOM_BOUNCE_RET5 = 8.0           # 중기가 약한데 5거래일에 이만큼 올랐으면 '급반등'
-MOMENTUM_CELL_NOTES = {
-    "강세·안정": "중기 추세가 살아 있고 단기 과열은 아님 — 눌림을 기다릴 우선 후보",
-    "강세·과열": "중기 추세는 강하지만 최근 급등·과열 — 눌림을 기다릴 종목(추격 금지)",
-    "약세·급반등": "중기 약세 속 단기 급반등 — 추격 회피 후보",
-    "약세": "중기 추세가 약함",
-    "판단불가": "일봉이 61개 미만이라 계산하지 못함",
-}
-
-
-def compute_momentum(df) -> dict:
-    """일봉(stck_clpr, stck_hgpr 필요)으로 중기 모멘텀과 단기 과열을 계산해 네 칸 중 하나로 분류한다. 일봉이 61개 미만이면 빈 dict.
-    ret5/ret20/ret60: 종가 기준 5·20·60거래일 수익률(%). from_high: 가져온 일봉 구간의 최고가 대비 현재가(%). rsi: RSI14.
-    above_ma60: 종가가 60일선 위인가 / aligned: 종가 > 20일선 > 60일선인가 / ma60_rising: 60일선이 5거래일 전 값 이상인가(65개 미만이면 True로 본다).
-    cell: 강세·안정 / 강세·과열 / 약세·급반등 / 약세. 지수 대비 초과수익은 계산하지 않는다(일봉 구간이 짧아 지수 이력을 맞출 수 없음)."""
-    need = ["stck_clpr", "stck_hgpr"]
-    if df is None or getattr(df, "empty", True) or any(c not in df.columns for c in need):
-        return {}
-    d = df[need].apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
-    if len(d) < MOM_MIN_ROWS:
-        return {}
-    c = d["stck_clpr"]
-    last = float(c.iloc[-1])
-    if last <= 0:
-        return {}
-
-    def ret(n):
-        return (last / float(c.iloc[-1 - n]) - 1) * 100
-
-    ret5, ret20, ret60 = ret(5), ret(20), ret(60)
-    ma20, ma60 = float(c.tail(20).mean()), float(c.tail(60).mean())
-    ma60_prev = float(c.iloc[-65:-5].mean()) if len(c) >= 65 else None
-    rising = ma60_prev is None or ma60 >= ma60_prev
-    delta = c.diff()
-    avg_gain = delta.clip(lower=0).rolling(14).mean().iloc[-1]
-    avg_loss = (-delta.clip(upper=0)).rolling(14).mean().iloc[-1]
-    rsi = None
-    if pd.notna(avg_gain) and pd.notna(avg_loss):
-        rsi = (100.0 if avg_gain > 0 else None) if avg_loss == 0 else 100 - 100 / (1 + avg_gain / avg_loss)
-    from_high = (last / float(d["stck_hgpr"].max()) - 1) * 100
-    mid_strong = ret60 >= MOM_STRONG_RET60 and last > ma60 and rising
-    hot = ret5 >= MOM_HOT_RET5 or (rsi is not None and rsi >= MOM_HOT_RSI)
-    if mid_strong:
-        cell = "강세·과열" if hot else "강세·안정"
-    elif ret5 >= MOM_BOUNCE_RET5:
-        cell = "약세·급반등"
-    else:
-        cell = "약세"
-    return {"cell": cell, "ret5": round(ret5, 1), "ret20": round(ret20, 1), "ret60": round(ret60, 1),
-            "from_high": round(from_high, 1), "rsi": round(float(rsi), 1) if rsi is not None else None,
-            "above_ma60": bool(last > ma60), "aligned": bool(last > ma20 > ma60), "ma60_rising": bool(rising)}
-
-
-# 공시 제목 → (분류, 성격). 위에서부터 처음 맞는 규칙을 쓴다. 제목에 공백이 있어도 맞도록 비교할 때 공백을 지운다.
-# 성격: neg=주의가 필요한 공시, pos=일반적으로 호재로 읽히는 공시, neutral=내용을 읽어야 아는 공시. 호재/악재를 판정하는 게 아니라 '무슨 공시인지' 분류만 한다.
-DISCLOSURE_RULES = [
-    ("위험", "neg", ("횡령", "배임", "상장폐지", "관리종목", "거래정지", "불성실공시", "투자주의환기", "감사의견", "회생", "부도", "파산")),
-    ("무상증자", "pos", ("무상증자",)),
-    ("희석 우려", "neg", ("유상증자", "전환사채", "신주인수권부사채", "교환사채")),
-    ("감자", "neg", ("감자",)),
-    ("자사주 취득", "pos", ("자기주식취득", "자기주식 취득")),
-    ("자사주 처분", "neg", ("자기주식처분", "자기주식 처분")),
-    ("수주·공급계약", "pos", ("공급계약", "단일판매")),
-    ("실적", "neutral", ("영업(잠정)실적", "영업실적", "잠정실적", "손익구조")),
-    ("배당", "pos", ("배당결정", "현금ㆍ현물배당", "현금·현물배당")),
-    ("구조변경", "neutral", ("합병", "분할", "영업양수", "영업양도", "주식교환", "주식이전")),
-    ("최대주주 변경", "neutral", ("최대주주변경", "최대주주 변경")),
-    ("소송", "neg", ("소송",)),
-]
-
-
-def classify_disclosure(title) -> tuple:
-    """(분류, 성격). 규칙에 없으면 ('기타', 'neutral')."""
-    t = str(title or "").replace(" ", "")
-    for cat, tone, kws in DISCLOSURE_RULES:
-        if any(kw.replace(" ", "") in t for kw in kws):
-            return cat, tone
-    return "기타", "neutral"
-
-
-def summarize_disclosures(items) -> dict:
-    """공시 목록([{title, category?, tone?}])을 한 줄 요약으로 줄인다. 기타는 뺀다.
-    tags: 중복 없는 분류 이름(주의 → 호재 → 중립 순), neg: 주의 분류, risk: 주의 공시가 하나라도 있는가, text: 표에 넣는 한 줄(주의는 ⚠️)."""
-    seen, order = {}, {"neg": 0, "pos": 1, "neutral": 2}
-    for it in items or []:
-        cat, tone = it.get("category"), it.get("tone")
-        if not cat:
-            cat, tone = classify_disclosure(it.get("title"))
-        if cat != "기타" and cat not in seen:
-            seen[cat] = tone or "neutral"
-    ordered = sorted(seen.items(), key=lambda kv: order.get(kv[1], 2))
-    return {"tags": [k for k, _ in ordered], "neg": [k for k, v in ordered if v == "neg"], "risk": any(v == "neg" for _, v in ordered),
-            "text": " · ".join(("⚠️" if v == "neg" else "") + k for k, v in ordered) or "—"}
-
-
-SECTOR_FIELDS = ("bstp_kor_isnm", "idx_bztp_scls_cd_name", "idx_bztp_mcls_cd_name", "std_idst_clsf_cd_name")
-
-
-def pick_sector(output) -> str:
-    """증권사 현재가 응답(output dict)에서 업종명을 고른다. 첫 번째로 값이 있는 필드를 쓰고, 없으면 ''.
-    [확인 필요] 이 필드들이 실제로 오는지 이 환경에서는 확인하지 못했다 — 앱 종목 조회에서 업종이 보이는지 확인할 것."""
-    for key in SECTOR_FIELDS:
-        v = str((output or {}).get(key) or "").strip()
-        if v:
-            return v
-    return ""
-
-
-FLOW_MIN_SELL_RUN = 3           # '전환'으로 보는 조건: 순매수 구간 직전에 외국인이 연속 순매도한 거래일 수 (임시 기본값)
-FLOW_MAX_BUY_RUN = 2            # '전환'으로 보는 조건: 순매수가 이어진 일수가 이 값 이하 (더 길면 '연속 순매수')
-FLOW_CELLS = ("전환", "연속 순매수", "순매수 1일", "순매도·보합")
-FLOW_CELL_NOTES = {
-    "전환": "외국인이 연속 순매도하다가 순매수로 돌아선 지 2거래일 이내",
-    "연속 순매수": "외국인이 2거래일 이상 연속 순매수 (전환 조건에 해당하지 않는 경우)",
-    "순매수 1일": "외국인이 오늘만 순매수 (직전 순매도가 짧거나 없었음)",
-    "순매도·보합": "외국인이 가장 최근 확정일에 순매도 또는 보합",
-}
-
-
-def flow_streak(vals) -> int:
-    """최신순 값 목록에서 맨 앞부터 연속 순매수(+n)/순매도(-n) 일수. 맨 앞이 0이나 None이면 0."""
-    n = 0
-    for v in vals:
-        if v is None or v == 0:
-            break
-        sign = 1 if v > 0 else -1
-        if n == 0:
-            n = sign
-        elif (n > 0) == (sign > 0):
-            n += sign
-        else:
-            break
-    return n
-
-
-def compute_flow_tag(rows, today="") -> dict:
-    """주식현재가 투자자 일별 수급(rows: 최신순 [{date: 'YYYYMMDD', frgn, orgn}], 수량(주), 음수=순매도)으로 외국인 수급 상태를 분류한다.
-    오늘(today) 행이 전부 0/None이면 아직 확정되지 않은 것으로 보고 뺀다. 확정된 행이 없거나 외국인 값이 없으면 빈 dict.
-    cell: 전환 / 연속 순매수 / 순매수 1일 / 순매도·보합 (기준값 FLOW_*는 검증되지 않은 임시값).
-    asof: 판단에 쓴 가장 최근 확정일(오늘 데이터가 아직 안 올라왔으면 전 거래일일 수 있다) / n_rows: 확정 행 수
-    frgn_streak·orgn_streak: 연속 순매수(+)/순매도(-) 일수 / frgn_prior_sell: 현재 순매수 구간 직전의 연속 순매도 일수 / frgn_sum5·orgn_sum5: 최근 5일 합(주, 5행 미만이면 None)
-    수량(주)이라 종목 간 크기를 비교하는 값은 아니고, 분류는 부호와 연속 일수만 쓴다."""
-    valid = []
-    for r in rows or []:
-        if not isinstance(r, dict) or len(str(r.get("date") or "")) != 8:
-            continue
-        if today and str(r["date"]) == str(today) and all(r.get(k) in (None, 0) for k in ("frgn", "orgn")):
-            continue
-        valid.append(r)
-    valid.sort(key=lambda r: str(r["date"]), reverse=True)
-    if not valid or valid[0].get("frgn") is None:
-        return {}
-    f = [r.get("frgn") for r in valid]
-    o = [r.get("orgn") for r in valid]
-    f_streak, o_streak = flow_streak(f), flow_streak(o)
-    prior = flow_streak(f[f_streak:]) if f_streak > 0 else 0
-    prior_sell = -prior if prior < 0 else 0
-    if f_streak > 0 and f_streak <= FLOW_MAX_BUY_RUN and prior_sell >= FLOW_MIN_SELL_RUN:
-        cell = "전환"
-    elif f_streak >= 2:
-        cell = "연속 순매수"
-    elif f_streak == 1:
-        cell = "순매수 1일"
-    else:
-        cell = "순매도·보합"
-
-    def sum5(vals):
-        head = vals[:5]
-        return sum(v or 0 for v in head) if len(head) >= 5 and all(v is not None for v in head) else None
-
-    d = str(valid[0]["date"])
-    return {"cell": cell, "asof": f"{d[:4]}-{d[4:6]}-{d[6:]}", "n_rows": len(valid), "frgn_streak": f_streak, "orgn_streak": o_streak,
-            "frgn_prior_sell": prior_sell, "frgn_sum5": sum5(f), "orgn_sum5": sum5(o)}
-
-
-def build_signal_tags(sector, momentum, disclosure_summary, flow=None) -> dict:
-    """신호를 기록하는 시점의 업종·모멘텀·공시·외국인 수급 태그. 나중에 태그별 성과를 비교하려고 신호와 함께 저장한다. 값이 없는 항목은 키를 뺀다."""
-    tags = {}
-    if sector:
-        tags["sector"] = sector
-    if momentum:
-        tags["momentum"] = {k: momentum.get(k) for k in ("cell", "ret5", "ret20", "ret60", "from_high", "rsi")}
-    if disclosure_summary is not None:
-        tags["disclosures"] = list(disclosure_summary.get("tags") or [])
-        tags["disc_risk"] = bool(disclosure_summary.get("risk"))
-    if flow:
-        tags["flow"] = {k: flow.get(k) for k in ("cell", "asof", "n_rows", "frgn_streak", "orgn_streak", "frgn_prior_sell", "frgn_sum5", "orgn_sum5")}
-    return tags
-# ---- 모멘텀·공시 분류 shared end
-
-
 # 거래소가 실시간으로 매기는 종목상태코드 — DART 공시보다 먼저, 더 확실하게 위험을 알려준다
 # (예: '관리종목 지정 우려' 같은 거래소 시장조치 안내는 DART 기업공시로 안 올라오는 경우가 있다)
 MARKET_STAT_LABELS = {"51": "🚨 관리종목", "52": "🚨 투자위험", "53": "⚠️ 투자경고",
@@ -466,23 +232,12 @@ def market_risk_flags(stat_code: str, warn_code: str, halted: bool, mktcap_eok: 
     return flags
 
 
-_SECTOR_MEMO: dict = {}
-
-
-def get_sector_memo(stock_code: str) -> str:
-    """fetch_valuation_and_risk가 이번 실행에서 본 업종명. 못 봤으면 ''."""
-    return _SECTOR_MEMO.get(stock_code, "")
-
-
 def fetch_valuation_and_risk(stock_code: str):
     """(밸류에이션 dict|None, 거래소 위험 플래그 리스트) — 현재가 조회 한 번으로 둘 다 얻는다."""
     out = fetch_price_detail(stock_code)
     if out is None:
         return None, []
     valuation = {k: _to_float(out.get(k)) for k in ("per", "pbr", "eps", "bps")}
-    sector = pick_sector(out)
-    if sector:
-        _SECTOR_MEMO[stock_code] = sector       # 같은 응답에서 업종도 챙겨 둔다 (호출을 더 늘리지 않으려고)
     flags = market_risk_flags(
         str(out.get("iscd_stat_cls_code") or ""),
         str(out.get("mrkt_warn_cls_code") or ""),
@@ -492,295 +247,11 @@ def fetch_valuation_and_risk(stock_code: str):
     return valuation, flags
 
 
-# ============================================================
-# 투자자별 일별 수급 (KIS 주식현재가 투자자 v1_국내주식-012, FHKST01010900)
-#   개인·외국인·기관 순매수 수량(주, 음수=순매도)을 일별로 준다. 당일 데이터는 장 종료 후에 제공된다.
-#   [확인 필요] 한 번 호출에 몇 거래일치를 주는지는 명세에 안 나와 있어 이 환경에서는 확인하지 못했다.
-#   eod_snapshot.py가 실행 로그에 '수급 일별 행 수'를 남기니 첫 실행 로그에서 확인할 것.
-# ============================================================
-INVESTOR_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-investor"
-INVESTOR_DAILY_TR_ID = "FHKST01010900"
-
-
-def _to_qty(value):
-    v = _to_float(value)
-    return int(v) if v is not None else None
-
-
-def parse_investor_daily(output) -> list:
-    """주식현재가 투자자 응답의 output 배열 → [{date, prsn, frgn, orgn}] 최신순. 날짜가 없는 행은 버린다."""
-    if isinstance(output, dict):
-        output = [output]
-    rows = []
-    for r in output or []:
-        if not isinstance(r, dict):
-            continue
-        d = str(r.get("stck_bsop_date") or "").strip()
-        if len(d) != 8:
-            continue
-        rows.append({"date": d, "prsn": _to_qty(r.get("prsn_ntby_qty")), "frgn": _to_qty(r.get("frgn_ntby_qty")),
-                     "orgn": _to_qty(r.get("orgn_ntby_qty"))})
-    rows.sort(key=lambda x: x["date"], reverse=True)
-    return rows
-
-
-def fetch_investor_daily(stock_code: str, retries: int = 3):
-    """종목의 일별 투자자 수급 목록(최신순). 조회에 실패하면 None, 응답이 비었으면 []. 초당 호출 제한이면 쉬었다가 재시도한다."""
-    last_reason, last_msg = "EXCEPTION", ""
-    for attempt in range(retries + 1):
-        try:
-            resp = requests.get(
-                f"{BASE_URL}{INVESTOR_DAILY_PATH}",
-                headers=kis_headers(INVESTOR_DAILY_TR_ID),
-                params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": stock_code},
-                timeout=10,
-            )
-            data = resp.json()
-        except Exception as e:
-            last_reason, last_msg = "EXCEPTION", str(e)[:80]
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        if data.get("rt_cd") == "0":
-            return parse_investor_daily(data.get("output"))
-        msg_cd, msg1 = data.get("msg_cd", "UNKNOWN"), (data.get("msg1") or "")[:80]
-        if msg_cd == "EGW00201":  # 초당 거래건수 초과
-            last_reason, last_msg = "RATE_LIMIT_EXHAUSTED", msg1
-            time.sleep(1.0 * (attempt + 1))
-            continue
-        record_fail(msg_cd, msg1)
-        return None
-    record_fail(last_reason, last_msg)
-    return None
-
-
 def is_cheap(val: dict | None, per_max: float = 15.0, pbr_max: float = 1.5) -> bool:
     """흑자(PER>0)이면서 PER/PBR이 기준 이하인지."""
     if not val or val.get("per") is None or val.get("pbr") is None:
         return False
     return 0 < val["per"] <= per_max and 0 < val["pbr"] <= pbr_max
-
-
-# ============================================================
-# 재무비율 (KIS 국내주식 재무비율 v1_국내주식-080 — 실전 도메인 전용, 모의투자 미지원)
-#   정식 ROE(roe_val)·부채비율(lblt_rate)·매출액/영업이익/순이익 증가율을 한 번에 준다.
-#   (영업이익률은 KIS 재무 4종 API 어디에도 없다 — 필요하면 DART로 따로 계산해야 함)
-# ============================================================
-FIN_RATIO_API_PATH = "/uapi/domestic-stock/v1/finance/financial-ratio"
-FIN_RATIO_TR_ID = "FHKST66430300"
-
-
-def fetch_financial_ratio(stock_code: str, period: str = "0", retries: int = 3):
-    """최근 결산 기준 정식 재무비율 dict를 반환. 실패하면 None (사유는 FAIL_REASONS에 'FIN_' 접두어로 기록).
-    period: '0'=연간, '1'=분기.
-
-    - output은 결산년월(stac_yymm)별 배열이라 정렬 순서에 기대지 않고, 이번 달 이하 중 가장 최근 결산을 고른다
-      (미래 결산월이 '예상치'로 섞여 있을 가능성을 피하려는 방어).
-    - op_growth(bsop_prfi_inrt)는 적자지속/흑자전환/적자전환이면 0으로 온다 → 0을 '성장 없음'으로 해석하면 안 된다.
-    - 반환 dict의 'raw'는 화면/JSON에서 필드명 검증용으로만 쓰고, 저장 전에 빼는 것을 권장.
-    """
-    last_reason, last_msg = "EXCEPTION", ""
-    for attempt in range(retries + 1):
-        try:
-            resp = requests.get(
-                f"{BASE_URL}{FIN_RATIO_API_PATH}",
-                headers=kis_headers(FIN_RATIO_TR_ID),
-                params={"FID_DIV_CLS_CODE": period, "fid_cond_mrkt_div_code": "J",
-                        "fid_input_iscd": stock_code},
-                timeout=10,
-            )
-            data = resp.json()
-        except Exception as e:
-            last_reason, last_msg = "EXCEPTION", str(e)[:80]
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        if data.get("rt_cd") != "0":
-            msg_cd, msg1 = data.get("msg_cd", "UNKNOWN"), (data.get("msg1") or "")[:80]
-            if msg_cd == "EGW00201":      # 초당 거래건수 초과 → 쉬었다 재시도
-                last_reason, last_msg = "RATE_LIMIT_EXHAUSTED", msg1
-                time.sleep(1.0 * (attempt + 1))
-                continue
-            record_fail(f"FIN_{msg_cd}", msg1)
-            return None
-        rows = data.get("output") or []
-        if isinstance(rows, dict):
-            rows = [rows]
-        rows = [r for r in rows if isinstance(r, dict) and r.get("stac_yymm")]
-        if not rows:
-            record_fail("FIN_NO_DATA", "재무비율 output이 비어 있음")
-            return None
-        cutoff = datetime.now(KST).strftime("%Y%m")
-        confirmed = [r for r in rows if r["stac_yymm"] <= cutoff] or rows
-        latest = max(confirmed, key=lambda r: r["stac_yymm"])
-        return {
-            "stac_yymm": latest.get("stac_yymm"),
-            "roe": _to_float(latest.get("roe_val")),
-            "debt_ratio": _to_float(latest.get("lblt_rate")),
-            "sales_growth": _to_float(latest.get("grs")),
-            "op_growth": _to_float(latest.get("bsop_prfi_inrt")),
-            "ni_growth": _to_float(latest.get("ntin_inrt")),
-            "eps": _to_float(latest.get("eps")),
-            "bps": _to_float(latest.get("bps")),
-            "rsrv_rate": _to_float(latest.get("rsrv_rate")),
-            "raw": latest,
-        }
-    record_fail(f"FIN_{last_reason}", last_msg)
-    return None
-
-
-def strip_raw(fin):
-    """저장용: fetch_financial_ratio 결과에서 'raw'를 뺀 사본 (None이면 None)."""
-    return {k: v for k, v in fin.items() if k != "raw"} if fin else None
-
-
-# ============================================================
-# 종합점수 (ROE · 부채비율 · 성장률 · PER/PBR)
-#   - 각 항목을 0~100점 구간 점수로 바꾼 뒤 가중합. 값이 없는 항목은 빼고 나머지 가중치로 재정규화.
-#   - 절대적인 '좋은 종목' 판정이 아니라 구간 분류일 뿐이며, 업종 특성(금융업 부채비율 등)은 감안해야 한다.
-#   - streamlit_app.py에도 같은 블록이 복사돼 있다 (그쪽은 환경변수 대신 st.secrets를 쓰므로 common을 import하지 않음).
-#     여기를 고치면 streamlit_app.py의 '종합점수' 블록도 같이 고칠 것.
-# ============================================================
-SCORE_WEIGHTS = {
-    "roe": 0.30,            # 수익성
-    "debt": 0.20,           # 안정성
-    "sales_growth": 0.10,   # 성장성
-    "op_growth": 0.10,
-    "per": 0.15,            # 밸류에이션
-    "pbr": 0.15,
-}
-SCORE_PART_NAMES = {"roe": "ROE", "debt": "부채비율", "sales_growth": "매출증가율",
-                    "op_growth": "영업이익증가율", "per": "PER", "pbr": "PBR"}
-
-
-def _band(x, bands):
-    """bands: [(상한, 점수), ...] 오름차순. x <= 상한인 첫 구간의 점수. 상한 None은 '그 이상 전부'."""
-    for limit, pts in bands:
-        if limit is None or x <= limit:
-            return pts
-    return bands[-1][1]
-
-
-def score_roe(roe):
-    if roe is None:
-        return None
-    if roe > 40:
-        return 50            # 일회성 이익 가능성 — 만점을 주지 않는다
-    return _band(roe, [(0, 0), (5, 20), (10, 50), (15, 75), (25, 100), (40, 85)])
-
-
-def score_debt(debt):        # 낮을수록 좋음
-    if debt is None:
-        return None
-    return _band(debt, [(50, 100), (100, 80), (200, 50), (300, 25), (None, 0)])
-
-
-def score_sales_growth(g):
-    if g is None:
-        return None
-    return _band(g, [(-10, 0), (0, 30), (5, 50), (15, 75), (None, 100)])
-
-
-def score_op_growth(g):
-    # 0은 '적자지속/흑자전환/적자전환' 표시와 구분이 안 되므로 점수에서 제외(None)
-    if g is None or g == 0:
-        return None
-    return _band(g, [(-20, 0), (0, 30), (10, 55), (30, 80), (None, 100)])
-
-
-def score_per(per):
-    if per is None:
-        return None
-    if per <= 0:
-        return 0
-    if per <= 3:
-        return 50            # 수치 왜곡 가능성 (per_label과 같은 기준)
-    return _band(per, [(8, 100), (15, 80), (30, 50), (60, 20), (None, 0)])
-
-
-def score_pbr(pbr):
-    if pbr is None or pbr <= 0:
-        return None
-    return _band(pbr, [(0.6, 100), (1.0, 85), (1.5, 65), (3.0, 30), (None, 0)])
-
-
-def composite_score(per, pbr, fin, weights=None) -> dict:
-    """반환: {"score": 0~100 또는 None, "parts": {항목: 점수|None}, "coverage": 반영된 가중치 비율(0~1), "notes": [...]}
-    fin은 fetch_financial_ratio 결과(dict) 또는 None."""
-    weights = weights or SCORE_WEIGHTS
-    fin = fin or {}
-    parts = {
-        "roe": score_roe(fin.get("roe")),
-        "debt": score_debt(fin.get("debt_ratio")),
-        "sales_growth": score_sales_growth(fin.get("sales_growth")),
-        "op_growth": score_op_growth(fin.get("op_growth")),
-        "per": score_per(per),
-        "pbr": score_pbr(pbr),
-    }
-    used = {k: v for k, v in parts.items() if v is not None}
-    total_w = sum(weights.values())
-    used_w = sum(weights[k] for k in used)
-    notes = []
-    if fin.get("op_growth") == 0:
-        notes.append("영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외")
-    if fin.get("roe") is not None and fin["roe"] > 40:
-        notes.append("ROE 40% 초과: 일회성 이익 의심")
-    if fin.get("debt_ratio") is not None and fin["debt_ratio"] > 500:
-        notes.append("부채비율 500% 초과: 금융업이면 구조적으로 높을 수 있음")
-    coverage = round(used_w / total_w, 2) if total_w else 0.0
-    if used_w and coverage < 0.8:
-        notes.append(f"일부 항목 미반영(가중치 {coverage:.0%}만 반영): 점수 신뢰도 낮음")
-    score = round(sum(weights[k] * v for k, v in used.items()) / used_w, 1) if used_w else None
-    return {"score": score, "parts": parts, "coverage": coverage, "notes": notes}
-
-
-def score_label(score) -> str:
-    if score is None:
-        return "—"
-    if score >= 75:
-        return "🟢 우수"
-    if score >= 55:
-        return "⚪ 보통"
-    return "🔴 미흡"
-
-
-# PER/PBR 라벨(per_label/pbr_label)과 같은 방식의 직관 라벨
-def roe_label(roe) -> str:
-    if roe is None:
-        return ""
-    if roe <= 0:
-        return "🔴 나쁨(적자)"
-    if roe < 5:
-        return "🔴 나쁨(낮음)"
-    if roe < 10:
-        return "⚪ 보통"
-    if roe <= 25:
-        return "🟢 좋음"
-    if roe <= 40:
-        return "🟢 좋음(높음)"
-    return "🟡 주의(일회성 이익 의심)"
-
-
-def debt_label(debt) -> str:
-    if debt is None:
-        return ""
-    if debt <= 100:
-        return "🟢 좋음(안정)"
-    if debt <= 200:
-        return "⚪ 보통"
-    if debt <= 300:
-        return "🔴 나쁨(부담)"
-    return "🔴 매우 나쁨(과다)"
-
-
-def growth_label(g) -> str:
-    if g is None:
-        return ""
-    if g < 0:
-        return "🔴 역성장"
-    if g < 5:
-        return "⚪ 정체"
-    if g < 15:
-        return "🟢 성장"
-    return "🟢 고성장"
 
 
 def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
@@ -806,6 +277,38 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         return df.sort_values("stck_bsop_date").reset_index(drop=True)
     except Exception:
         return pd.DataFrame()
+
+
+def fetch_daily_ohlcv_long(stock_code: str, windows: int = 3) -> pd.DataFrame:
+    """장기(120일선용) 일봉. KIS 일봉 API는 1회 최대 100행이라 기간을 나눠 여러 번 호출해 이어 붙인다.
+    windows=3 이면 약 400 달력일(≈270거래일). 실패한 구간은 건너뛰고 받은 만큼만 반환."""
+    frames = []
+    end_dt = datetime.now(KST)
+    for _ in range(windows):
+        start_dt = end_dt - timedelta(days=135)
+        params = {
+            "fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code,
+            "fid_input_date_1": start_dt.strftime("%Y%m%d"), "fid_input_date_2": end_dt.strftime("%Y%m%d"),
+            "fid_period_div_code": "D", "fid_org_adj_prc": "0",
+        }
+        time.sleep(0.15)
+        try:
+            resp = requests.get(f"{BASE_URL}{DAILY_CHART_API_PATH}", headers=kis_headers(DAILY_CHART_TR_ID),
+                                 params=params, timeout=10)
+            resp.raise_for_status()
+            rows = resp.json().get("output2", [])
+            if rows:
+                frames.append(pd.DataFrame(rows))
+        except Exception:
+            pass
+        end_dt = start_dt - timedelta(days=1)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    df = df[df["stck_bsop_date"] != ""].drop_duplicates("stck_bsop_date")
+    for col in ["stck_clpr", "stck_oprc", "stck_hgpr", "stck_lwpr", "acml_vol"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df.sort_values("stck_bsop_date").reset_index(drop=True)
 
 
 def compute_day_return(df: pd.DataFrame):
@@ -942,34 +445,6 @@ def check_disclosure_risk(stock_code: str) -> list[str]:
         return [f"{it.get('rcept_dt', '')} {it.get('report_nm', '')}"
                 for it in data.get("list", [])
                 if any(kw in it.get("report_nm", "") for kw in RISK_KEYWORDS)]
-    except Exception:
-        return []
-
-
-def fetch_recent_disclosures(stock_code: str, days: int = 7, limit: int = 30) -> list[dict]:
-    """최근 days일의 DART 공시 목록 [{date, title, rcp_no, category, tone}] (최신순). 키가 없거나 실패하면 [].
-    분류(category/tone)는 제목 키워드로만 한 것이라 '무슨 공시인지'를 알려줄 뿐 호재/악재 판정이 아니다."""
-    corp_code = load_dart_corp_code_map().get(stock_code)
-    if not corp_code or not DART_API_KEY:
-        return []
-    end = datetime.now(KST).strftime("%Y%m%d")
-    start = (datetime.now(KST) - timedelta(days=days)).strftime("%Y%m%d")
-    try:
-        resp = requests.get("https://opendart.fss.or.kr/api/list.json",
-                             params={"crtfc_key": DART_API_KEY, "corp_code": corp_code,
-                                      "bgn_de": start, "end_de": end, "page_no": 1, "page_count": limit},
-                             timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("status") != "000":
-            return []
-        out = []
-        for it in data.get("list", []):
-            title = (it.get("report_nm") or "").strip()
-            cat, tone = classify_disclosure(title)
-            out.append({"date": it.get("rcept_dt", ""), "title": title, "rcp_no": it.get("rcept_no", ""),
-                        "category": cat, "tone": tone})
-        return out
     except Exception:
         return []
 
