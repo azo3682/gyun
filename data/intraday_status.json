@@ -1,64 +1,25 @@
 {
-  "checked_at": "2026-10-29T20:45:04+09:00",
+  "checked_at": "2026-10-30T15:23:40+09:00",
   "kept": [],
-  "excluded": [
+  "excluded": [],
+  "new_candidates": [
     {
-      "stock_code": "012030",
-      "stock_name": "DB",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 56.5
-      },
-      "transition": false,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 2430.0,
-      "day_pct": -4.33,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "069540",
-      "stock_name": "빛과전자",
+      "stock_code": "005880",
+      "stock_name": "대한해운",
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": true,
+        "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 35.8
+        "RSI값": 32.2
       },
-      "transition": false,
-      "passed": 3,
+      "transition": true,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4060.0,
-      "day_pct": -3.22,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "059090",
-      "stock_name": "미코",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 51.0
-      },
-      "transition": false,
-      "passed": 3,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 25150.0,
-      "day_pct": -1.76,
-      "reason": "순매수 상위 10에서 이탈"
+      "current_price": 1914.0,
+      "day_pct": 3.91
     }
-  ],
-  "new_candidates": []
+  ]
 }
