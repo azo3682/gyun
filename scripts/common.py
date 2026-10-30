@@ -808,6 +808,38 @@ def fetch_daily_ohlcv(stock_code: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def fetch_daily_ohlcv_long(stock_code: str, windows: int = 3) -> pd.DataFrame:
+    """장기(120일선용) 일봉. KIS 일봉 API는 1회 최대 100행이라 기간을 나눠 여러 번 호출해 이어 붙인다.
+    windows=3 이면 약 400 달력일(≈270거래일). 실패한 구간은 건너뛰고 받은 만큼만 반환."""
+    frames = []
+    end_dt = datetime.now(KST)
+    for _ in range(windows):
+        start_dt = end_dt - timedelta(days=135)
+        params = {
+            "fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code,
+            "fid_input_date_1": start_dt.strftime("%Y%m%d"), "fid_input_date_2": end_dt.strftime("%Y%m%d"),
+            "fid_period_div_code": "D", "fid_org_adj_prc": "0",
+        }
+        time.sleep(0.15)
+        try:
+            resp = requests.get(f"{BASE_URL}{DAILY_CHART_API_PATH}", headers=kis_headers(DAILY_CHART_TR_ID),
+                                 params=params, timeout=10)
+            resp.raise_for_status()
+            rows = resp.json().get("output2", [])
+            if rows:
+                frames.append(pd.DataFrame(rows))
+        except Exception:
+            pass
+        end_dt = start_dt - timedelta(days=1)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    df = df[df["stck_bsop_date"] != ""].drop_duplicates("stck_bsop_date")
+    for col in ["stck_clpr", "stck_oprc", "stck_hgpr", "stck_lwpr", "acml_vol"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df.sort_values("stck_bsop_date").reset_index(drop=True)
+
+
 def compute_day_return(df: pd.DataFrame):
     """오늘(마지막 행) 하루 등락률. 데이터 부족 시 None."""
     if df.empty or len(df) < 2:
