@@ -27,6 +27,7 @@ import json
 import os
 import re
 import sqlite3
+import sys
 import time
 import uuid
 import zipfile
@@ -37,6 +38,10 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 import streamlit as st
+
+# 업종 상대평가·장기추세·중장기 뱃지·시장 국면은 순수 함수 모듈(scripts/fundamentals.py)을 가져다 쓴다 (secrets 의존 없음).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
+import fundamentals as fnd
 
 # ============================================================
 # CONFIG
@@ -1169,6 +1174,95 @@ def style_signed(df: pd.DataFrame, cols: list[str], plain_cols: dict | None = No
         if c in df.columns:
             styler = styler.format(fmt, subset=[c])
     return styler
+
+
+# ============================================================
+# 중장기(삼박자) 판단 — 가치(기존 종합점수) · 가격(60/120일선) · 정보(공시·거래소 지정) + 업종 상대평가 + 시장 국면
+# ============================================================
+@st.cache_data(ttl=600)
+def load_value_screen() -> dict:
+    try:
+        with open("data/value_screen.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=1800)
+def fetch_daily_ohlcv_long(stock_code: str, windows: int = 3) -> pd.DataFrame:
+    """120일선 계산용 장기 일봉 (KIS 일봉은 1회 100행 한도라 기간을 나눠 3번 호출). 실패한 구간은 건너뛴다."""
+    frames, end_dt = [], datetime.now(KST)
+    for _ in range(windows):
+        start_dt = end_dt - timedelta(days=135)
+        params = {"fid_cond_mrkt_div_code": "J", "fid_input_iscd": stock_code,
+                  "fid_input_date_1": start_dt.strftime("%Y%m%d"), "fid_input_date_2": end_dt.strftime("%Y%m%d"),
+                  "fid_period_div_code": "D", "fid_org_adj_prc": "0"}
+        time.sleep(0.15)
+        try:
+            resp = requests.get(f"{BASE_URL}{DAILY_CHART_API_PATH}", headers=kis_headers(DAILY_CHART_TR_ID),
+                                 params=params, timeout=10)
+            resp.raise_for_status()
+            rows = resp.json().get("output2", [])
+            if rows:
+                frames.append(pd.DataFrame(rows))
+        except Exception:
+            pass
+        end_dt = start_dt - timedelta(days=1)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    df = df[df["stck_bsop_date"] != ""].drop_duplicates("stck_bsop_date")
+    for col in ["stck_clpr", "stck_oprc", "stck_hgpr", "stck_lwpr", "acml_vol"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df.sort_values("stck_bsop_date").reset_index(drop=True)
+
+
+def midlong_badge_of(row: dict) -> str:
+    ml = row.get("mid_long")
+    return ml["badge"] if ml else "— (미계산)"
+
+
+def render_mid_long(ml: dict | None):
+    """중장기 판단 상세. 근거와 한계를 함께 보여준다."""
+    if not ml:
+        st.caption("중장기 판단은 저평가 스캔 상위 후보 또는 '🔍 종목 조회' 탭에서 계산됩니다.")
+        return
+    st.markdown(f"**{ml['badge']}**")
+    st.caption(ml.get("caveat", ""))
+    val, price, rel = ml.get("value", {}), ml.get("price", {}), ml.get("relative")
+    st.markdown("**① 가치** (기존 종합점수 기준)")
+    for rsn in val.get("reasons", []):
+        st.markdown(f"- {rsn}")
+    if rel:
+        st.markdown(f"**업종 대비:** {rel['label']} — 업종 '{rel['sector']}'({rel['n']}개) 중앙값 대비 평균 {rel['avg_ratio']:.2f}배 "
+                    f"(PER {rel['per_ratio'] if rel['per_ratio'] is not None else '—'}배, "
+                    f"PBR {rel['pbr_ratio'] if rel['pbr_ratio'] is not None else '—'}배)")
+    else:
+        st.caption("업종 표본이 부족하거나 업종 정보가 없어 업종 대비 평가는 생략했습니다.")
+    st.markdown(f"**② 가격 (장기 추세):** {price.get('label', '—')}")
+    if price.get("detail"):
+        st.caption(price["detail"])
+    st.markdown("**③ 정보 (리스크 이벤트만 반영 — 호재/악재는 자동 판정하지 않습니다)**")
+    if ml.get("risks"):
+        for rk in ml["risks"]:
+            st.error(f"{rk} — 중장기 관점에서는 리스크 이벤트로 분류했습니다. 공시 원문을 꼭 확인하세요.")
+    else:
+        st.caption("거래소 지정 상태·최근 30일 주의 공시 없음 (공시는 상위 후보에 한해 확인됩니다)")
+
+
+def render_market_regime_banner():
+    reg = load_value_screen().get("market_regime")
+    if not reg or not reg.get("overall_label"):
+        return
+    label = reg["overall_label"]
+    box = st.error if label.startswith("🔴") else (st.success if label.startswith("🟢") else st.warning)
+    box(f"**탑다운 · 시장 국면: {label}** — {reg.get('overall_advice', '')}")
+    with st.expander("시장 국면 근거 (코스피·코스닥 지수 이동평균)"):
+        for k, nm in (("kospi", "코스피"), ("kosdaq", "코스닥")):
+            r = reg.get(k)
+            if r and r.get("state"):
+                st.markdown(f"**{nm}: {r['label']}** ({r['score']}) — " + " · ".join(r.get("detail", [])))
+        st.caption(f"{reg.get('note', '')} · 지수 자료 기준일 {reg.get('data_through')} · 스캔 시각 기준(평일 아침)이라 장중 변동은 반영되지 않습니다.")
 
 
 def trend_label_for(stock_code: str) -> str:
@@ -4102,6 +4196,8 @@ def render_watchlist_tab():
 # ---- 관찰목록 저장·화면 end
 
 
+render_market_regime_banner()
+
 tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_watch, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
     "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "👀 관찰목록", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
 ])
@@ -4183,6 +4279,7 @@ def render_value_table(rows: list, total: int | None = None, caution_below: floa
             "순위": i, "종목코드": r["code"], "종목명": r["name"], "업종": r.get("sector", ""),
             "현재가": r.get("price"), "당일등락률(%)": r.get("day_pct"),
             "종합점수": r.get("score"), "등급": score_label(r.get("score")),
+            "중장기": midlong_badge_of(r), "업종대비": (r.get("relative") or {}).get("label", "—"),
             "PER": r.get("per"), "PER평가": per_label(r.get("per")),
             "PBR": r.get("pbr"), "PBR평가": pbr_label(r.get("pbr")),
             "ROE(%)": r.get("roe_used", r.get("roe_pct")), "ROE평가": roe_label(r.get("roe_used", r.get("roe_pct"))),
@@ -4214,6 +4311,12 @@ def render_value_table(rows: list, total: int | None = None, caution_below: floa
             "52주고점대비(%)": nan_dash(lambda v: f"{v:+.1f}%"),
         }),
         use_container_width=True, hide_index=True)
+    with_ml = [r for r in rows if r.get("mid_long")]
+    if with_ml:
+        st.caption(f"'중장기' 열은 상위 후보 {len(with_ml)}개에 대해서만 계산됩니다(나머지는 '미계산'). 근거는 아래에서 펼쳐 보세요.")
+        for r in with_ml:
+            with st.expander(f"{r['mid_long']['badge']} · {r['name']} ({r['code']})"):
+                render_mid_long(r["mid_long"])
 
 
 with tab_value:
@@ -4575,6 +4678,11 @@ with tab_screen:
     st.markdown("**한눈에 비교**")
     st.caption("표 머리글을 누르면 정렬됩니다. 자세한 뉴스·공시는 아래 종목별 펼치기에서 확인하세요.")
     table_rows = []
+    _ml_badge_by_code = {}
+    for _lst in ("balanced", "low_per", "low_pbr"):
+        for _r in load_value_screen().get(_lst, []):
+            if _r.get("mid_long") and _r["code"] not in _ml_badge_by_code:
+                _ml_badge_by_code[_r["code"]] = _r["mid_long"]["badge"]
     for r in scored_rows:
         table_rows.append({
             "순위": r["rank"], "종목코드": r["stock_code"], "종목명": r["stock_name"],
@@ -4586,6 +4694,7 @@ with tab_screen:
             "매출증가율(%)": (r["_fin"] or {}).get("sales_growth"), "영업이익증가율(%)": (r["_fin"] or {}).get("op_growth"),
             "재무기준": fmt_fin_base((r["_fin"] or {}).get("stac_yymm")),
             "종합점수": (r["_score"] or {}).get("score"), "등급": score_label((r["_score"] or {}).get("score")),
+            "중장기": _ml_badge_by_code.get(r["stock_code"], "— (미계산)"),
             "국면": r["_trend"], "참고지표": f"{r['_passed']}/{r['_total']}",
         })
     summary_df = pd.DataFrame(table_rows)
@@ -4803,6 +4912,17 @@ with tab_lookup:
                 st.json(lookup_fin.get("raw", {}))
         else:
             st.caption("재무비율 조회 실패 (ETF·신규상장·결산 미공시 종목은 제공되지 않을 수 있습니다).")
+
+        st.markdown("**🌱 중장기 판단 (삼박자: 가치·가격·정보 + 업종 상대평가)**")
+        with st.spinner("장기 일봉 조회 중... (처음 한 번만 오래 걸립니다)"):
+            _ml_df = fetch_daily_ohlcv_long(lookup_code)
+        _ml_score = lookup_score if lookup_fin else None
+        render_mid_long(fnd.build_mid_long(
+            lookup_per, lookup_pbr, (lookup_val_raw or {}).get("bstp_kor_isnm", ""),
+            _ml_score["score"] if _ml_score else None, _ml_score["coverage"] if _ml_score else None,
+            load_value_screen().get("sector_stats"), _ml_df,
+            list(lookup_flags or []) + list(lookup_risky or []),
+            bool(lookup_fin and lookup_fin.get("roe") is not None and lookup_fin["roe"] > 40)))
 
         render_investor_section(lookup_est, lookup_inv)
 
