@@ -143,6 +143,15 @@ def fmt_value_row(r: dict, caution_below: float = 3.0) -> str:
         line += f"  ⚠ PER {caution_below:g} 미만(이익 지속성 확인)"
     if r.get("risky_disclosures"):
         line += f"  ⚠ 공시: {'; '.join(r['risky_disclosures'])}"
+    rel = r.get("relative")
+    if rel:
+        line += f"  [{rel['label'][2:]}]"
+    ml = r.get("mid_long")
+    if ml:
+        line += f"\n    └ 중장기: {ml['badge']}"
+        reasons = (ml.get("value") or {}).get("reasons") or []
+        if reasons:
+            line += " — " + ", ".join(reasons[:2])
     return line
 
 
@@ -160,8 +169,17 @@ def build_value_screen_section() -> list:
         return [f"(저평가 스캔 결과가 {age_days}일 전 것이라 생략합니다 — 워크플로 상태를 확인하세요)"]
 
     ms, cr = vs.get("market_stats", {}), vs.get("criteria", {})
-    lines = [f"스캔 {vs.get('scanned_ok')}종목 성공 / 필터 통과 {ms.get('eligible_count')}종목 · "
-             f"시장 PER 중앙값 {ms.get('median_per')} · PBR 1 미만 비중 {ms.get('pbr_below_1_pct')}%"]
+    lines = []
+    reg = vs.get("market_regime")
+    if reg and reg.get("overall_label"):
+        lines.append(f"[탑다운] 시장 국면: {reg['overall_label']} — {reg.get('overall_advice', '')}")
+        for k, nm in (("kospi", "코스피"), ("kosdaq", "코스닥")):
+            if reg.get(k) and reg[k].get("state"):
+                lines.append(f"  · {nm}: {reg[k]['label']} ({reg[k]['score']}, 고점대비 {reg[k].get('drawdown_pct')}%)")
+        lines.append(f"  (지수 이동평균 기반 규칙형 판정, 미검증 · 자료 기준일 {reg.get('data_through')})")
+        lines.append("")
+    lines.append(f"스캔 {vs.get('scanned_ok')}종목 성공 / 필터 통과 {ms.get('eligible_count')}종목 · "
+                 f"시장 PER 중앙값 {ms.get('median_per')} · PBR 1 미만 비중 {ms.get('pbr_below_1_pct')}%")
     if vs.get("partial"):
         lines.append("⚠ 시간 초과로 일부 종목만 스캔된 결과입니다.")
     filt = []
@@ -186,7 +204,9 @@ def build_value_screen_section() -> list:
     lines += [fmt_value_row(r, caution) for r in vs.get("low_per", [])[:5]] or ["(해당 종목 없음)"]
     lines.append(f"\n[저PBR 자산가치 — PBR ≤ {cr.get('low_pbr_max')} & 흑자, {total_note('low_pbr', 5)}]")
     lines += [fmt_value_row(r, caution) for r in vs.get("low_pbr", [])[:5]] or ["(해당 종목 없음)"]
-    lines.append("\n※ PER은 최근 확정된 연간 EPS 기준이고, 이 스크린은 매수 신호로 검증된 게 아니라 관심 종목 후보 풀입니다. "
+    lines.append("\n※ '중장기' 뱃지는 기존 종합점수·장기추세·거래소 지정/주의 공시를 합친 참고용이며 임계값은 직접 정한 값으로 검증되지 않았습니다. "
+                 "상위 후보 일부에만 계산됩니다.")
+    lines.append("※ PER은 최근 확정된 연간 EPS 기준이고, 이 스크린은 매수 신호로 검증된 게 아니라 관심 종목 후보 풀입니다. "
                  "싸 보이는 데는 이유(실적 악화, 지배구조 등)가 있는 경우가 많으니 공시·뉴스를 꼭 확인하세요.")
     return lines
 
