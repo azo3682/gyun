@@ -34,13 +34,17 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import common
+import fundamentals as fnd
 from common import (
     KST, fetch_price_detail, get_access_token, load_dart_name_map,
     check_disclosure_risk, is_fund_product, record_fail, _to_float,
     fetch_financial_ratio, strip_raw, composite_score, SCORE_WEIGHTS,
+    fetch_daily_ohlcv_long, market_risk_flags,
 )
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "value_screen.json")
+INDEX_HISTORY_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "index_history.json")
+MIDLONG_N = 40              # 중장기 뱃지(장기 일봉 호출 포함)를 계산할 후보 수 — 세 목록 상위부터 번갈아 채운다
 
 # ---- 스크린 기준 (필요하면 숫자만 바꾸면 됨) ----
 MIN_MKTCAP_EOK = 500        # 시가총액 최소(억원) — 초소형 잡주 제외
@@ -240,8 +244,14 @@ def build_output(rows: list, meta: dict, fin_map: dict | None = None) -> dict:
         "loss_making_pct": round(100 * sum(1 for r in eligible if r["per"] is not None and r["per"] <= 0) / len(eligible), 1) if eligible else None,
     }
 
+    # 업종 상대평가용 통계(적격 종목 전체 기준) + 저장되는 행마다 업종 대비 판정을 붙인다
+    sector_stats = fnd.compute_sector_stats(eligible)
+    for r in balanced + low_per + low_pbr:
+        r["relative"] = fnd.relative_valuation(r["per"], r["pbr"], r["sector"], sector_stats)
+
     return {
         **meta,
+        "sector_stats": sector_stats,
         "criteria": {
             "min_mktcap_eok": MIN_MKTCAP_EOK if use_mktcap else None,
             "min_tr_value_eok": MIN_TR_VALUE_EOK if use_liquidity else None,
@@ -328,8 +338,51 @@ def scan_financials(codes: list, fetcher=fetch_financial_ratio, calls_per_sec=CA
     return fin_map, failed, timed_out, raw_sample
 
 
+def select_midlong_targets(result: dict, n: int = MIDLONG_N) -> list:
+    """균형형 → 저PER → 저PBR 순으로 번갈아 상위부터 중복 없이 n개의 후보 행을 고른다."""
+    picked, seen = [], set()
+    lists = [result["balanced"], result["low_per"], result["low_pbr"]]
+    i = 0
+    while len(picked) < n and any(i < len(l) for l in lists):
+        for l in lists:
+            if i < len(l) and l[i]["code"] not in seen and len(picked) < n:
+                seen.add(l[i]["code"])
+                picked.append(l[i])
+        i += 1
+    return picked
+
+
+def enrich_midlong(result: dict, checked: dict, ohlcv_fn, n: int = MIDLONG_N) -> int:
+    """후보 종목에 중장기 뱃지(mid_long)를 붙인다. 가치=기존 종합점수, 리스크=거래소 지정 상태+주의 공시.
+    개별 실패는 해당 종목만 '판단 불가'로 남기고 계속한다. 반환: 계산한 종목 수."""
+    stats = result.get("sector_stats") or {}
+    computed = {}
+    for r in select_midlong_targets(result, n):
+        code = r["code"]
+        if r.get("risky_disclosures") is None:           # 공시 리스크를 아직 안 본 종목은 여기서 확인
+            if code not in checked:
+                checked[code] = check_disclosure_risk(code)
+            r["risky_disclosures"] = checked[code]
+        flags = market_risk_flags(r["stat_code"], r["warn_code"], r["halted"], r["mktcap_eok"])
+        risks = flags + list(r.get("risky_disclosures") or [])
+        try:
+            df = ohlcv_fn(code) if ohlcv_fn else None
+        except Exception:
+            df = None
+        computed[code] = fnd.build_mid_long(r["per"], r["pbr"], r["sector"], r.get("score"), r.get("score_coverage"),
+                                            stats, df, risks, r.get("oneoff_suspect", False))
+    for key in ("balanced", "low_per", "low_pbr"):
+        for r in result[key]:
+            if r["code"] in computed:
+                r["mid_long"] = computed[r["code"]]
+                if r.get("risky_disclosures") is None and r["code"] in checked:
+                    r["risky_disclosures"] = checked[r["code"]]
+    return len(computed)
+
+
 def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str = OUT_PATH,
-        fin_fetcher=None, **scan_kwargs):
+        fin_fetcher=None, ohlcv_fn=None, midlong_n: int = MIDLONG_N, index_history_path: str = INDEX_HISTORY_PATH,
+        **scan_kwargs):
     started = time.monotonic()
     common.FAIL_REASONS.clear()
     universe = universe if universe is not None else load_dart_name_map()
@@ -388,9 +441,25 @@ def run(universe: dict | None = None, fetcher=fetch_price_detail, out_path: str 
         for r in result[key]:
             r["risky_disclosures"] = checked.get(r["code"])   # 조회하지 않은 종목은 None(미확인)
 
+    # 탑다운 1단계: 시장 국면 — 신호 추적이 쌓아둔 지수 이력(index_history.json)만 읽는다(추가 호출 없음)
+    try:
+        with open(index_history_path, "r", encoding="utf-8") as f:
+            result["market_regime"] = fnd.regime_from_history(json.load(f))
+    except Exception as e:
+        result["market_regime"] = {"overall_label": "❔ 시장국면 판단불가", "overall_advice": "", "error": str(e)[:100]}
+
+    # 중장기 뱃지 — 후보 상위 midlong_n개에만 계산(장기 일봉 호출이 종목당 3번이라 전 종목은 하지 않는다)
+    if ohlcv_fn is None and fetcher is fetch_price_detail:
+        ohlcv_fn = fetch_daily_ohlcv_long
+    result["midlong_count"] = 0
+    try:
+        result["midlong_count"] = enrich_midlong(result, checked, ohlcv_fn, midlong_n)
+    except Exception as e:
+        result["midlong_error"] = str(e)[:100]
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(result, f, ensure_ascii=False, indent=2, default=str)
     return result
 
 
@@ -411,5 +480,6 @@ if __name__ == "__main__":
     scored = [r for r in result['balanced'] if r.get('score') is not None]
     print(f"균형형 {len(result['balanced'])}개 중 종합점수 산출 {len(scored)}개"
           + (f", 최고 {max(r['score'] for r in scored):.0f}점" if scored else ""))
+    print(f"시장 국면: {result.get('market_regime', {}).get('overall_label')} · 중장기 뱃지 계산 {result.get('midlong_count')}종목")
     n_sus = sum(1 for r in result['low_per'] if r['oneoff_suspect'])
     print(f"저PER 목록 중 일회성 이익 의심(ROE>{ROE_SUSPECT_PCT:.0f}%) {n_sus}개")
