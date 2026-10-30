@@ -1,8 +1,26 @@
 {
-  "checked_at": "2026-10-30T17:50:45+09:00",
+  "checked_at": "2026-10-30T20:37:50+09:00",
   "kept": [],
   "excluded": [],
   "new_candidates": [
+    {
+      "stock_code": "010140",
+      "stock_name": "삼성중공업",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": true,
+        "RSI값": 32.6
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 15930.0,
+      "day_pct": 1.34
+    },
     {
       "stock_code": "005880",
       "stock_name": "대한해운",
@@ -12,14 +30,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 30.3
+        "RSI값": 28.7
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1901.0,
-      "day_pct": 3.2
+      "current_price": 1890.0,
+      "day_pct": 2.61
     }
   ]
 }
