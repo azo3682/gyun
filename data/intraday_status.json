@@ -1,8 +1,6 @@
 {
-  "checked_at": "2026-10-30T20:37:50+09:00",
-  "kept": [],
-  "excluded": [],
-  "new_candidates": [
+  "checked_at": "2026-11-02T15:45:24+09:00",
+  "kept": [
     {
       "stock_code": "010140",
       "stock_name": "삼성중공업",
@@ -11,15 +9,15 @@
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 32.6
+        "변동성수축(VCP)": false,
+        "RSI값": 40.9
       },
       "transition": true,
-      "passed": 3,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15930.0,
-      "day_pct": 1.34
+      "current_price": 17120.0,
+      "day_pct": 7.81
     },
     {
       "stock_code": "005880",
@@ -30,14 +28,53 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 28.7
+        "RSI값": 50.4
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1890.0,
-      "day_pct": 2.61
+      "current_price": 2090.0,
+      "day_pct": 9.2
+    }
+  ],
+  "excluded": [],
+  "new_candidates": [
+    {
+      "stock_code": "003490",
+      "stock_name": "대한항공",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 42.3
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 28600.0,
+      "day_pct": 7.72
+    },
+    {
+      "stock_code": "004020",
+      "stock_name": "현대제철",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 55.4
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 28850.0,
+      "day_pct": 11.61
     }
   ]
 }
