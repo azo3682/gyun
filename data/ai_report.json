@@ -1,7 +1,7 @@
 {
  "meta": {
-  "generated_at": "2026-11-02 22:52",
-  "phase": "장 마감 후 — 오늘 가격 확정 (일별 수급은 증권사 제공 시점에 따라 아직 어제까지일 수 있음)",
+  "generated_at": "2026-11-03 01:40",
+  "phase": "장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일)",
   "notes": [],
   "counts": {
    "universe": 14,
@@ -14,6 +14,7 @@
    "name": "대한해운",
    "sources": [
     "순매수 상위 1위",
+    "신호 추적(2026-11-02 전환신호)",
     "신호 추적(2026-10-30 전환신호)"
    ],
    "ranking": {
@@ -181,6 +182,7 @@
    "name": "삼성중공업",
    "sources": [
     "순매수 상위 2위",
+    "신호 추적(2026-11-02 전환신호)",
     "신호 추적(2026-10-30 전환신호)"
    ],
    "ranking": {
@@ -209,10 +211,10 @@
     "volume_surge": true,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 20305.063256723945,
+    "bb_upper": 20305.063256723948,
     "bb_mid": 17769.0,
-    "bb_lower": 15232.936743276055,
-    "to_upper_pct": 18.190123729475815,
+    "bb_lower": 15232.936743276054,
+    "to_upper_pct": 18.190123729475836,
     "vs_mid_pct": -3.314761663571386
    },
    "structure": {
@@ -306,18 +308,49 @@
      "ret5": 5.4,
      "ret20": -12.9,
      "ret60": -17.8,
-     "from_high": -32.0,
+     "from_high": -30.7,
      "rsi": 41.4,
      "above_ma60": false,
      "aligned": false,
      "ma60_rising": false
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261102",
+      "title": "최대주주등소유주식변동신고서",
+      "rcp_no": "20261102800660",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "기타경영사항(자율공시)",
+      "rcp_no": "20261029800238",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
+      "rcp_no": "20261029800230",
+      "category": "실적",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261027",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261027000008",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
+     "tags": [
+      "실적"
+     ],
      "neg": [],
      "risk": false,
-     "text": "—"
+     "text": "실적"
     }
    },
    "scores": {
@@ -347,7 +380,8 @@
    "code": "003490",
    "name": "대한항공",
    "sources": [
-    "순매수 상위 3위"
+    "순매수 상위 3위",
+    "신호 추적(2026-11-02 전환신호)"
    ],
    "ranking": {
     "buy_rank": 3,
@@ -375,10 +409,10 @@
     "volume_surge": true,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 32505.259597077158,
+    "bb_upper": 32505.25959707715,
     "bb_mid": 28107.5,
-    "bb_lower": 23709.740402922842,
-    "to_upper_pct": 13.258744240686958,
+    "bb_lower": 23709.74040292285,
+    "to_upper_pct": 13.258744240686937,
     "vs_mid_pct": 2.1079782976074046
    },
    "structure": {
@@ -478,7 +512,22 @@
      "aligned": false,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261030",
+      "title": "[기재정정]투자판단관련주요경영사항",
+      "rcp_no": "20261030801323",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "[기재정정]타법인주식및출자증권취득결정",
+      "rcp_no": "20261030801318",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
      "tags": [],
      "neg": [],
@@ -541,10 +590,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 18598.194494351497,
+    "bb_upper": 18598.1944943515,
     "bb_mid": 14846.5,
-    "bb_lower": 11094.805505648503,
-    "to_upper_pct": 59.36756207670519,
+    "bb_lower": 11094.8055056485,
+    "to_upper_pct": 59.36756207670524,
     "vs_mid_pct": -21.395615128144684
    },
    "structure": {
@@ -644,12 +693,72 @@
      "aligned": false,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261102",
+      "title": "풍문또는보도에대한해명",
+      "rcp_no": "20261102800856",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261102",
+      "title": "투자판단관련주요경영사항",
+      "rcp_no": "20261102800306",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261102",
+      "title": "투자판단관련주요경영사항",
+      "rcp_no": "20261102800295",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "단일판매ㆍ공급계약체결",
+      "rcp_no": "20261030800384",
+      "category": "수주·공급계약",
+      "tone": "pos"
+     },
+     {
+      "date": "20261030",
+      "title": "단일판매ㆍ공급계약체결",
+      "rcp_no": "20261030800255",
+      "category": "수주·공급계약",
+      "tone": "pos"
+     },
+     {
+      "date": "20261029",
+      "title": "풍문또는보도에대한해명(미확정)",
+      "rcp_no": "20261029800449",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261028",
+      "title": "타인에대한채무보증결정",
+      "rcp_no": "20261028800616",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261027",
+      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
+      "rcp_no": "20261027800048",
+      "category": "실적",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
+     "tags": [
+      "수주·공급계약",
+      "실적"
+     ],
      "neg": [],
      "risk": false,
-     "text": "—"
+     "text": "수주·공급계약 · 실적"
     }
    },
    "scores": {
@@ -710,10 +819,10 @@
     "volume_surge": true,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 625.4214780583047,
+    "bb_upper": 625.4214780583076,
     "bb_mid": 444.7,
-    "bb_lower": 263.97852194169525,
-    "to_upper_pct": 128.25601388989222,
+    "bb_lower": 263.9785219416924,
+    "to_upper_pct": 128.2560138898933,
     "vs_mid_pct": -38.38542837868225
    },
    "structure": {
@@ -799,7 +908,10 @@
     "daily_ok": true,
     "estimate_ok": true
    },
-   "disclosures": [],
+   "disclosures": [
+    "20261030 기타시장안내              (주가 미달에 따른 상장폐지 우려 관련 안내)",
+    "20261023 기타시장안내              (주가 미달에 따른 상장폐지 우려 관련 안내)"
+   ],
    "context": {
     "sector": "금속",
     "momentum": {
@@ -807,18 +919,30 @@
      "ret5": -23.5,
      "ret20": -42.4,
      "ret60": -64.7,
-     "from_high": -77.4,
+     "from_high": -77.1,
      "rsi": 5.4,
      "above_ma60": false,
      "aligned": false,
      "ma60_rising": false
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261030",
+      "title": "기타시장안내              (주가 미달에 따른 상장폐지 우려 관련 안내)",
+      "rcp_no": "20261030901096",
+      "category": "위험",
+      "tone": "neg"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
+     "tags": [
+      "위험"
+     ],
+     "neg": [
+      "위험"
+     ],
+     "risk": true,
+     "text": "⚠️위험"
     }
    },
    "scores": {
@@ -880,10 +1004,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 1829898.5217268746,
+    "bb_upper": 1829898.521726875,
     "bb_mid": 1442000.0,
-    "bb_lower": 1054101.4782731254,
-    "to_upper_pct": 23.641792008572615,
+    "bb_lower": 1054101.478273125,
+    "to_upper_pct": 23.641792008572637,
     "vs_mid_pct": 2.6352288488210807
    },
    "structure": {
@@ -977,18 +1101,72 @@
      "ret5": 16.1,
      "ret20": -19.3,
      "ret60": -5.6,
-     "from_high": -50.5,
+     "from_high": -48.6,
      "rsi": 52.1,
      "above_ma60": false,
      "aligned": false,
      "ma60_rising": false
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261029",
+      "title": "풍문또는보도에대한해명(미확정)",
+      "rcp_no": "20261029800130",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261028",
+      "title": "[기재정정]기업설명회(IR)개최(안내공시)",
+      "rcp_no": "20261028800052",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261028",
+      "title": "주요사항보고서(자기주식취득결정)",
+      "rcp_no": "20261028000014",
+      "category": "자사주 취득",
+      "tone": "pos"
+     },
+     {
+      "date": "20261028",
+      "title": "현금ㆍ현물배당을위한주주명부폐쇄(기준일)결정",
+      "rcp_no": "20261028800048",
+      "category": "배당",
+      "tone": "pos"
+     },
+     {
+      "date": "20261028",
+      "title": "현금ㆍ현물배당결정",
+      "rcp_no": "20261028800045",
+      "category": "배당",
+      "tone": "pos"
+     },
+     {
+      "date": "20261028",
+      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
+      "rcp_no": "20261028800036",
+      "category": "실적",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261028",
+      "title": "수시공시의무관련사항(공정공시)",
+      "rcp_no": "20261028800040",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
+     "tags": [
+      "자사주 취득",
+      "배당",
+      "실적"
+     ],
      "neg": [],
      "risk": false,
-     "text": "—"
+     "text": "자사주 취득 · 배당 · 실적"
     }
    },
    "scores": {
@@ -1021,9 +1199,9 @@
    "name": "삼성전자",
    "sources": [
     "순매수 상위 7위",
+    "신호 추적(2026-11-02 거래량·수급 동시)",
     "신호 추적(2026-10-30 거래량·수급 동시)",
     "신호 추적(2026-10-28 거래량·수급 동시)",
-    "신호 추적(2026-10-27 거래량·수급 동시)",
     "거래량 상위 2위"
    ],
    "ranking": {
@@ -1054,7 +1232,7 @@
     "vcp": false,
     "bb_upper": 276109.41189167026,
     "bb_mid": 233275.0,
-    "bb_lower": 190440.58810832974,
+    "bb_lower": 190440.58810832977,
     "to_upper_pct": 20.047570387682722,
     "vs_mid_pct": -1.403922409173719
    },
@@ -1149,18 +1327,81 @@
      "ret5": 8.0,
      "ret20": -16.7,
      "ret60": -4.0,
-     "from_high": -36.6,
+     "from_high": -35.5,
      "rsi": 49.1,
      "above_ma60": false,
      "aligned": false,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261030",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261030000719",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "주식등의대량보유상황보고서(일반)",
+      "rcp_no": "20261030000716",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "특수관계인으로부터주식의취득",
+      "rcp_no": "20261030000586",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "기타경영사항(자율공시)",
+      "rcp_no": "20261029800752",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "기타경영사항(자율공시)",
+      "rcp_no": "20261029800748",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "특수관계인에대한증여",
+      "rcp_no": "20261029000573",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "특수관계인에대한증여",
+      "rcp_no": "20261029000567",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "특수관계인에대한증여",
+      "rcp_no": "20261029000564",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
+     "tags": [
+      "자사주 처분",
+      "배당",
+      "실적"
+     ],
+     "neg": [
+      "자사주 처분"
+     ],
+     "risk": true,
+     "text": "⚠️자사주 처분 · 배당 · 실적"
     }
    },
    "scores": {
@@ -1190,7 +1431,8 @@
    "code": "004020",
    "name": "현대제철",
    "sources": [
-    "순매수 상위 8위"
+    "순매수 상위 8위",
+    "신호 추적(2026-11-02 전환신호)"
    ],
    "ranking": {
     "buy_rank": 8,
@@ -1321,12 +1563,43 @@
      "aligned": false,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261030",
+      "title": "특수관계인과의내부거래",
+      "rcp_no": "20261030000330",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "약관에의한금융거래시계열금융회사의거래상대방의공시",
+      "rcp_no": "20261030000321",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "영업(잠정)실적(공정공시)",
+      "rcp_no": "20261030800545",
+      "category": "실적",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
+      "rcp_no": "20261030800538",
+      "category": "실적",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
+     "tags": [
+      "실적"
+     ],
      "neg": [],
      "risk": false,
-     "text": "—"
+     "text": "실적"
     }
    },
    "scores": {
@@ -1384,10 +1657,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 33319.34073801161,
+    "bb_upper": 33319.340738011604,
     "bb_mid": 29672.5,
-    "bb_lower": 26025.65926198839,
-    "to_upper_pct": 15.49164900523956,
+    "bb_lower": 26025.659261988396,
+    "to_upper_pct": 15.491649005239537,
     "vs_mid_pct": -2.771926868312413
    },
    "structure": {
@@ -1487,12 +1760,22 @@
      "aligned": false,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261030",
+      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
+      "rcp_no": "20261030800192",
+      "category": "실적",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
+     "tags": [
+      "실적"
+     ],
      "neg": [],
      "risk": false,
-     "text": "—"
+     "text": "실적"
     }
    },
    "scores": {
@@ -1550,10 +1833,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 68016.37065652138,
+    "bb_upper": 68016.3706565214,
     "bb_mid": 52057.5,
-    "bb_lower": 36098.62934347862,
-    "to_upper_pct": 7.2813417295289895,
+    "bb_lower": 36098.629343478606,
+    "to_upper_pct": 7.281341729529012,
     "vs_mid_pct": 21.78840704989675
    },
    "structure": {
@@ -1653,12 +1936,50 @@
      "aligned": true,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261102",
+      "title": "최대주주등소유주식변동신고서",
+      "rcp_no": "20261102800754",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261030",
+      "title": "[기재정정]투자판단관련주요경영사항",
+      "rcp_no": "20261030800425",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261029",
+      "title": "단일판매ㆍ공급계약체결",
+      "rcp_no": "20261029800007",
+      "category": "수주·공급계약",
+      "tone": "pos"
+     },
+     {
+      "date": "20261028",
+      "title": "기업설명회(IR)개최(안내공시)",
+      "rcp_no": "20261028800535",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261028",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261028000177",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
+     "tags": [
+      "수주·공급계약"
+     ],
      "neg": [],
      "risk": false,
-     "text": "—"
+     "text": "수주·공급계약"
     }
    },
    "scores": {
@@ -1821,12 +2142,38 @@
      "aligned": true,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261028",
+      "title": "[기재정정]주요사항보고서(전환사채권발행결정)",
+      "rcp_no": "20261028000310",
+      "category": "희석 우려",
+      "tone": "neg"
+     },
+     {
+      "date": "20261027",
+      "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+      "rcp_no": "20261027000370",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261027",
+      "title": "주식등의대량보유상황보고서(일반)",
+      "rcp_no": "20261027000368",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
-     "tags": [],
-     "neg": [],
-     "risk": false,
-     "text": "—"
+     "tags": [
+      "희석 우려"
+     ],
+     "neg": [
+      "희석 우려"
+     ],
+     "risk": true,
+     "text": "⚠️희석 우려"
     }
    },
    "scores": {
@@ -1991,7 +2338,22 @@
      "aligned": true,
      "ma60_rising": true
     },
-    "recent_disclosures": [],
+    "recent_disclosures": [
+     {
+      "date": "20261102",
+      "title": "[기재정정]타인에대한채무보증결정(자회사의 주요경영사항)",
+      "rcp_no": "20261102900865",
+      "category": "기타",
+      "tone": "neutral"
+     },
+     {
+      "date": "20261028",
+      "title": "타인에대한채무보증결정(자회사의 주요경영사항)",
+      "rcp_no": "20261028900489",
+      "category": "기타",
+      "tone": "neutral"
+     }
+    ],
     "disclosure_summary": {
      "tags": [],
      "neg": [],
@@ -2220,10 +2582,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 18259.202762026056,
+    "bb_upper": 18259.20276202606,
     "bb_mid": 14745.0,
-    "bb_lower": 11230.797237973946,
-    "to_upper_pct": 31.835399003798237,
+    "bb_lower": 11230.79723797394,
+    "to_upper_pct": 31.83539900379826,
     "vs_mid_pct": -6.06985418786029
    },
    "structure": {
