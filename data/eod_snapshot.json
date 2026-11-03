@@ -1,89 +1,89 @@
 {
   "date": "2026-11-03",
-  "generated_at": "2026-11-03T01:35:26+09:00",
+  "generated_at": "2026-11-03T23:38:54+09:00",
   "buy_top10": [
     {
-      "ts": "2026-11-03T01:30:37+09:00",
+      "ts": "2026-11-03T23:38:01+09:00",
       "rank_type": "buy",
-      "rank": 1,
-      "stock_code": "005880",
-      "stock_name": "대한해운",
-      "foreign_net": 1369000.0,
-      "inst_net": 0.0,
-      "combined_net": 1870000.0,
+      "rank": 7,
+      "stock_code": "006730",
+      "stock_name": "서부T&D",
+      "foreign_net": 68000.0,
+      "inst_net": 77000.0,
+      "combined_net": 195000.0,
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": false,
+        "20일모멘텀": true,
         "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 49.2
+        "변동성수축(VCP)": true,
+        "RSI값": 45.4
       },
       "transition": true,
-      "day_pct": 0.08411703239289436,
+      "day_pct": 0.02108963093145877,
       "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 2075.0,
+      "last_date": "20261103",
+      "last_close": 11620.0,
       "valuation": {
-        "per": 3.71,
-        "pbr": 0.31,
-        "eps": 559.0,
-        "bps": 6684.0
+        "per": 9.64,
+        "pbr": 0.7,
+        "eps": 1206.0,
+        "bps": 16666.0
       },
       "market_risk_flags": [],
       "fundamentals": {
         "stac_yymm": "202606",
-        "roe": 8.05,
-        "debt_ratio": 63.81,
-        "sales_growth": -10.88,
-        "op_growth": 41.7,
-        "ni_growth": 8.04,
-        "eps": 355.0,
-        "bps": 7517.0,
-        "rsrv_rate": 950.13
+        "roe": 9.62,
+        "debt_ratio": 130.98,
+        "sales_growth": 57.55,
+        "op_growth": 48.96,
+        "ni_growth": 0.0,
+        "eps": 153.0,
+        "bps": 16719.0,
+        "rsrv_rate": 2353.08
       },
       "score": {
-        "score": 71.0,
+        "score": 69.8,
         "parts": {
           "roe": 50,
-          "debt": 80,
-          "sales_growth": 0,
+          "debt": 50,
+          "sales_growth": 100,
           "op_growth": 100,
-          "per": 100,
-          "pbr": 100
+          "per": 80,
+          "pbr": 85
         },
         "coverage": 1.0,
         "notes": []
       },
-      "passed": 2,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
       "news": [
         {
-          "title": "저PBR주 151개 중 115개 상승…현대제철 11.61% 급등",
-          "link": "http://www.kjdaily.com/article.php?aid=1793633756691080276"
+          "title": "[코스닥 기관] 원익홀딩스·동국제약 담고 반도체 장비주는 줄줄이 매도",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=500984"
         },
         {
-          "title": "[저PBR주 강세 마감] 현대제철 11%·롯데쇼핑 9% 급등…낮은 밸류에이션...",
-          "link": "https://www.cbci.co.kr/news/articleView.html?idxno=622294"
+          "title": "티엔디투자운용, '리츠 AMC' 본인가 획득 [fn마켓워치]",
+          "link": "https://n.news.naver.com/mnews/article/014/0005598096?sid=101"
         },
         {
-          "title": "저PBR 기업 공개하자 151곳 중 115곳 올랐다…현대제철 11.6% 급등",
-          "link": "https://www.newsquest.co.kr/news/articleView.html?idxno=304043"
+          "title": "[리스트] 패닉 장세..관심 둘 실적 기대주는?",
+          "link": "https://www.itooza.com/common/iview.php?no=2026110212561913139"
         }
       ],
       "momentum": {
-        "cell": "강세·과열",
-        "ret5": 12.3,
-        "ret20": -1.2,
-        "ret60": 15.0,
-        "from_high": -5.7,
-        "rsi": 49.2,
+        "cell": "강세·안정",
+        "ret5": 2.7,
+        "ret20": 1.2,
+        "ret60": 14.7,
+        "from_high": -11.3,
+        "rsi": 45.4,
         "above_ma60": true,
         "aligned": false,
         "ma60_rising": true
       },
-      "sector": "운송·창고",
+      "sector": "일반서비스",
       "recent_disclosures": [],
       "disclosure_summary": {
         "tags": [],
@@ -92,220 +92,64 @@
         "text": "—"
       },
       "flow": {
-        "cell": "순매수 1일",
-        "asof": "2026-11-02",
+        "cell": "연속 순매수",
+        "asof": "2026-11-03",
         "n_rows": 30,
-        "frgn_streak": 1,
-        "orgn_streak": -2,
-        "frgn_prior_sell": 2,
-        "frgn_sum5": 1429964,
-        "orgn_sum5": -334799
+        "frgn_streak": 3,
+        "orgn_streak": 4,
+        "frgn_prior_sell": 1,
+        "frgn_sum5": 299637,
+        "orgn_sum5": 82693
       },
       "tags": {
-        "sector": "운송·창고",
+        "sector": "일반서비스",
         "momentum": {
-          "cell": "강세·과열",
-          "ret5": 12.3,
-          "ret20": -1.2,
-          "ret60": 15.0,
-          "from_high": -5.7,
-          "rsi": 49.2
+          "cell": "강세·안정",
+          "ret5": 2.7,
+          "ret20": 1.2,
+          "ret60": 14.7,
+          "from_high": -11.3,
+          "rsi": 45.4
         },
         "disclosures": [],
         "disc_risk": false,
         "flow": {
-          "cell": "순매수 1일",
-          "asof": "2026-11-02",
-          "n_rows": 30,
-          "frgn_streak": 1,
-          "orgn_streak": -2,
-          "frgn_prior_sell": 2,
-          "frgn_sum5": 1429964,
-          "orgn_sum5": -334799
-        }
-      }
-    },
-    {
-      "ts": "2026-11-03T01:30:37+09:00",
-      "rank_type": "buy",
-      "rank": 2,
-      "stock_code": "010140",
-      "stock_name": "삼성중공업",
-      "foreign_net": 536000.0,
-      "inst_net": 345000.0,
-      "combined_net": 1104000.0,
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 41.4
-      },
-      "transition": true,
-      "day_pct": 0.08186397984886651,
-      "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 17180.0,
-      "valuation": {
-        "per": 27.71,
-        "pbr": 3.54,
-        "eps": 620.0,
-        "bps": 4857.0
-      },
-      "market_risk_flags": [],
-      "fundamentals": {
-        "stac_yymm": "202606",
-        "roe": 13.42,
-        "debt_ratio": 281.28,
-        "sales_growth": 18.46,
-        "op_growth": 82.42,
-        "ni_growth": 6.75,
-        "eps": 370.0,
-        "bps": 5586.0,
-        "rsrv_rate": 365.76
-      },
-      "score": {
-        "score": 55.0,
-        "parts": {
-          "roe": 75,
-          "debt": 25,
-          "sales_growth": 100,
-          "op_growth": 100,
-          "per": 50,
-          "pbr": 0
-        },
-        "coverage": 1.0,
-        "notes": []
-      },
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "news": [
-        {
-          "title": "BNK경남은행, 케이조선 협력사 금융지원 … 지역 조선업 상생 기반 강화",
-          "link": "http://www.worktoday.co.kr/news/articleView.html?idxno=91365"
-        },
-        {
-          "title": "삼성전자·SK하이닉스 반등에도 거래대금 28.2% 감소",
-          "link": "http://www.kjdaily.com/article.php?aid=1793622040691073276"
-        },
-        {
-          "title": "경남 주요 기업 주가 강세… 효성중 13%↑",
-          "link": "http://www.gnmaeil.com/news/articleView.html?idxno=597813"
-        }
-      ],
-      "momentum": {
-        "cell": "약세",
-        "ret5": 5.4,
-        "ret20": -12.9,
-        "ret60": -17.8,
-        "from_high": -30.7,
-        "rsi": 41.4,
-        "above_ma60": false,
-        "aligned": false,
-        "ma60_rising": false
-      },
-      "sector": "운송장비·부품",
-      "recent_disclosures": [
-        {
-          "date": "20261102",
-          "title": "최대주주등소유주식변동신고서",
-          "rcp_no": "20261102800660",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "기타경영사항(자율공시)",
-          "rcp_no": "20261029800238",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-          "rcp_no": "20261029800230",
-          "category": "실적",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261027",
-          "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-          "rcp_no": "20261027000008",
-          "category": "기타",
-          "tone": "neutral"
-        }
-      ],
-      "disclosure_summary": {
-        "tags": [
-          "실적"
-        ],
-        "neg": [],
-        "risk": false,
-        "text": "실적"
-      },
-      "flow": {
-        "cell": "연속 순매수",
-        "asof": "2026-11-02",
-        "n_rows": 30,
-        "frgn_streak": 10,
-        "orgn_streak": 2,
-        "frgn_prior_sell": 1,
-        "frgn_sum5": 1803134,
-        "orgn_sum5": 759178
-      },
-      "tags": {
-        "sector": "운송장비·부품",
-        "momentum": {
-          "cell": "약세",
-          "ret5": 5.4,
-          "ret20": -12.9,
-          "ret60": -17.8,
-          "from_high": -30.7,
-          "rsi": 41.4
-        },
-        "disclosures": [
-          "실적"
-        ],
-        "disc_risk": false,
-        "flow": {
           "cell": "연속 순매수",
-          "asof": "2026-11-02",
+          "asof": "2026-11-03",
           "n_rows": 30,
-          "frgn_streak": 10,
-          "orgn_streak": 2,
+          "frgn_streak": 3,
+          "orgn_streak": 4,
           "frgn_prior_sell": 1,
-          "frgn_sum5": 1803134,
-          "orgn_sum5": 759178
+          "frgn_sum5": 299637,
+          "orgn_sum5": 82693
         }
       }
     },
     {
-      "ts": "2026-11-03T01:30:37+09:00",
+      "ts": "2026-11-03T23:38:01+09:00",
       "rank_type": "buy",
-      "rank": 3,
+      "rank": 1,
       "stock_code": "003490",
       "stock_name": "대한항공",
-      "foreign_net": 464000.0,
-      "inst_net": 287000.0,
-      "combined_net": 781000.0,
+      "foreign_net": 114000.0,
+      "inst_net": 742000.0,
+      "combined_net": 903000.0,
       "tech": {
         "정배열": false,
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 42.8
+        "RSI값": 45.6
       },
       "transition": true,
-      "day_pct": 0.08097928436911483,
+      "day_pct": 0.01573426573426584,
       "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 28700.0,
+      "last_date": "20261103",
+      "last_close": 29050.0,
       "valuation": {
-        "per": 13.6,
-        "pbr": 0.97,
+        "per": 13.76,
+        "pbr": 0.98,
         "eps": 2111.0,
         "bps": 29659.0
       },
@@ -339,25 +183,25 @@
       "risky_disclosures": [],
       "news": [
         {
-          "title": "[현장] &quot;규모의 확장이 아닌, 더 나은 성장(Better Growth)&quot;… '2026 타히티...",
-          "link": "https://www.discoverynews.kr/news/articleView.html?idxno=1105603"
+          "title": "박병률 진에어 대표, 통합 LCC 출범 4개월 앞두고 사임",
+          "link": "https://n.news.naver.com/mnews/article/422/0000922588?sid=101"
         },
         {
-          "title": "한진칼 최대주주 놓고…조원태·호반그룹 혈투",
-          "link": "https://n.news.naver.com/mnews/article/025/0003562360?sid=101"
+          "title": "[데스크의 눈] ‘KAI 민영화’ 논란, 뭣이 중헌디",
+          "link": "https://n.news.naver.com/mnews/article/022/0004172283?sid=110"
         },
         {
-          "title": "장우진, 한국 선수 첫 WTT 챔피언스 정상",
-          "link": "https://m.sports.naver.com/general/article/023/0004007397"
+          "title": "박병률 진에어 대표, 통합 LCC 출범 4개월 앞두고 돌연 사임",
+          "link": "https://n.news.naver.com/mnews/article/001/0016420026?sid=101"
         }
       ],
       "momentum": {
-        "cell": "약세·급반등",
-        "ret5": 14.3,
-        "ret20": -8.0,
-        "ret60": 9.5,
-        "from_high": -11.7,
-        "rsi": 42.8,
+        "cell": "강세·과열",
+        "ret5": 13.7,
+        "ret20": -5.1,
+        "ret60": 11.3,
+        "from_high": -10.6,
+        "rsi": 45.6,
         "above_ma60": true,
         "aligned": false,
         "ma60_rising": true
@@ -386,389 +230,193 @@
         "text": "—"
       },
       "flow": {
-        "cell": "순매수 1일",
-        "asof": "2026-11-02",
+        "cell": "순매도·보합",
+        "asof": "2026-11-03",
         "n_rows": 30,
-        "frgn_streak": 1,
-        "orgn_streak": 4,
-        "frgn_prior_sell": 2,
-        "frgn_sum5": 152519,
-        "orgn_sum5": 1327682
+        "frgn_streak": -1,
+        "orgn_streak": 5,
+        "frgn_prior_sell": 0,
+        "frgn_sum5": -218086,
+        "orgn_sum5": 2802300
       },
       "tags": {
         "sector": "운송·창고",
         "momentum": {
-          "cell": "약세·급반등",
-          "ret5": 14.3,
-          "ret20": -8.0,
-          "ret60": 9.5,
-          "from_high": -11.7,
-          "rsi": 42.8
+          "cell": "강세·과열",
+          "ret5": 13.7,
+          "ret20": -5.1,
+          "ret60": 11.3,
+          "from_high": -10.6,
+          "rsi": 45.6
         },
         "disclosures": [],
         "disc_risk": false,
         "flow": {
-          "cell": "순매수 1일",
-          "asof": "2026-11-02",
+          "cell": "순매도·보합",
+          "asof": "2026-11-03",
           "n_rows": 30,
-          "frgn_streak": 1,
-          "orgn_streak": 4,
-          "frgn_prior_sell": 2,
-          "frgn_sum5": 152519,
-          "orgn_sum5": 1327682
+          "frgn_streak": -1,
+          "orgn_streak": 5,
+          "frgn_prior_sell": 0,
+          "frgn_sum5": -218086,
+          "orgn_sum5": 2802300
         }
       }
     },
     {
-      "ts": "2026-11-03T01:30:37+09:00",
+      "ts": "2026-11-03T23:38:01+09:00",
       "rank_type": "buy",
-      "rank": 8,
-      "stock_code": "004020",
-      "stock_name": "현대제철",
-      "foreign_net": 265000.0,
-      "inst_net": 94000.0,
-      "combined_net": 372000.0,
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 55.4
-      },
-      "transition": true,
-      "day_pct": 0.11605415860735002,
-      "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 28850.0,
-      "valuation": {
-        "per": -554.81,
-        "pbr": 0.2,
-        "eps": -52.0,
-        "bps": 147255.0
-      },
-      "market_risk_flags": [],
-      "fundamentals": {
-        "stac_yymm": "202606",
-        "roe": -0.09,
-        "debt_ratio": 75.6,
-        "sales_growth": 2.94,
-        "op_growth": -11.28,
-        "ni_growth": 0.0,
-        "eps": -244.0,
-        "bps": 151227.0,
-        "rsrv_rate": 2559.13
-      },
-      "score": {
-        "score": 39.0,
-        "parts": {
-          "roe": 0,
-          "debt": 80,
-          "sales_growth": 50,
-          "op_growth": 30,
-          "per": 0,
-          "pbr": 100
-        },
-        "coverage": 1.0,
-        "notes": []
-      },
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "news": [
-        {
-          "title": "저PBR주 151개 중 115개 상승…현대제철 11.61% 급등",
-          "link": "http://www.kjdaily.com/article.php?aid=1793633756691080276"
-        },
-        {
-          "title": "[사설] 대기업도 '저PBR' 불명예… 기업가치 제고를",
-          "link": "https://www.asiatoday.co.kr/kn/view.php?key=20261102010000689"
-        },
-        {
-          "title": "[저PBR주 강세 마감] 현대제철 11%·롯데쇼핑 9% 급등…낮은 밸류에이션...",
-          "link": "https://www.cbci.co.kr/news/articleView.html?idxno=622294"
-        }
-      ],
-      "momentum": {
-        "cell": "약세·급반등",
-        "ret5": 9.7,
-        "ret20": -4.9,
-        "ret60": 16.3,
-        "from_high": -22.4,
-        "rsi": 55.4,
-        "above_ma60": false,
-        "aligned": false,
-        "ma60_rising": true
-      },
-      "sector": "금속",
-      "recent_disclosures": [
-        {
-          "date": "20261030",
-          "title": "특수관계인과의내부거래",
-          "rcp_no": "20261030000330",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "약관에의한금융거래시계열금융회사의거래상대방의공시",
-          "rcp_no": "20261030000321",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "영업(잠정)실적(공정공시)",
-          "rcp_no": "20261030800545",
-          "category": "실적",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-          "rcp_no": "20261030800538",
-          "category": "실적",
-          "tone": "neutral"
-        }
-      ],
-      "disclosure_summary": {
-        "tags": [
-          "실적"
-        ],
-        "neg": [],
-        "risk": false,
-        "text": "실적"
-      },
-      "flow": {
-        "cell": "순매수 1일",
-        "asof": "2026-11-02",
-        "n_rows": 30,
-        "frgn_streak": 1,
-        "orgn_streak": 1,
-        "frgn_prior_sell": 1,
-        "frgn_sum5": 164018,
-        "orgn_sum5": 149566
-      },
-      "tags": {
-        "sector": "금속",
-        "momentum": {
-          "cell": "약세·급반등",
-          "ret5": 9.7,
-          "ret20": -4.9,
-          "ret60": 16.3,
-          "from_high": -22.4,
-          "rsi": 55.4
-        },
-        "disclosures": [
-          "실적"
-        ],
-        "disc_risk": false,
-        "flow": {
-          "cell": "순매수 1일",
-          "asof": "2026-11-02",
-          "n_rows": 30,
-          "frgn_streak": 1,
-          "orgn_streak": 1,
-          "frgn_prior_sell": 1,
-          "frgn_sum5": 164018,
-          "orgn_sum5": 149566
-        }
-      }
-    },
-    {
-      "ts": "2026-11-03T01:30:37+09:00",
-      "rank_type": "buy",
-      "rank": 10,
-      "stock_code": "028050",
-      "stock_name": "삼성E&A",
-      "foreign_net": 79000.0,
-      "inst_net": 37000.0,
-      "combined_net": 330000.0,
+      "rank": 9,
+      "stock_code": "011200",
+      "stock_name": "HMM",
+      "foreign_net": 104000.0,
+      "inst_net": 71000.0,
+      "combined_net": 171000.0,
       "tech": {
         "정배열": true,
         "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 77.5
+        "RSI값": 49.0
       },
       "transition": false,
-      "day_pct": 0.027552674230145957,
+      "day_pct": -0.01898734177215189,
       "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 63400.0,
+      "last_date": "20261103",
+      "last_close": 23250.0,
       "valuation": {
-        "per": 20.13,
-        "pbr": 2.62,
-        "eps": 3150.0,
-        "bps": 24187.0
+        "per": 11.89,
+        "pbr": 0.83,
+        "eps": 1955.0,
+        "bps": 28168.0
       },
       "market_risk_flags": [],
       "fundamentals": {
         "stac_yymm": "202606",
-        "roe": 14.11,
-        "debt_ratio": 122.37,
-        "sales_growth": 14.05,
-        "op_growth": 36.41,
-        "ni_growth": 15.68,
-        "eps": 1719.0,
-        "bps": 25567.0,
-        "rsrv_rate": 387.06
+        "roe": 5.2,
+        "debt_ratio": 29.42,
+        "sales_growth": 11.74,
+        "op_growth": -26.43,
+        "ni_growth": -36.83,
+        "eps": 811.0,
+        "bps": 30457.0,
+        "rsrv_rate": 348.54
       },
       "score": {
-        "score": 62.0,
+        "score": 67.2,
         "parts": {
-          "roe": 75,
-          "debt": 50,
+          "roe": 50,
+          "debt": 100,
           "sales_growth": 75,
-          "op_growth": 100,
-          "per": 50,
-          "pbr": 30
+          "op_growth": 0,
+          "per": 80,
+          "pbr": 85
         },
         "coverage": 1.0,
         "notes": []
       },
-      "passed": 3,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
       "news": [
         {
-          "title": "삼성전자·SK하이닉스 반등에도 거래대금 28.2% 감소",
-          "link": "http://www.kjdaily.com/article.php?aid=1793622040691073276"
+          "title": "6년 만에 ‘100대 기업’.. 부산 산업지도 바꿨다",
+          "link": "https://busanmbc.co.kr/01_new/new01_view.asp?idx=290670"
         },
         {
-          "title": "코스피 5859선 폭등…반도체·방산·조선 동반 불기둥",
-          "link": "http://www.newskr.kr/news/articleView.html?idxno=107635"
+          "title": "6년 만에 전국 100대 기업…체감은 '글쎄'",
+          "link": "https://news.knn.co.kr/news/article/193984"
         },
         {
-          "title": "[공시] 11월 3일, 코스피 상장사 46개 종목 자사주 매수 신청",
-          "link": "https://www.newstnt.com/news/articleView.html?idxno=726337"
+          "title": "해운기업 이전에 매출 최대…지역 연계는 과제",
+          "link": "https://n.news.naver.com/mnews/article/056/0012286670?sid=101"
         }
       ],
       "momentum": {
-        "cell": "강세·과열",
-        "ret5": 6.0,
-        "ret20": 33.9,
-        "ret60": 42.8,
-        "from_high": -3.2,
-        "rsi": 77.5,
+        "cell": "약세",
+        "ret5": 3.8,
+        "ret20": 8.1,
+        "ret60": 9.7,
+        "from_high": -4.1,
+        "rsi": 49.0,
         "above_ma60": true,
         "aligned": true,
         "ma60_rising": true
       },
-      "sector": "일반서비스",
-      "recent_disclosures": [
-        {
-          "date": "20261102",
-          "title": "최대주주등소유주식변동신고서",
-          "rcp_no": "20261102800754",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "[기재정정]투자판단관련주요경영사항",
-          "rcp_no": "20261030800425",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "단일판매ㆍ공급계약체결",
-          "rcp_no": "20261029800007",
-          "category": "수주·공급계약",
-          "tone": "pos"
-        },
-        {
-          "date": "20261028",
-          "title": "기업설명회(IR)개최(안내공시)",
-          "rcp_no": "20261028800535",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261028",
-          "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-          "rcp_no": "20261028000177",
-          "category": "기타",
-          "tone": "neutral"
-        }
-      ],
+      "sector": "운송·창고",
+      "recent_disclosures": [],
       "disclosure_summary": {
-        "tags": [
-          "수주·공급계약"
-        ],
+        "tags": [],
         "neg": [],
         "risk": false,
-        "text": "수주·공급계약"
+        "text": "—"
       },
       "flow": {
         "cell": "연속 순매수",
-        "asof": "2026-11-02",
+        "asof": "2026-11-03",
         "n_rows": 30,
-        "frgn_streak": 9,
-        "orgn_streak": -1,
-        "frgn_prior_sell": 6,
-        "frgn_sum5": 2776415,
-        "orgn_sum5": -585197
+        "frgn_streak": 23,
+        "orgn_streak": 4,
+        "frgn_prior_sell": 1,
+        "frgn_sum5": 392503,
+        "orgn_sum5": 819286
       },
       "tags": {
-        "sector": "일반서비스",
+        "sector": "운송·창고",
         "momentum": {
-          "cell": "강세·과열",
-          "ret5": 6.0,
-          "ret20": 33.9,
-          "ret60": 42.8,
-          "from_high": -3.2,
-          "rsi": 77.5
+          "cell": "약세",
+          "ret5": 3.8,
+          "ret20": 8.1,
+          "ret60": 9.7,
+          "from_high": -4.1,
+          "rsi": 49.0
         },
-        "disclosures": [
-          "수주·공급계약"
-        ],
+        "disclosures": [],
         "disc_risk": false,
         "flow": {
           "cell": "연속 순매수",
-          "asof": "2026-11-02",
+          "asof": "2026-11-03",
           "n_rows": 30,
-          "frgn_streak": 9,
-          "orgn_streak": -1,
-          "frgn_prior_sell": 6,
-          "frgn_sum5": 2776415,
-          "orgn_sum5": -585197
+          "frgn_streak": 23,
+          "orgn_streak": 4,
+          "frgn_prior_sell": 1,
+          "frgn_sum5": 392503,
+          "orgn_sum5": 819286
         }
       }
     },
     {
-      "ts": "2026-11-03T01:30:37+09:00",
+      "ts": "2026-11-03T23:38:01+09:00",
       "rank_type": "buy",
-      "rank": 5,
+      "rank": 3,
       "stock_code": "101670",
       "stock_name": "하이드로리튬",
-      "foreign_net": 436000.0,
+      "foreign_net": 226000.0,
       "inst_net": 0.0,
-      "combined_net": 438000.0,
+      "combined_net": 306000.0,
       "tech": {
         "정배열": false,
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 5.4
+        "RSI값": 3.7
       },
       "transition": false,
-      "day_pct": -0.07432432432432434,
+      "day_pct": -0.06934306569343063,
       "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 274.0,
+      "last_date": "20261103",
+      "last_close": 255.0,
       "valuation": {
-        "per": -0.43,
-        "pbr": 0.25,
+        "per": -0.4,
+        "pbr": 0.23,
         "eps": -640.0,
         "bps": 1115.0
       },
       "market_risk_flags": [
         "🚨 관리종목",
-        "⚠️ 시가총액 156억(관리종목 요건 200억에 근접/미달)"
+        "⚠️ 시가총액 145억(관리종목 요건 200억에 근접/미달)"
       ],
       "fundamentals": {
         "stac_yymm": "202606",
@@ -818,11 +466,11 @@
       ],
       "momentum": {
         "cell": "약세",
-        "ret5": -23.5,
-        "ret20": -42.4,
-        "ret60": -64.7,
-        "from_high": -77.1,
-        "rsi": 5.4,
+        "ret5": -29.8,
+        "ret20": -54.1,
+        "ret60": -69.3,
+        "from_high": -78.7,
+        "rsi": 3.7,
         "above_ma60": false,
         "aligned": false,
         "ma60_rising": false
@@ -849,23 +497,23 @@
       },
       "flow": {
         "cell": "연속 순매수",
-        "asof": "2026-11-02",
+        "asof": "2026-11-03",
         "n_rows": 30,
-        "frgn_streak": 6,
+        "frgn_streak": 7,
         "orgn_streak": 0,
         "frgn_prior_sell": 1,
-        "frgn_sum5": 1617600,
+        "frgn_sum5": 1932816,
         "orgn_sum5": 0
       },
       "tags": {
         "sector": "금속",
         "momentum": {
           "cell": "약세",
-          "ret5": -23.5,
-          "ret20": -42.4,
-          "ret60": -64.7,
-          "from_high": -77.1,
-          "rsi": 5.4
+          "ret5": -29.8,
+          "ret20": -54.1,
+          "ret60": -69.3,
+          "from_high": -78.7,
+          "rsi": 3.7
         },
         "disclosures": [
           "위험"
@@ -873,597 +521,151 @@
         "disc_risk": true,
         "flow": {
           "cell": "연속 순매수",
-          "asof": "2026-11-02",
+          "asof": "2026-11-03",
           "n_rows": 30,
-          "frgn_streak": 6,
+          "frgn_streak": 7,
           "orgn_streak": 0,
           "frgn_prior_sell": 1,
-          "frgn_sum5": 1617600,
+          "frgn_sum5": 1932816,
           "orgn_sum5": 0
         }
       }
     },
     {
-      "ts": "2026-11-03T01:30:37+09:00",
+      "ts": "2026-11-03T23:38:01+09:00",
       "rank_type": "buy",
-      "rank": 4,
-      "stock_code": "047040",
-      "stock_name": "대우건설",
-      "foreign_net": 384000.0,
-      "inst_net": 74000.0,
-      "combined_net": 726000.0,
+      "rank": 5,
+      "stock_code": "019550",
+      "stock_name": "SBI인베스트먼트",
+      "foreign_net": 211000.0,
+      "inst_net": 0.0,
+      "combined_net": 243000.0,
       "tech": {
         "정배열": false,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 24.4
+        "RSI값": 18.7
       },
       "transition": false,
-      "day_pct": 0.06868131868131866,
+      "day_pct": -0.16796267496111972,
       "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 11670.0,
+      "last_date": "20261103",
+      "last_close": 535.0,
       "valuation": {
-        "per": -5.32,
-        "pbr": 1.43,
-        "eps": -2195.0,
-        "bps": 8148.0
+        "per": 7.64,
+        "pbr": 0.63,
+        "eps": 70.0,
+        "bps": 855.0
       },
-      "market_risk_flags": [],
+      "market_risk_flags": [
+        "🚨 관리종목"
+      ],
       "fundamentals": {
-        "stac_yymm": "202606",
-        "roe": -14.26,
-        "debt_ratio": 266.54,
-        "sales_growth": -8.16,
-        "op_growth": 108.92,
-        "ni_growth": 2312.25,
-        "eps": 873.0,
-        "bps": 9216.0,
-        "rsrv_rate": 101.2
+        "stac_yymm": "202412",
+        "roe": 8.64,
+        "debt_ratio": 3.11,
+        "sales_growth": -2.03,
+        "op_growth": 37.51,
+        "ni_growth": 36.92,
+        "eps": 70.0,
+        "bps": 855.0,
+        "rsrv_rate": 65.89
       },
       "score": {
-        "score": 27.8,
+        "score": 75.8,
         "parts": {
-          "roe": 0,
-          "debt": 25,
+          "roe": 50,
+          "debt": 100,
           "sales_growth": 30,
           "op_growth": 100,
-          "per": 0,
-          "pbr": 65
+          "per": 100,
+          "pbr": 85
         },
         "coverage": 1.0,
         "notes": []
       },
-      "passed": 1,
+      "passed": 2,
       "total": 5,
-      "risky_disclosures": [],
+      "risky_disclosures": [
+        "20261026 기타시장안내(관리종목지정우려종목)              (주가 1,000원 미달)"
+      ],
       "news": [
         {
-          "title": "[취재수첩] 체코 원전 파열음, 시험대 오른 한수원 리더십",
-          "link": "https://n.news.naver.com/mnews/article/015/0005349456?sid=110"
+          "title": "[공시] 두산로보틱스·대우건설 등 7개 종목 '공매도가 금지', 컨텍 '투...",
+          "link": "https://www.newstnt.com/news/articleView.html?idxno=726560"
         },
         {
-          "title": "대우건설 ‘체코 원전 SOS’에… 산업부 “법적 권한 없다”",
-          "link": "https://n.news.naver.com/mnews/article/020/0003759520?sid=101"
+          "title": "[주식마감] '경영권 분쟁 가능성' 한진칼·한진칼우 상한가... 깨끗한나...",
+          "link": "https://www.ggilbo.com/news/articleView.html?idxno=1190902"
         },
         {
-          "title": "'청라 아크원 푸르지오' 특공 84㎡A 소진율 83% '선전'...1순위 청약 기...",
-          "link": "https://www.straightnews.co.kr/news/articleView.html?idxno=314487"
+          "title": "11월 2일 주식시장 주요공시",
+          "link": "https://www.catchnews.kr/news/articleView.html?idxno=130093"
         }
       ],
       "momentum": {
         "cell": "약세",
-        "ret5": -17.9,
-        "ret20": -34.3,
-        "ret60": -12.3,
-        "from_high": -46.8,
-        "rsi": 24.4,
-        "above_ma60": false,
-        "aligned": false,
-        "ma60_rising": true
-      },
-      "sector": "건설",
-      "recent_disclosures": [
-        {
-          "date": "20261102",
-          "title": "풍문또는보도에대한해명",
-          "rcp_no": "20261102800856",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261102",
-          "title": "투자판단관련주요경영사항",
-          "rcp_no": "20261102800306",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261102",
-          "title": "투자판단관련주요경영사항",
-          "rcp_no": "20261102800295",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "단일판매ㆍ공급계약체결",
-          "rcp_no": "20261030800384",
-          "category": "수주·공급계약",
-          "tone": "pos"
-        },
-        {
-          "date": "20261030",
-          "title": "단일판매ㆍ공급계약체결",
-          "rcp_no": "20261030800255",
-          "category": "수주·공급계약",
-          "tone": "pos"
-        },
-        {
-          "date": "20261029",
-          "title": "풍문또는보도에대한해명(미확정)",
-          "rcp_no": "20261029800449",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261028",
-          "title": "타인에대한채무보증결정",
-          "rcp_no": "20261028800616",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261027",
-          "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-          "rcp_no": "20261027800048",
-          "category": "실적",
-          "tone": "neutral"
-        }
-      ],
-      "disclosure_summary": {
-        "tags": [
-          "수주·공급계약",
-          "실적"
-        ],
-        "neg": [],
-        "risk": false,
-        "text": "수주·공급계약 · 실적"
-      },
-      "flow": {
-        "cell": "연속 순매수",
-        "asof": "2026-11-02",
-        "n_rows": 30,
-        "frgn_streak": 2,
-        "orgn_streak": 1,
-        "frgn_prior_sell": 2,
-        "frgn_sum5": 1470102,
-        "orgn_sum5": -3082752
-      },
-      "tags": {
-        "sector": "건설",
-        "momentum": {
-          "cell": "약세",
-          "ret5": -17.9,
-          "ret20": -34.3,
-          "ret60": -12.3,
-          "from_high": -46.8,
-          "rsi": 24.4
-        },
-        "disclosures": [
-          "수주·공급계약",
-          "실적"
-        ],
-        "disc_risk": false,
-        "flow": {
-          "cell": "연속 순매수",
-          "asof": "2026-11-02",
-          "n_rows": 30,
-          "frgn_streak": 2,
-          "orgn_streak": 1,
-          "frgn_prior_sell": 2,
-          "frgn_sum5": 1470102,
-          "orgn_sum5": -3082752
-        }
-      }
-    },
-    {
-      "ts": "2026-11-03T01:30:37+09:00",
-      "rank_type": "buy",
-      "rank": 6,
-      "stock_code": "000660",
-      "stock_name": "SK하이닉스",
-      "foreign_net": 1000.0,
-      "inst_net": 204000.0,
-      "combined_net": 425000.0,
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 52.1
-      },
-      "transition": false,
-      "day_pct": 0.0437235543018335,
-      "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 1480000.0,
-      "valuation": {
-        "per": 25.1,
-        "pbr": 8.62,
-        "eps": 58955.0,
-        "bps": 171751.0
-      },
-      "market_risk_flags": [],
-      "fundamentals": {
-        "stac_yymm": "202606",
-        "roe": 92.68,
-        "debt_ratio": 32.8,
-        "sales_growth": 230.8,
-        "op_growth": 489.39,
-        "ni_growth": 788.94,
-        "eps": 187361.0,
-        "bps": 368998.0,
-        "rsrv_rate": 6948.33
-      },
-      "score": {
-        "score": 62.5,
-        "parts": {
-          "roe": 50,
-          "debt": 100,
-          "sales_growth": 100,
-          "op_growth": 100,
-          "per": 50,
-          "pbr": 0
-        },
-        "coverage": 1.0,
-        "notes": [
-          "ROE 40% 초과: 일회성 이익 의심"
-        ]
-      },
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "news": [
-        {
-          "title": "SK스퀘어 주가 5.91% 상승…4조3천억원 주주환원 계획 발표",
-          "link": "http://www.kjdaily.com/article.php?aid=1793634605691078276"
-        },
-        {
-          "title": "삼성전자 60만원·SK하이닉스 350만원…KB증권 목표주가 제시",
-          "link": "http://www.kjdaily.com/article.php?aid=1793634453690978276"
-        },
-        {
-          "title": "막연한 노후 불안 없애려면… 국민연금 예상 수령액부터 확인하라",
-          "link": "https://n.news.naver.com/mnews/article/023/0004007377?sid=101"
-        }
-      ],
-      "momentum": {
-        "cell": "약세·급반등",
-        "ret5": 16.1,
-        "ret20": -19.3,
-        "ret60": -5.6,
-        "from_high": -48.6,
-        "rsi": 52.1,
+        "ret5": -19.4,
+        "ret20": -42.2,
+        "ret60": -46.5,
+        "from_high": -51.1,
+        "rsi": 18.7,
         "above_ma60": false,
         "aligned": false,
         "ma60_rising": false
       },
-      "sector": "전기·전자",
-      "recent_disclosures": [
-        {
-          "date": "20261029",
-          "title": "풍문또는보도에대한해명(미확정)",
-          "rcp_no": "20261029800130",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261028",
-          "title": "[기재정정]기업설명회(IR)개최(안내공시)",
-          "rcp_no": "20261028800052",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261028",
-          "title": "주요사항보고서(자기주식취득결정)",
-          "rcp_no": "20261028000014",
-          "category": "자사주 취득",
-          "tone": "pos"
-        },
-        {
-          "date": "20261028",
-          "title": "현금ㆍ현물배당을위한주주명부폐쇄(기준일)결정",
-          "rcp_no": "20261028800048",
-          "category": "배당",
-          "tone": "pos"
-        },
-        {
-          "date": "20261028",
-          "title": "현금ㆍ현물배당결정",
-          "rcp_no": "20261028800045",
-          "category": "배당",
-          "tone": "pos"
-        },
-        {
-          "date": "20261028",
-          "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-          "rcp_no": "20261028800036",
-          "category": "실적",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261028",
-          "title": "수시공시의무관련사항(공정공시)",
-          "rcp_no": "20261028800040",
-          "category": "기타",
-          "tone": "neutral"
-        }
-      ],
+      "sector": "금융",
+      "recent_disclosures": [],
       "disclosure_summary": {
-        "tags": [
-          "자사주 취득",
-          "배당",
-          "실적"
-        ],
+        "tags": [],
         "neg": [],
         "risk": false,
-        "text": "자사주 취득 · 배당 · 실적"
+        "text": "—"
       },
       "flow": {
-        "cell": "순매도·보합",
-        "asof": "2026-11-02",
-        "n_rows": 30,
-        "frgn_streak": -2,
-        "orgn_streak": 1,
-        "frgn_prior_sell": 0,
-        "frgn_sum5": 42125,
-        "orgn_sum5": 136076
-      },
-      "tags": {
-        "sector": "전기·전자",
-        "momentum": {
-          "cell": "약세·급반등",
-          "ret5": 16.1,
-          "ret20": -19.3,
-          "ret60": -5.6,
-          "from_high": -48.6,
-          "rsi": 52.1
-        },
-        "disclosures": [
-          "자사주 취득",
-          "배당",
-          "실적"
-        ],
-        "disc_risk": false,
-        "flow": {
-          "cell": "순매도·보합",
-          "asof": "2026-11-02",
-          "n_rows": 30,
-          "frgn_streak": -2,
-          "orgn_streak": 1,
-          "frgn_prior_sell": 0,
-          "frgn_sum5": 42125,
-          "orgn_sum5": 136076
-        }
-      }
-    },
-    {
-      "ts": "2026-11-03T01:30:37+09:00",
-      "rank_type": "buy",
-      "rank": 7,
-      "stock_code": "005930",
-      "stock_name": "삼성전자",
-      "foreign_net": -524000.0,
-      "inst_net": 509000.0,
-      "combined_net": 415000.0,
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 49.1
-      },
-      "transition": false,
-      "day_pct": 0.022222222222222143,
-      "volume_rank": 2,
-      "last_date": "20261102",
-      "last_close": 230000.0,
-      "valuation": {
-        "per": 35.04,
-        "pbr": 3.59,
-        "eps": 6564.0,
-        "bps": 63997.0
-      },
-      "market_risk_flags": [],
-      "fundamentals": {
-        "stac_yymm": "202606",
-        "roe": 31.39,
-        "debt_ratio": 31.1,
-        "sales_growth": 98.67,
-        "op_growth": 1191.44,
-        "ni_growth": 790.97,
-        "eps": 17687.0,
-        "bps": 86052.0,
-        "rsrv_rate": 57213.76
-      },
-      "score": {
-        "score": 68.5,
-        "parts": {
-          "roe": 85,
-          "debt": 100,
-          "sales_growth": 100,
-          "op_growth": 100,
-          "per": 20,
-          "pbr": 0
-        },
-        "coverage": 1.0,
-        "notes": []
-      },
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "news": [
-        {
-          "title": "삼성SDS 구미 AI 데이터센터 첫 삽…경북도-구미시, AI 산업 본격화",
-          "link": "https://www.gukjenews.com/news/articleView.html?idxno=3740283"
-        },
-        {
-          "title": "청와대, 국가AI정책비서관에 이지수 전 삼성전자 상무 임명",
-          "link": "https://www.dailysecu.com/news/articleView.html?idxno=209276"
-        },
-        {
-          "title": "SK스퀘어 주가 5.91% 상승…4조3천억원 주주환원 계획 발표",
-          "link": "http://www.kjdaily.com/article.php?aid=1793634605691078276"
-        }
-      ],
-      "momentum": {
-        "cell": "약세",
-        "ret5": 8.0,
-        "ret20": -16.7,
-        "ret60": -4.0,
-        "from_high": -35.5,
-        "rsi": 49.1,
-        "above_ma60": false,
-        "aligned": false,
-        "ma60_rising": true
-      },
-      "sector": "전기·전자",
-      "recent_disclosures": [
-        {
-          "date": "20261030",
-          "title": "임원ㆍ주요주주특정증권등소유상황보고서",
-          "rcp_no": "20261030000719",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "주식등의대량보유상황보고서(일반)",
-          "rcp_no": "20261030000716",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261030",
-          "title": "특수관계인으로부터주식의취득",
-          "rcp_no": "20261030000586",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "기타경영사항(자율공시)",
-          "rcp_no": "20261029800752",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "기타경영사항(자율공시)",
-          "rcp_no": "20261029800748",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "특수관계인에대한증여",
-          "rcp_no": "20261029000573",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "특수관계인에대한증여",
-          "rcp_no": "20261029000567",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "특수관계인에대한증여",
-          "rcp_no": "20261029000564",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "특수관계인에대한증여",
-          "rcp_no": "20261029000557",
-          "category": "기타",
-          "tone": "neutral"
-        },
-        {
-          "date": "20261029",
-          "title": "주요사항보고서(자기주식처분결정)",
-          "rcp_no": "20261029000539",
-          "category": "자사주 처분",
-          "tone": "neg"
-        }
-      ],
-      "disclosure_summary": {
-        "tags": [
-          "자사주 처분",
-          "배당",
-          "실적"
-        ],
-        "neg": [
-          "자사주 처분"
-        ],
-        "risk": true,
-        "text": "⚠️자사주 처분 · 배당 · 실적"
-      },
-      "flow": {
-        "cell": "순매수 1일",
-        "asof": "2026-11-02",
+        "cell": "전환",
+        "asof": "2026-11-03",
         "n_rows": 30,
         "frgn_streak": 1,
-        "orgn_streak": 7,
-        "frgn_prior_sell": 2,
-        "frgn_sum5": 1499182,
-        "orgn_sum5": 4753935
+        "orgn_streak": 1,
+        "frgn_prior_sell": 5,
+        "frgn_sum5": 115501,
+        "orgn_sum5": 46187
       },
       "tags": {
-        "sector": "전기·전자",
+        "sector": "금융",
         "momentum": {
           "cell": "약세",
-          "ret5": 8.0,
-          "ret20": -16.7,
-          "ret60": -4.0,
-          "from_high": -35.5,
-          "rsi": 49.1
+          "ret5": -19.4,
+          "ret20": -42.2,
+          "ret60": -46.5,
+          "from_high": -51.1,
+          "rsi": 18.7
         },
-        "disclosures": [
-          "자사주 처분",
-          "배당",
-          "실적"
-        ],
-        "disc_risk": true,
+        "disclosures": [],
+        "disc_risk": false,
         "flow": {
-          "cell": "순매수 1일",
-          "asof": "2026-11-02",
+          "cell": "전환",
+          "asof": "2026-11-03",
           "n_rows": 30,
           "frgn_streak": 1,
-          "orgn_streak": 7,
-          "frgn_prior_sell": 2,
-          "frgn_sum5": 1499182,
-          "orgn_sum5": 4753935
+          "orgn_streak": 1,
+          "frgn_prior_sell": 5,
+          "frgn_sum5": 115501,
+          "orgn_sum5": 46187
         }
       }
     },
     {
-      "ts": "2026-11-03T01:30:37+09:00",
+      "ts": "2026-11-03T23:38:01+09:00",
       "rank_type": "buy",
-      "rank": 9,
-      "stock_code": "006360",
-      "stock_name": "GS건설",
-      "foreign_net": 223000.0,
-      "inst_net": 106000.0,
+      "rank": 2,
+      "stock_code": "010140",
+      "stock_name": "삼성중공업",
+      "foreign_net": 147000.0,
+      "inst_net": 322000.0,
       "combined_net": 358000.0,
       "tech": {
         "정배열": false,
@@ -1471,40 +673,40 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 48.5
+        "RSI값": 37.9
       },
       "transition": false,
-      "day_pct": 0.10961538461538467,
+      "day_pct": 0.015186915887850372,
       "volume_rank": null,
-      "last_date": "20261102",
-      "last_close": 28850.0,
+      "last_date": "20261103",
+      "last_close": 17380.0,
       "valuation": {
-        "per": 26.4,
-        "pbr": 0.51,
-        "eps": 1093.0,
-        "bps": 56462.0
+        "per": 28.03,
+        "pbr": 3.58,
+        "eps": 620.0,
+        "bps": 4857.0
       },
       "market_risk_flags": [],
       "fundamentals": {
         "stac_yymm": "202606",
-        "roe": 2.8,
-        "debt_ratio": 229.04,
-        "sales_growth": -17.24,
-        "op_growth": -29.09,
-        "ni_growth": 0.0,
-        "eps": 31.0,
-        "bps": 57609.0,
-        "rsrv_rate": 985.43
+        "roe": 13.42,
+        "debt_ratio": 281.28,
+        "sales_growth": 18.46,
+        "op_growth": 82.42,
+        "ni_growth": 6.75,
+        "eps": 370.0,
+        "bps": 5586.0,
+        "rsrv_rate": 365.76
       },
       "score": {
-        "score": 33.5,
+        "score": 55.0,
         "parts": {
-          "roe": 20,
+          "roe": 75,
           "debt": 25,
-          "sales_growth": 0,
-          "op_growth": 0,
+          "sales_growth": 100,
+          "op_growth": 100,
           "per": 50,
-          "pbr": 100
+          "pbr": 0
         },
         "coverage": 1.0,
         "notes": []
@@ -1514,36 +716,57 @@
       "risky_disclosures": [],
       "news": [
         {
-          "title": "[산업 HOT 뉴스] GS건설, 스틸 모듈러 표준화 추진…사업성 검토 속도 U...",
-          "link": "http://www.bizwnews.com/news/articleView.html?idxno=150673"
+          "title": "11월 1주 주요 제조업 전망",
+          "link": "https://www.laborplus.co.kr/news/articleView.html?idxno=41751"
         },
         {
-          "title": "[사설] AIDC 건설특수 지역 참여 보장 필요",
-          "link": "https://n.news.naver.com/mnews/article/654/0000208981?sid=110"
+          "title": "“일본? 절대 안 가” 이러더니 한국으로 ‘우르르’…중국인들 발길 몰...",
+          "link": "https://n.news.naver.com/mnews/article/011/0004678398?sid=104"
         },
         {
-          "title": "&quot;AIDC 지연에 울고 원가 선반영에 웃고…GS건설의 두 얼굴&quot;",
-          "link": "https://www.newsquest.co.kr/news/articleView.html?idxno=304040"
+          "title": "삼성전자·SK하이닉스 거래대금 12.6% 감소…외국인 순매도",
+          "link": "http://www.kjdaily.com/article.php?aid=1793707059691190276"
         }
       ],
       "momentum": {
         "cell": "약세",
-        "ret5": 2.5,
-        "ret20": -12.4,
-        "ret60": 19.0,
-        "from_high": -26.7,
-        "rsi": 48.5,
+        "ret5": 6.0,
+        "ret20": -12.9,
+        "ret60": -19.7,
+        "from_high": -29.9,
+        "rsi": 37.9,
         "above_ma60": false,
         "aligned": false,
-        "ma60_rising": true
+        "ma60_rising": false
       },
-      "sector": "건설",
+      "sector": "운송장비·부품",
       "recent_disclosures": [
         {
-          "date": "20261030",
+          "date": "20261102",
+          "title": "최대주주등소유주식변동신고서",
+          "rcp_no": "20261102800660",
+          "category": "기타",
+          "tone": "neutral"
+        },
+        {
+          "date": "20261029",
+          "title": "기타경영사항(자율공시)",
+          "rcp_no": "20261029800238",
+          "category": "기타",
+          "tone": "neutral"
+        },
+        {
+          "date": "20261029",
           "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-          "rcp_no": "20261030800192",
+          "rcp_no": "20261029800230",
           "category": "실적",
+          "tone": "neutral"
+        },
+        {
+          "date": "20261027",
+          "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+          "rcp_no": "20261027000008",
+          "category": "기타",
           "tone": "neutral"
         }
       ],
@@ -1557,23 +780,23 @@
       },
       "flow": {
         "cell": "연속 순매수",
-        "asof": "2026-11-02",
+        "asof": "2026-11-03",
         "n_rows": 30,
-        "frgn_streak": 6,
-        "orgn_streak": 1,
-        "frgn_prior_sell": 2,
-        "frgn_sum5": 721411,
-        "orgn_sum5": -380038
+        "frgn_streak": 11,
+        "orgn_streak": 3,
+        "frgn_prior_sell": 1,
+        "frgn_sum5": 1724082,
+        "orgn_sum5": 866086
       },
       "tags": {
-        "sector": "건설",
+        "sector": "운송장비·부품",
         "momentum": {
           "cell": "약세",
-          "ret5": 2.5,
-          "ret20": -12.4,
-          "ret60": 19.0,
-          "from_high": -26.7,
-          "rsi": 48.5
+          "ret5": 6.0,
+          "ret20": -12.9,
+          "ret60": -19.7,
+          "from_high": -29.9,
+          "rsi": 37.9
         },
         "disclosures": [
           "실적"
@@ -1581,166 +804,632 @@
         "disc_risk": false,
         "flow": {
           "cell": "연속 순매수",
-          "asof": "2026-11-02",
+          "asof": "2026-11-03",
           "n_rows": 30,
-          "frgn_streak": 6,
-          "orgn_streak": 1,
+          "frgn_streak": 11,
+          "orgn_streak": 3,
+          "frgn_prior_sell": 1,
+          "frgn_sum5": 1724082,
+          "orgn_sum5": 866086
+        }
+      }
+    },
+    {
+      "ts": "2026-11-03T23:38:01+09:00",
+      "rank_type": "buy",
+      "rank": 4,
+      "stock_code": "005935",
+      "stock_name": "삼성전자우",
+      "foreign_net": 289000.0,
+      "inst_net": -81000.0,
+      "combined_net": 253000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 49.8
+      },
+      "transition": false,
+      "day_pct": -0.020903954802259928,
+      "volume_rank": null,
+      "last_date": "20261103",
+      "last_close": 173300.0,
+      "valuation": {
+        "per": 0.0,
+        "pbr": 0.0,
+        "eps": 0.0,
+        "bps": 0.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": null,
+      "score": null,
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "코스피, 3%대 낙폭에 5700선 밑으로...SK스퀘어, 삼성전기 등 하락",
+          "link": "http://www.econonews.co.kr/news/articleView.html?idxno=446665"
+        },
+        {
+          "title": "한진칼우 30%·AP위성 29.98% 상승…7개 종목 상한가권",
+          "link": "http://www.kjdaily.com/article.php?aid=1793708092691193276"
+        },
+        {
+          "title": "삼성전자·SK하이닉스 거래대금 12.6% 감소…외국인 순매도",
+          "link": "http://www.kjdaily.com/article.php?aid=1793707059691190276"
+        }
+      ],
+      "momentum": {
+        "cell": "약세",
+        "ret5": 1.3,
+        "ret20": -13.8,
+        "ret60": -1.8,
+        "from_high": -25.3,
+        "rsi": 49.8,
+        "above_ma60": false,
+        "aligned": false,
+        "ma60_rising": true
+      },
+      "sector": "전기·전자",
+      "recent_disclosures": [],
+      "disclosure_summary": {
+        "tags": [],
+        "neg": [],
+        "risk": false,
+        "text": "—"
+      },
+      "flow": {
+        "cell": "전환",
+        "asof": "2026-11-03",
+        "n_rows": 30,
+        "frgn_streak": 1,
+        "orgn_streak": -1,
+        "frgn_prior_sell": 3,
+        "frgn_sum5": -1661179,
+        "orgn_sum5": 268582
+      },
+      "tags": {
+        "sector": "전기·전자",
+        "momentum": {
+          "cell": "약세",
+          "ret5": 1.3,
+          "ret20": -13.8,
+          "ret60": -1.8,
+          "from_high": -25.3,
+          "rsi": 49.8
+        },
+        "disclosures": [],
+        "disc_risk": false,
+        "flow": {
+          "cell": "전환",
+          "asof": "2026-11-03",
+          "n_rows": 30,
+          "frgn_streak": 1,
+          "orgn_streak": -1,
+          "frgn_prior_sell": 3,
+          "frgn_sum5": -1661179,
+          "orgn_sum5": 268582
+        }
+      }
+    },
+    {
+      "ts": "2026-11-03T23:38:01+09:00",
+      "rank_type": "buy",
+      "rank": 6,
+      "stock_code": "005880",
+      "stock_name": "대한해운",
+      "foreign_net": 17000.0,
+      "inst_net": -171000.0,
+      "combined_net": 226000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 40.0
+      },
+      "transition": false,
+      "day_pct": -0.038277511961722466,
+      "volume_rank": null,
+      "last_date": "20261103",
+      "last_close": 2010.0,
+      "valuation": {
+        "per": 3.6,
+        "pbr": 0.3,
+        "eps": 559.0,
+        "bps": 6684.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202606",
+        "roe": 8.05,
+        "debt_ratio": 63.81,
+        "sales_growth": -10.88,
+        "op_growth": 41.7,
+        "ni_growth": 8.04,
+        "eps": 355.0,
+        "bps": 7517.0,
+        "rsrv_rate": 950.13
+      },
+      "score": {
+        "score": 71.0,
+        "parts": {
+          "roe": 50,
+          "debt": 80,
+          "sales_growth": 0,
+          "op_growth": 100,
+          "per": 100,
+          "pbr": 100
+        },
+        "coverage": 1.0,
+        "notes": []
+      },
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "[주식마감] '경영권 분쟁 가능성' 한진칼·한진칼우 상한가... 깨끗한나...",
+          "link": "https://www.ggilbo.com/news/articleView.html?idxno=1190902"
+        },
+        {
+          "title": "저PBR 공개 기업 75% 주가 반등...&quot;주주환원 실천 여부로 옥석 가려야&quot;",
+          "link": "https://daily.hankooki.com/news/articleView.html?idxno=1421262"
+        },
+        {
+          "title": "[기획] 저PBR 151곳 공개 첫날 76% 상승…효과 지속될까",
+          "link": "https://www.kfenews.co.kr/news/articleView.html?idxno=667445"
+        }
+      ],
+      "momentum": {
+        "cell": "약세·급반등",
+        "ret5": 8.4,
+        "ret20": -6.5,
+        "ret60": 4.9,
+        "from_high": -8.6,
+        "rsi": 40.0,
+        "above_ma60": false,
+        "aligned": false,
+        "ma60_rising": true
+      },
+      "sector": "운송·창고",
+      "recent_disclosures": [],
+      "disclosure_summary": {
+        "tags": [],
+        "neg": [],
+        "risk": false,
+        "text": "—"
+      },
+      "flow": {
+        "cell": "순매도·보합",
+        "asof": "2026-11-03",
+        "n_rows": 30,
+        "frgn_streak": -1,
+        "orgn_streak": -3,
+        "frgn_prior_sell": 0,
+        "frgn_sum5": 1143340,
+        "orgn_sum5": -771301
+      },
+      "tags": {
+        "sector": "운송·창고",
+        "momentum": {
+          "cell": "약세·급반등",
+          "ret5": 8.4,
+          "ret20": -6.5,
+          "ret60": 4.9,
+          "from_high": -8.6,
+          "rsi": 40.0
+        },
+        "disclosures": [],
+        "disc_risk": false,
+        "flow": {
+          "cell": "순매도·보합",
+          "asof": "2026-11-03",
+          "n_rows": 30,
+          "frgn_streak": -1,
+          "orgn_streak": -3,
+          "frgn_prior_sell": 0,
+          "frgn_sum5": 1143340,
+          "orgn_sum5": -771301
+        }
+      }
+    },
+    {
+      "ts": "2026-11-03T23:38:01+09:00",
+      "rank_type": "buy",
+      "rank": 10,
+      "stock_code": "067290",
+      "stock_name": "JW신약",
+      "foreign_net": 157000.0,
+      "inst_net": 0.0,
+      "combined_net": 151000.0,
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 27.0
+      },
+      "transition": false,
+      "day_pct": -0.02212389380530977,
+      "volume_rank": null,
+      "last_date": "20261103",
+      "last_close": 2210.0,
+      "valuation": {
+        "per": 7.92,
+        "pbr": 3.03,
+        "eps": 279.0,
+        "bps": 729.0
+      },
+      "market_risk_flags": [],
+      "fundamentals": {
+        "stac_yymm": "202512",
+        "roe": 46.3,
+        "debt_ratio": 43.0,
+        "sales_growth": -12.87,
+        "op_growth": -25.09,
+        "ni_growth": 208.39,
+        "eps": 279.0,
+        "bps": 729.0,
+        "rsrv_rate": 0.0
+      },
+      "score": {
+        "score": 50.0,
+        "parts": {
+          "roe": 50,
+          "debt": 100,
+          "sales_growth": 0,
+          "op_growth": 0,
+          "per": 100,
+          "pbr": 0
+        },
+        "coverage": 1.0,
+        "notes": [
+          "ROE 40% 초과: 일회성 이익 의심"
+        ]
+      },
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "모발 재생 기술에 쏠린 관심…탈모 치료 관련주 어디까지 갈까",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=500869"
+        },
+        {
+          "title": "달라진 성장 방정식…AI시대 '제약바이오 경쟁력'",
+          "link": "https://www.dailymedi.com/news/news_view.php?wr_id=941770"
+        },
+        {
+          "title": "JW신약 주가, 10월 29일 장중 2,320원 2.32% 하락",
+          "link": "https://www.joongangenews.com/news/articleView.html?idxno=559514"
+        }
+      ],
+      "momentum": {
+        "cell": "약세",
+        "ret5": -6.4,
+        "ret20": -25.5,
+        "ret60": 14.0,
+        "from_high": -49.0,
+        "rsi": 27.0,
+        "above_ma60": false,
+        "aligned": false,
+        "ma60_rising": true
+      },
+      "sector": "제약",
+      "recent_disclosures": [],
+      "disclosure_summary": {
+        "tags": [],
+        "neg": [],
+        "risk": false,
+        "text": "—"
+      },
+      "flow": {
+        "cell": "연속 순매수",
+        "asof": "2026-11-03",
+        "n_rows": 30,
+        "frgn_streak": 3,
+        "orgn_streak": -1,
+        "frgn_prior_sell": 2,
+        "frgn_sum5": -105193,
+        "orgn_sum5": -3302
+      },
+      "tags": {
+        "sector": "제약",
+        "momentum": {
+          "cell": "약세",
+          "ret5": -6.4,
+          "ret20": -25.5,
+          "ret60": 14.0,
+          "from_high": -49.0,
+          "rsi": 27.0
+        },
+        "disclosures": [],
+        "disc_risk": false,
+        "flow": {
+          "cell": "연속 순매수",
+          "asof": "2026-11-03",
+          "n_rows": 30,
+          "frgn_streak": 3,
+          "orgn_streak": -1,
           "frgn_prior_sell": 2,
-          "frgn_sum5": 721411,
-          "orgn_sum5": -380038
+          "frgn_sum5": -105193,
+          "orgn_sum5": -3302
+        }
+      }
+    },
+    {
+      "ts": "2026-11-03T23:38:01+09:00",
+      "rank_type": "buy",
+      "rank": 8,
+      "stock_code": "0205H0",
+      "stock_name": "에스케이증권제14호기업인수목적",
+      "foreign_net": 0.0,
+      "inst_net": 125000.0,
+      "combined_net": 171000.0,
+      "tech": {
+        "정배열": null,
+        "거래량급증": null,
+        "20일모멘텀": null,
+        "RSI과열아님": null,
+        "변동성수축(VCP)": null,
+        "RSI값": null
+      },
+      "transition": false,
+      "day_pct": 0.0037473233404710093,
+      "volume_rank": null,
+      "last_date": "20261103",
+      "last_close": 1875.0,
+      "valuation": {
+        "per": 0.0,
+        "pbr": 0.0,
+        "eps": 0.0,
+        "bps": 0.0
+      },
+      "market_risk_flags": [
+        "⚠️ 시가총액 125억(관리종목 요건 200억에 근접/미달)"
+      ],
+      "fundamentals": null,
+      "score": null,
+      "passed": 0,
+      "total": 0,
+      "risky_disclosures": [],
+      "news": [
+        {
+          "title": "미래에셋비전스팩·신한스팩 상승랠리…합병 모멘텀 살아나나",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=500841"
+        },
+        {
+          "title": "자율주행 드론부터 바이오까지… 새내기주 니어스랩·진코스텍 매수세...",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=500447"
+        },
+        {
+          "title": "한화플러스제6호스팩 주가 '휘청'…단기 차익 매물 출회",
+          "link": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=500061"
+        }
+      ],
+      "momentum": {},
+      "sector": "금융",
+      "recent_disclosures": [
+        {
+          "date": "20261103",
+          "title": "임원ㆍ주요주주특정증권등소유상황보고서",
+          "rcp_no": "20261103000143",
+          "category": "기타",
+          "tone": "neutral"
+        },
+        {
+          "date": "20261029",
+          "title": "주식등의대량보유상황보고서(약식)",
+          "rcp_no": "20261029000237",
+          "category": "기타",
+          "tone": "neutral"
+        },
+        {
+          "date": "20261028",
+          "title": "주식등의대량보유상황보고서(일반)",
+          "rcp_no": "20261028000216",
+          "category": "기타",
+          "tone": "neutral"
+        }
+      ],
+      "disclosure_summary": {
+        "tags": [],
+        "neg": [],
+        "risk": false,
+        "text": "—"
+      },
+      "flow": {
+        "cell": "순매도·보합",
+        "asof": "2026-11-03",
+        "n_rows": 6,
+        "frgn_streak": -1,
+        "orgn_streak": 5,
+        "frgn_prior_sell": 0,
+        "frgn_sum5": -21724,
+        "orgn_sum5": 823956
+      },
+      "tags": {
+        "sector": "금융",
+        "disclosures": [],
+        "disc_risk": false,
+        "flow": {
+          "cell": "순매도·보합",
+          "asof": "2026-11-03",
+          "n_rows": 6,
+          "frgn_streak": -1,
+          "orgn_streak": 5,
+          "frgn_prior_sell": 0,
+          "frgn_sum5": -21724,
+          "orgn_sum5": 823956
         }
       }
     }
   ],
   "sell_top10": [
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 1,
-      "stock_code": "419050",
-      "stock_name": "삼기에너지솔루션즈",
-      "foreign_net": -152000.0,
-      "inst_net": -698000.0,
-      "combined_net": -858000.0
+      "stock_code": "005930",
+      "stock_name": "삼성전자",
+      "foreign_net": -1687000.0,
+      "inst_net": -435000.0,
+      "combined_net": -2617000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 2,
-      "stock_code": "359410",
-      "stock_name": "영광",
-      "foreign_net": -149000.0,
-      "inst_net": -543000.0,
-      "combined_net": -831000.0
+      "stock_code": "047040",
+      "stock_name": "대우건설",
+      "foreign_net": -2095000.0,
+      "inst_net": -327000.0,
+      "combined_net": -2381000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 3,
-      "stock_code": "009830",
-      "stock_name": "한화솔루션",
-      "foreign_net": -423000.0,
-      "inst_net": -36000.0,
-      "combined_net": -521000.0
+      "stock_code": "0147B0",
+      "stock_name": "래블업",
+      "foreign_net": -119000.0,
+      "inst_net": -692000.0,
+      "combined_net": -1556000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 4,
-      "stock_code": "005935",
-      "stock_name": "삼성전자우",
-      "foreign_net": -615000.0,
-      "inst_net": 85000.0,
-      "combined_net": -512000.0
+      "stock_code": "034020",
+      "stock_name": "두산에너빌리티",
+      "foreign_net": -851000.0,
+      "inst_net": -218000.0,
+      "combined_net": -1160000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 5,
-      "stock_code": "316140",
-      "stock_name": "우리금융지주",
-      "foreign_net": -639000.0,
-      "inst_net": 151000.0,
-      "combined_net": -455000.0
+      "stock_code": "042660",
+      "stock_name": "한화오션",
+      "foreign_net": -488000.0,
+      "inst_net": -16000.0,
+      "combined_net": -511000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 6,
-      "stock_code": "006800",
-      "stock_name": "미래에셋증권",
-      "foreign_net": -308000.0,
-      "inst_net": -9000.0,
-      "combined_net": -307000.0
+      "stock_code": "001440",
+      "stock_name": "대한전선",
+      "foreign_net": -476000.0,
+      "inst_net": -7000.0,
+      "combined_net": -509000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 7,
-      "stock_code": "046890",
-      "stock_name": "서울반도체",
-      "foreign_net": -242000.0,
-      "inst_net": 0.0,
-      "combined_net": -277000.0
+      "stock_code": "000660",
+      "stock_name": "SK하이닉스",
+      "foreign_net": -558000.0,
+      "inst_net": -111000.0,
+      "combined_net": -457000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 8,
-      "stock_code": "088350",
-      "stock_name": "한화생명",
-      "foreign_net": -217000.0,
-      "inst_net": 2000.0,
-      "combined_net": -257000.0
+      "stock_code": "353200",
+      "stock_name": "대덕전자",
+      "foreign_net": 23000.0,
+      "inst_net": -336000.0,
+      "combined_net": -372000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 9,
-      "stock_code": "055550",
-      "stock_name": "신한지주",
-      "foreign_net": -302000.0,
-      "inst_net": 103000.0,
-      "combined_net": -183000.0
+      "stock_code": "069540",
+      "stock_name": "빛과전자",
+      "foreign_net": -291000.0,
+      "inst_net": 0.0,
+      "combined_net": -339000.0
     },
     {
-      "ts": "2026-11-03T01:30:38+09:00",
+      "ts": "2026-11-03T23:38:02+09:00",
       "rank_type": "sell",
       "rank": 10,
-      "stock_code": "000270",
-      "stock_name": "기아",
-      "foreign_net": -183000.0,
-      "inst_net": 49000.0,
-      "combined_net": -179000.0
+      "stock_code": "046890",
+      "stock_name": "서울반도체",
+      "foreign_net": -294000.0,
+      "inst_net": 0.0,
+      "combined_net": -326000.0
     }
   ],
   "volume_rank_ok": true,
   "volume_top": [
     {
       "rank": 1,
-      "stock_code": "359410",
-      "stock_name": "영광"
+      "stock_code": "0147B0",
+      "stock_name": "래블업"
     },
     {
       "rank": 2,
+      "stock_code": "419050",
+      "stock_name": "삼기에너지솔루션즈"
+    },
+    {
+      "rank": 3,
+      "stock_code": "420610",
+      "stock_name": "인텔리빅스"
+    },
+    {
+      "rank": 4,
       "stock_code": "005930",
       "stock_name": "삼성전자"
     },
     {
-      "rank": 3,
-      "stock_code": "184230",
-      "stock_name": "SGA솔루션즈"
-    },
-    {
-      "rank": 4,
-      "stock_code": "069540",
-      "stock_name": "빛과전자"
-    },
-    {
       "rank": 5,
-      "stock_code": "179880",
-      "stock_name": "멜콘"
+      "stock_code": "150900",
+      "stock_name": "파수AI"
     },
     {
       "rank": 6,
-      "stock_code": "420610",
-      "stock_name": "인텔리빅스"
+      "stock_code": "460940",
+      "stock_name": "피앤에스로보틱스"
+    },
+    {
+      "rank": 7,
+      "stock_code": "357880",
+      "stock_name": "SKAI"
+    },
+    {
+      "rank": 8,
+      "stock_code": "047040",
+      "stock_name": "대우건설"
     }
   ],
   "value_overlap": [
     {
-      "stock_code": "005880",
-      "stock_name": "대한해운",
-      "per": 3.71,
-      "pbr": 0.31,
+      "stock_code": "006730",
+      "stock_name": "서부T&D",
+      "per": 9.64,
+      "pbr": 0.7,
       "matched_via": "전환신호",
-      "score": 71.0
+      "score": 69.8
     },
     {
       "stock_code": "003490",
       "stock_name": "대한항공",
-      "per": 13.6,
-      "pbr": 0.97,
+      "per": 13.76,
+      "pbr": 0.98,
       "matched_via": "전환신호",
       "score": 32.2
     }
@@ -1748,7 +1437,7 @@
   "flow_diag": {
     "ok": 10,
     "fail": 0,
-    "rows_min": 30,
+    "rows_min": 6,
     "rows_max": 30
   }
 }
