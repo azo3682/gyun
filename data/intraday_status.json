@@ -1,47 +1,7 @@
 {
-  "checked_at": "2026-11-04T21:21:57+09:00",
+  "checked_at": "2026-11-05T16:20:01+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "006730",
-      "stock_name": "서부T&D",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 43.4
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 11290.0,
-      "day_pct": -1.91,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "003490",
-      "stock_name": "대한항공",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 51.2
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 29750.0,
-      "day_pct": 2.06,
-      "reason": "전환신호 소멸"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "015760",
       "stock_name": "한국전력",
@@ -51,50 +11,127 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 65.2
+        "RSI값": 67.3
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 30600.0,
-      "day_pct": 5.34
+      "current_price": 31200.0,
+      "day_pct": 2.46,
+      "reason": "전환신호 소멸"
     },
     {
       "stock_code": "032640",
       "stock_name": "LG유플러스",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 55.5
+        "RSI값": 53.2
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15620.0,
-      "day_pct": 7.87
+      "current_price": 15810.0,
+      "day_pct": 1.93,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "007810",
       "stock_name": "코리아써키트",
       "tech": {
         "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 52.1
+      },
+      "transition": false,
+      "passed": 1,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 67500.0,
+      "day_pct": -13.02,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "035720",
+      "stock_name": "카카오",
+      "tech": {
+        "정배열": false,
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 61.8
+        "변동성수축(VCP)": false,
+        "RSI값": 50.6
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 31950.0,
+      "day_pct": 9.79
+    },
+    {
+      "stock_code": "068270",
+      "stock_name": "셀트리온",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 71.6
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 79000.0,
-      "day_pct": 10.96
+      "current_price": 213000.0,
+      "day_pct": 6.5
+    },
+    {
+      "stock_code": "089590",
+      "stock_name": "제주항공",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 70.4
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 6580.0,
+      "day_pct": 11.71
+    },
+    {
+      "stock_code": "293490",
+      "stock_name": "카카오게임즈",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 72.5
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 12680.0,
+      "day_pct": 6.11
     }
   ]
 }
