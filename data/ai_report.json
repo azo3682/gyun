@@ -1,11 +1,11 @@
 {
  "meta": {
-  "generated_at": "2026-11-09 23:24",
-  "phase": "장 마감 후 — 오늘 가격 확정 (일별 수급은 증권사 제공 시점에 따라 아직 어제까지일 수 있음)",
+  "generated_at": "2026-11-10 01:58",
+  "phase": "장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일)",
   "notes": [],
   "counts": {
-   "universe": 14,
-   "ok": 14
+   "universe": 13,
+   "ok": 13
   }
  },
  "stocks": [
@@ -43,7 +43,7 @@
     "vcp": true,
     "bb_upper": 17246.273929900835,
     "bb_mid": 13237.5,
-    "bb_lower": 9228.726070099165,
+    "bb_lower": 9228.726070099166,
     "to_upper_pct": 69.57988131662572,
     "vs_mid_pct": -23.172804532577906
    },
@@ -151,27 +151,6 @@
       "rcp_no": "20261106000029",
       "category": "기타",
       "tone": "neutral"
-     },
-     {
-      "date": "20261102",
-      "title": "풍문또는보도에대한해명",
-      "rcp_no": "20261102800856",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261102",
-      "title": "투자판단관련주요경영사항",
-      "rcp_no": "20261102800306",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261102",
-      "title": "투자판단관련주요경영사항",
-      "rcp_no": "20261102800295",
-      "category": "기타",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
@@ -209,6 +188,7 @@
    "name": "제주항공",
    "sources": [
     "순매수 상위 2위",
+    "신호 추적(2026-11-09 전환신호)",
     "신호 추적(2026-11-05 전환신호)"
    ],
    "ranking": {
@@ -237,10 +217,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 6744.342998172144,
+    "bb_upper": 6744.342998172148,
     "bb_mid": 5631.0,
-    "bb_lower": 4517.657001827856,
-    "to_upper_pct": -3.5144063208563114,
+    "bb_lower": 4517.657001827852,
+    "to_upper_pct": -3.514406320856245,
     "vs_mid_pct": 24.134256792754407
    },
    "structure": {
@@ -439,10 +419,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 7303.902917128125,
+    "bb_upper": 7303.902917128122,
     "bb_mid": 6039.5,
-    "bb_lower": 4775.097082871875,
-    "to_upper_pct": 50.907085064630685,
+    "bb_lower": 4775.097082871878,
+    "to_upper_pct": 50.90708506463062,
     "vs_mid_pct": -19.860915638711816
    },
    "structure": {
@@ -556,22 +536,13 @@
       "rcp_no": "20261104000262",
       "category": "기타",
       "tone": "neutral"
-     },
-     {
-      "date": "20261102",
-      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-      "rcp_no": "20261102800247",
-      "category": "실적",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
+     "tags": [],
      "neg": [],
      "risk": false,
-     "text": "실적"
+     "text": "—"
     }
    },
    "scores": {
@@ -629,10 +600,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 2495.0495390996266,
+    "bb_upper": 2495.049539099626,
     "bb_mid": 2292.5,
-    "bb_lower": 2089.9504609003734,
-    "to_upper_pct": 14.714921337913879,
+    "bb_lower": 2089.950460900374,
+    "to_upper_pct": 14.714921337913855,
     "vs_mid_pct": -5.125408942202836
    },
    "structure": {
@@ -991,6 +962,7 @@
    "name": "루닛",
    "sources": [
     "순매수 상위 6위",
+    "신호 추적(2026-11-09 전환신호)",
     "신호 추적(2026-11-06 전환신호)"
    ],
    "ranking": {
@@ -1377,7 +1349,7 @@
     "vcp": false,
     "bb_upper": 32967.08678909238,
     "bb_mid": 30612.5,
-    "bb_lower": 28257.913210907627,
+    "bb_lower": 28257.913210907624,
     "to_upper_pct": 3.6700842424288505,
     "vs_mid_pct": 3.8791343405471634
    },
@@ -1734,7 +1706,8 @@
    "code": "302440",
    "name": "SK바이오사이언스",
    "sources": [
-    "순매수 상위 10위"
+    "순매수 상위 10위",
+    "신호 추적(2026-11-09 전환신호)"
    ],
    "ranking": {
     "buy_rank": 10,
@@ -1762,10 +1735,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 39730.56063036599,
+    "bb_upper": 39730.56063036598,
     "bb_mid": 34917.5,
-    "bb_lower": 30104.43936963401,
-    "to_upper_pct": -2.621174925573555,
+    "bb_lower": 30104.439369634023,
+    "to_upper_pct": -2.6211749255735772,
     "vs_mid_pct": 16.84685329705735
    },
    "structure": {
@@ -1949,10 +1922,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 53849.72184456503,
+    "bb_upper": 53849.72184456499,
     "bb_mid": 48715.0,
-    "bb_lower": 43580.27815543497,
-    "to_upper_pct": 1.9881095541004257,
+    "bb_lower": 43580.27815543501,
+    "to_upper_pct": 1.988109554100359,
     "vs_mid_pct": 8.385507543877658
    },
    "structure": {
@@ -2125,10 +2098,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 13034.260308227005,
+    "bb_upper": 13034.260308227007,
     "bb_mid": 11129.0,
-    "bb_lower": 9223.739691772995,
-    "to_upper_pct": 8.709427091134314,
+    "bb_lower": 9223.739691772993,
+    "to_upper_pct": 8.709427091134337,
     "vs_mid_pct": 7.736544163896131
    },
    "structure": {
@@ -2312,10 +2285,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 213506.61885947557,
+    "bb_upper": 213506.61885947545,
     "bb_mid": 194285.0,
-    "bb_lower": 175063.38114052443,
-    "to_upper_pct": 1.1879710234481422,
+    "bb_lower": 175063.38114052455,
+    "to_upper_pct": 1.1879710234480756,
     "vs_mid_pct": 8.603340453457541
    },
    "structure": {
@@ -2415,15 +2388,7 @@
      "aligned": true,
      "ma60_rising": true
     },
-    "recent_disclosures": [
-     {
-      "date": "20261102",
-      "title": "투자판단관련주요경영사항              (CTP13 SC(짐펜트라) 유럽 임상 3상 시험계획 승인(Part1&2) (류마티스 관절염 환자))",
-      "rcp_no": "20261102800302",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
+    "recent_disclosures": [],
     "disclosure_summary": {
      "tags": [],
      "neg": [],
@@ -2448,196 +2413,6 @@
       "등락": 0,
       "RSI": 0,
       "볼린저": 5
-     },
-     "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "032640",
-   "name": "LG유플러스",
-   "sources": [
-    "신호 추적(2026-11-04 전환신호)"
-   ],
-   "ranking": {
-    "buy_rank": null,
-    "foreign_net": null,
-    "inst_net": null,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 16380.0,
-    "change_pct": -2.27,
-    "per": 13.56,
-    "pbr": 0.79,
-    "eps": 1208.0,
-    "bps": 20826.0,
-    "mktcap_eok": 69521.0,
-    "w52_high": 18800.0,
-    "w52_low": 13640.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 진행중",
-    "rsi": 59.8,
-    "aligned": true,
-    "volume_surge": false,
-    "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 16641.72735365257,
-    "bb_mid": 14891.5,
-    "bb_lower": 13141.272646347426,
-    "to_upper_pct": 1.597847091896032,
-    "vs_mid_pct": 9.99563509384549
-   },
-   "structure": {
-    "session_date": "2026-11-09",
-    "prev_close": 16760.0,
-    "prev_high": 16990.0,
-    "open": 16800.0,
-    "high": 16810.0,
-    "low": 15900.0,
-    "gap_pct": 0.23866348448686736,
-    "range_pos_pct": 52.74725274725275,
-    "vs_prev_high_pct": -3.5903472630959388,
-    "vwap": 16394.77,
-    "vs_vwap_pct": -0.09008970543655792,
-    "high20": 16990.0,
-    "low20": 13640.0,
-    "from_high20_pct": -3.5903472630959388,
-    "from_low20_pct": 20.087976539589448
-   },
-   "volume": {
-    "today": 1687838.0,
-    "prev_day": 3039412.0,
-    "vs_prev_pct": 55.53,
-    "avg5": 1841580.6,
-    "avg20": 1141633.55,
-    "vs_avg20_x": 1.4784411337596026
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": 5.99,
-    "debt_ratio": 114.08,
-    "sales_growth": -1.24,
-    "op_growth": 10.15,
-    "ni_growth": 3.74,
-    "eps": 926.0,
-    "bps": 21372.0,
-    "rsrv_rate": 252.1
-   },
-   "flow": {
-    "daily_asof": "2026-11-09",
-    "streak": {
-     "외국인": -4,
-     "기관": 26,
-     "개인": -9
-    },
-    "sum5": {
-     "외국인": -3374117,
-     "기관": 5334734,
-     "개인": -1850129
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 0,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": -6000,
-      "orgn": 8000,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": -39000,
-      "orgn": 61000,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": -229000,
-      "orgn": 236000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": -337000,
-      "orgn": 310000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [],
-   "context": {
-    "sector": "통신",
-    "momentum": {
-     "cell": "약세·급반등",
-     "ret5": 12.7,
-     "ret20": 12.6,
-     "ret60": 9.6,
-     "from_high": -3.6,
-     "rsi": 59.8,
-     "above_ma60": true,
-     "aligned": true,
-     "ma60_rising": true
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261104",
-      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-      "rcp_no": "20261104800119",
-      "category": "실적",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261104",
-      "title": "영업(잠정)실적(공정공시)",
-      "rcp_no": "20261104800115",
-      "category": "실적",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261103",
-      "title": "동일인등출자계열회사와의상품ㆍ용역거래",
-      "rcp_no": "20261103000370",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
-     "neg": [],
-     "risk": false,
-     "text": "실적"
-    }
-   },
-   "scores": {
-    "app_composite": 60.8,
-    "app_notes": [],
-    "swing_check": {
-     "total": 50,
-     "max": 100,
-     "parts": {
-      "수급": 0,
-      "신호": 0,
-      "추세": 20,
-      "가격부담": 20,
-      "재무": 10
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 0,
-      "볼린저": 0
      },
      "notes": []
     }
