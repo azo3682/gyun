@@ -342,6 +342,10 @@ def parse_market_flow_rows(output):
         if len(d) != 8:
             continue
         row = {"date": d, "idx": _iv(r.get("bstp_nmix_prpr")), "idx_chg_pct": _iv(r.get("bstp_nmix_prdy_ctrt"))}
+        for k, f in (("idx_open", "bstp_nmix_oprc"), ("idx_high", "bstp_nmix_hgpr"), ("idx_low", "bstp_nmix_lwpr")):
+            v = _iv(r.get(f))
+            if v is not None and v > 0:
+                row[k] = v
         for k, f in MKT_QTY.items():
             row[k] = _iv(r.get(f))
         for k, f in MKT_AMT.items():
@@ -389,6 +393,51 @@ def fetch_market_flow(today, pages=6):
         cur = prev
         time.sleep(0.3)
     return [got[k] for k in sorted(got)], err, first_keys
+
+
+# ---------------- 코스피 지수 일봉 (시장 상태 판독용) ----------------
+IDX_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice"
+IDX_DAILY_TR = "FHKST03010100"
+
+
+def parse_index_daily_rows(output2):
+    """지수 일봉 → date/open/high/low/close/volume. 지수는 거래량 필드가 없을 수 있어 없으면 0."""
+    rows = []
+    for r in output2 or []:
+        if not isinstance(r, dict):
+            continue
+        d = str(r.get("stck_bsop_date") or "").strip()
+        o, h, l, c = (_f(r.get(k)) for k in ("bstp_nmix_oprc", "bstp_nmix_hgpr", "bstp_nmix_lwpr", "bstp_nmix_prpr"))
+        v = _f(r.get("acml_vol"))
+        if len(d) != 8 or None in (o, h, l, c) or min(o, h, l, c) <= 0:
+            continue
+        rows.append({"date": d, "open": o, "high": h, "low": l, "close": c, "volume": v or 0.0})
+    return rows
+
+
+def fetch_index_daily(years=3, today=None, code="0001"):
+    """코스피 지수 일봉을 100개 안팎씩 거슬러 올라가며 모은다. (rows, 오류코드)"""
+    today = today or datetime.now(KST)
+    start_limit = (today - timedelta(days=int(365 * years))).strftime("%Y%m%d")
+    end = today.strftime("%Y%m%d")
+    rows, pages = [], 0
+    while pages < 60:
+        time.sleep(0.2)
+        data, err = kis_get(IDX_DAILY_PATH, IDX_DAILY_TR, {
+            "FID_COND_MRKT_DIV_CODE": "U", "FID_INPUT_ISCD": code,
+            "FID_INPUT_DATE_1": start_limit, "FID_INPUT_DATE_2": end, "FID_PERIOD_DIV_CODE": "D"})
+        pages += 1
+        if data is None:
+            return merge_daily([], rows), err
+        got = parse_index_daily_rows(data.get("output2"))
+        if not got:
+            break
+        rows += got
+        earliest = min(r["date"] for r in got)
+        if earliest <= start_limit or len(got) < 5:
+            break
+        end = (datetime.strptime(earliest, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
+    return merge_daily([], rows), None
 
 
 PROBES = [
@@ -550,6 +599,18 @@ def main():
         _save(mf_path, {"updated": now.isoformat(timespec="seconds"), "market": "KOSPI", "unit": "금액 백만원, 수량 천주", "rows": mf_rows})
     status["market_flow"] = {"fetched": len(mf_new), "total": len(mf_rows), "error": mf_err, "last": mf_rows[-1]["date"] if mf_rows else None,
                              "balance_ok": amounts_balance(mf_rows[-1]) if mf_rows else None, "fields": mf_keys}
+
+    # 5-c) 코스피 지수 일봉 (시장 상태 탭용). 실패해도 market_flow의 지수 시·고·저·종으로 대신 판독한다
+    ik_path = os.path.join(DATA_DIR, "kospi_daily.json")
+    ik_old = _load(ik_path, {}).get("rows", [])
+    ik_new, ik_err = fetch_index_daily(years, now)
+    ik_rows = merge_daily(ik_old, ik_new)
+    if intraday:
+        ik_rows = [r for r in ik_rows if r["date"] != today]        # 장중 봉은 미완성이라 저장하지 않는다
+    if ik_rows:
+        _save(ik_path, {"index": "KOSPI", "code": "0001", "updated": now.isoformat(timespec="seconds"), "rows": ik_rows})
+    status["kospi_daily"] = {"fetched": len(ik_new), "total": len(ik_rows), "error": ik_err,
+                             "first": ik_rows[0]["date"] if ik_rows else None, "last": ik_rows[-1]["date"] if ik_rows else None}
 
     # 6) 미검증 엔드포인트 탐침 (선택)
     if os.environ.get("K200_PROBE", "0") == "1":
