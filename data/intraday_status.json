@@ -1,85 +1,6 @@
 {
-  "checked_at": "2026-11-06T22:13:33+09:00",
-  "kept": [],
-  "excluded": [
-    {
-      "stock_code": "089590",
-      "stock_name": "제주항공",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 64.3
-      },
-      "transition": false,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 6400.0,
-      "day_pct": -4.48,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "293490",
-      "stock_name": "카카오게임즈",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 68.4
-      },
-      "transition": false,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 12380.0,
-      "day_pct": -2.44,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "068270",
-      "stock_name": "셀트리온",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 60.7
-      },
-      "transition": false,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 208500.0,
-      "day_pct": -3.02,
-      "reason": "순매수 상위 10에서 이탈"
-    },
-    {
-      "stock_code": "035720",
-      "stock_name": "카카오",
-      "tech": {
-        "정배열": false,
-        "거래량급증": true,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 49.4
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 32000.0,
-      "day_pct": -0.62,
-      "reason": "전환신호 소멸"
-    }
-  ],
-  "new_candidates": [
+  "checked_at": "2026-11-09T16:12:39+09:00",
+  "kept": [
     {
       "stock_code": "328130",
       "stock_name": "루닛",
@@ -89,14 +10,57 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 64.5
+        "RSI값": 69.1
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15470.0,
-      "day_pct": 5.45
+      "current_price": 16020.0,
+      "day_pct": 3.69
+    }
+  ],
+  "excluded": [
+    {
+      "stock_code": "030200",
+      "stock_name": "KT",
+      "tech": {
+        "정배열": false,
+        "거래량급증": false,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 54.1
+      },
+      "transition": false,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [
+        "20261027 불성실공시법인지정예고              "
+      ],
+      "current_price": 51900.0,
+      "day_pct": -2.63,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "302440",
+      "stock_name": "SK바이오사이언스",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 68.0
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 40400.0,
+      "day_pct": 5.21
     }
   ]
 }
