@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-09T16:55:37+09:00",
+  "checked_at": "2026-11-09T19:05:31+09:00",
   "kept": [
     {
       "stock_code": "328130",
@@ -8,16 +8,16 @@
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 68.9
+        "RSI값": 70.0
       },
       "transition": true,
-      "passed": 4,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 15960.0,
-      "day_pct": 3.3
+      "current_price": 16320.0,
+      "day_pct": 5.63
     }
   ],
   "excluded": [
@@ -30,7 +30,7 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 54.8
+        "RSI값": 58.1
       },
       "transition": false,
       "passed": 2,
@@ -38,12 +38,30 @@
       "risky_disclosures": [
         "20261027 불성실공시법인지정예고              "
       ],
-      "current_price": 52100.0,
-      "day_pct": -2.25,
+      "current_price": 53000.0,
+      "day_pct": -0.56,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
+    {
+      "stock_code": "089590",
+      "stock_name": "제주항공",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": true,
+        "RSI값": 72.9
+      },
+      "transition": true,
+      "passed": 4,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 6880.0,
+      "day_pct": 7.84
+    },
     {
       "stock_code": "302440",
       "stock_name": "SK바이오사이언스",
@@ -53,14 +71,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 68.1
+        "RSI값": 69.1
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 40450.0,
-      "day_pct": 5.34
+      "current_price": 40850.0,
+      "day_pct": 6.38
     }
   ]
 }
