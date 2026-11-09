@@ -8,9 +8,11 @@ streamlit_app.py (v2)
 - 관련 뉴스 헤드라인
 을 보여주는 스윙 후보 스크리닝 도구.
 
-주의: 이건 "사라/팔아라" 결론을 내려주는 게 아니라, 여러 조건의
-통과 여부를 투명하게 보여주는 체크리스트입니다. 최종 판단은
-직접 하셔야 합니다. 투자 자문이 아닙니다.
+이건 "사라/팔아라" 결론을 내려주는 게 아니라, 여러 조건의
+통과 여부를 투명하게 보여주는 체크리스트입니다.
+
+2026-11 개편: 코스피 한정(레버리지·인버스·ETF/ETN·관리·거래정지·투자경고 제외), 단타·스윙 기준,
+7개 탭(시장 상태 / 수급 / 후보 / 종목 조회 / 관찰목록 / 매매 일지 / 검증 기록).
 
 필요한 Secrets (Streamlit Cloud > Advanced settings > Secrets):
     KIS_APP_KEY = "..."
@@ -42,6 +44,7 @@ import streamlit as st
 # 업종 상대평가·장기추세·중장기 뱃지·시장 국면은 순수 함수 모듈(scripts/fundamentals.py)을 가져다 쓴다 (secrets 의존 없음).
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
 import fundamentals as fnd
+import market_tab
 
 # ============================================================
 # CONFIG
@@ -134,22 +137,46 @@ def is_fund_product(name: str) -> bool:
 # 순매수/순매도 랭킹 (기존 기능)
 # ============================================================
 
+KOSPI_SCOPE = "0001"       # 순위 API 시장 코드: 0001 코스피, 1001 코스닥, 0000 전체
+# 거래량 순위 제외 코드(10자리, 1이면 제외): 투자위험·경고·주의 / 관리 / 정리매매 / 불성실공시 / 우선주 / 거래정지 / ETF / ETN / 신용불가 / 스팩
+VOLUME_EXCLUDE = "1111011101"
+
+
+@st.cache_resource
+def _rank_scope() -> dict:
+    """순위 조회가 실제로 코스피로 좁혀졌는지 기록한다 (화면에 표시). 좁히기에 실패하면 전체 시장으로 되돌리고 그 사실을 남긴다."""
+    return {"investor": "코스피", "volume": "코스피", "volume_filter": "적용"}
+
+
 @st.cache_data(ttl=300)
 def fetch_investor_ranking(rank_type: str) -> list[dict]:
     url = f"{BASE_URL}{RANKING_API_PATH}"
-    params = {
-        "FID_COND_MRKT_DIV_CODE": "V",
-        "FID_COND_SCR_DIV_CODE": "16449",
-        "FID_INPUT_ISCD": "0000",
-        "FID_DIV_CLS_CODE": "0",
-        "FID_RANK_SORT_CLS_CODE": "0" if rank_type == "buy" else "1",
-        "FID_ETC_CLS_CODE": "0",
-    }
-    resp = requests.get(url, headers=kis_headers(RANKING_TR_ID), params=params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("rt_cd") != "0":
-        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
+    data = None
+    for scope in (KOSPI_SCOPE, "0000"):
+        params = {
+            "FID_COND_MRKT_DIV_CODE": "V",
+            "FID_COND_SCR_DIV_CODE": "16449",
+            "FID_INPUT_ISCD": scope,
+            "FID_DIV_CLS_CODE": "0",
+            "FID_RANK_SORT_CLS_CODE": "0" if rank_type == "buy" else "1",
+            "FID_ETC_CLS_CODE": "0",
+        }
+        try:
+            resp = requests.get(url, headers=kis_headers(RANKING_TR_ID), params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception:
+            if scope == "0000":
+                raise
+            data = None
+            continue
+        if data.get("rt_cd") == "0" and data.get("output"):
+            _rank_scope()["investor"] = "코스피" if scope == KOSPI_SCOPE else "전체(코스닥 포함) — 코스피 한정 조회 실패"
+            break
+        if scope == "0000":
+            break
+    if data is None or data.get("rt_cd") != "0":
+        raise RuntimeError(f"KIS API 오류: {(data or {}).get('msg1')}")
 
     now = datetime.now(KST).isoformat(timespec="seconds")
     rows = []
@@ -173,25 +200,40 @@ def fetch_investor_ranking(rank_type: str) -> list[dict]:
 @st.cache_data(ttl=60)
 def fetch_volume_rank() -> tuple[list[dict], dict]:
     """(순위 리스트, 원본 응답 첫 항목) 반환. 필드명 검증용으로 원본도 같이 반환."""
-    params = {
-        "FID_COND_MRKT_DIV_CODE": "J",
-        "FID_COND_SCR_DIV_CODE": "20171",
-        "FID_INPUT_ISCD": "0000",
-        "FID_DIV_CLS_CODE": "0",
-        "FID_BLNG_CLS_CODE": "0",
-        "FID_TRGT_CLS_CODE": "111111111",
-        "FID_TRGT_EXLS_CLS_CODE": "0000000000",
-        "FID_INPUT_PRICE_1": "0",
-        "FID_INPUT_PRICE_2": "0",
-        "FID_VOL_CNT": "0",
-        "FID_INPUT_DATE_1": "",
-    }
-    resp = requests.get(f"{BASE_URL}{VOLUME_RANK_API_PATH}", headers=kis_headers(VOLUME_RANK_TR_ID),
-                         params=params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("rt_cd") != "0":
-        raise RuntimeError(f"KIS API 오류: {data.get('msg1')}")
+    data, last_err = None, ""
+    # 1순위: 코스피 + 제외 코드 / 2순위: 코스피만 / 3순위: 전체. 어느 단계로 되돌렸는지 화면에 남긴다.
+    for scope, exclude, label in ((KOSPI_SCOPE, VOLUME_EXCLUDE, "적용"), (KOSPI_SCOPE, "0000000000", "미적용(이름 필터만)"),
+                                  ("0000", "0000000000", "미적용(이름 필터만)")):
+        params = {
+            "FID_COND_MRKT_DIV_CODE": "J",
+            "FID_COND_SCR_DIV_CODE": "20171",
+            "FID_INPUT_ISCD": scope,
+            "FID_DIV_CLS_CODE": "0",
+            "FID_BLNG_CLS_CODE": "0",
+            "FID_TRGT_CLS_CODE": "111111111",
+            "FID_TRGT_EXLS_CLS_CODE": exclude,
+            "FID_INPUT_PRICE_1": "0",
+            "FID_INPUT_PRICE_2": "0",
+            "FID_VOL_CNT": "0",
+            "FID_INPUT_DATE_1": "",
+        }
+        try:
+            resp = requests.get(f"{BASE_URL}{VOLUME_RANK_API_PATH}", headers=kis_headers(VOLUME_RANK_TR_ID),
+                                 params=params, timeout=10)
+            resp.raise_for_status()
+            cand = resp.json()
+        except Exception as e:
+            last_err = str(e)[:80]
+            continue
+        if cand.get("rt_cd") == "0" and cand.get("output"):
+            data = cand
+            sc = _rank_scope()
+            sc["volume"] = "코스피" if scope == KOSPI_SCOPE else "전체(코스닥 포함) — 코스피 한정 조회 실패"
+            sc["volume_filter"] = label
+            break
+        last_err = str(cand.get("msg1"))
+    if data is None:
+        raise RuntimeError(f"KIS API 오류: {last_err}")
 
     output = data.get("output", [])
     raw_sample = output[0] if output else {}
@@ -859,9 +901,10 @@ def save_rows(rows: list[dict]):
 # 화면
 # ============================================================
 
-st.set_page_config(page_title="스윙 후보 스크리닝 대시보드", layout="wide")
-st.title("투자자별 매매현황 + 스윙 후보 스크리닝")
-st.caption("아래 체크리스트는 참고용 스크리닝 결과이며, 투자 자문이 아닙니다. 최종 판단은 직접 하셔야 합니다.")
+st.set_page_config(page_title="코스피 단타·스윙 대시보드", layout="wide")
+st.title("코스피 단타·스윙 대시보드")
+st.caption("코스피 종목만 보며 레버리지·인버스·ETF/ETN·스팩은 뺍니다. 후보 목록의 조건은 검증된 매수 신호가 아니라 '무엇을 볼지'를 정리해 주는 체크리스트입니다 "
+           "(검증 현황은 '검증 기록' 탭).")
 
 if not APP_KEY or not APP_SECRET:
     st.error("Secrets에 KIS_APP_KEY / KIS_APP_SECRET이 설정되지 않았습니다.")
@@ -4198,9 +4241,55 @@ def render_watchlist_tab():
 
 render_market_regime_banner()
 
-tab_supply, tab_volume, tab_value, tab_overlap, tab_tracker, tab_watch, tab_intraday, tab_screen, tab_reversal, tab_lookup, tab_journal, tab_ai, tab_cmp = st.tabs([
-    "📊 순매수 상위", "📈 거래량 상위", "💰 저평가 후보", "🔥 동시 등장", "📌 신호 추적", "👀 관찰목록", "⏱ 장중 변동", "✅ 스윙 후보 스크리닝", "🔄 반등 후보", "🔍 종목 조회", "📒 매매 일지", "🤖 AI 분석용", "📊 AI 점수 비교",
+tab_market, tab_flow, tab_cand, tab_lookup, tab_watch_top, tab_journal, tab_verify = st.tabs([
+    "🌡 시장 상태", "📊 수급", "🎯 후보", "🔍 종목 조회", "👀 관찰목록", "📒 매매 일지", "🧪 검증 기록",
 ])
+
+with tab_flow:
+    tab_supply, tab_volume, tab_overlap = st.tabs(["📊 순매수 상위", "📈 거래량 상위", "🔥 동시 등장"])
+    _sc = _rank_scope()
+    st.caption(f"조회 범위: 순매수 {_sc['investor']} · 거래량 {_sc['volume']} (제외 코드 {_sc['volume_filter']}). 레버리지·인버스·ETF/ETN·스팩은 이름으로도 한 번 더 거릅니다.")
+
+with tab_cand:
+    st.warning("후보 목록은 아직 검증되지 않은 조건으로 걸러집니다. 2026-10-02 ~ 11-06 기록(하락장 한 국면, 표본 적음)에서 전환신호는 "
+               "대조군과 구분되지 않았고 신호 후 5일·10일 평균은 마이너스였습니다. 매수 신호가 아니라 '볼 종목'을 줄여 주는 용도로만 쓰고, "
+               "근거는 '검증 기록' 탭에서 직접 확인하세요.")
+    tab_screen, tab_reversal, tab_value = st.tabs(["✅ 스윙 후보 스크리닝", "🔄 반등 후보", "💰 저평가 후보"])
+
+with tab_watch_top:
+    tab_watch, tab_intraday = st.tabs(["👀 관찰목록", "⏱ 장중 변동"])
+
+with tab_verify:
+    st.caption("신호가 실제로 올랐는지를 기록하고 대조군과 비교합니다. 새 신호·조건은 여기서 기준을 넘기 전까지 매수 근거로 쓰지 않습니다 "
+               "(독립 신호 100건 이상, 여러 시장 국면, 대조군 대비 t값 2 이상, 거래 비용 반영).")
+    tab_tracker, tab_ai, tab_cmp = st.tabs(["📌 신호 추적·대조군", "🗄 AI 분석용 (보관)", "🗄 AI 점수 비교 (보관)"])
+
+
+def _k200_json(rel: str):
+    """data/k200 아래 JSON. 원격(GitHub raw) 우선, 실패하면 로컬 파일."""
+    return _k200_json_cached(rel)
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _k200_json_cached(rel: str):
+    try:
+        r = requests.get(f"{AI_REPORT_RAW_BASE}/k200/{rel}", timeout=10)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    try:
+        with open(os.path.join("data", "k200", rel), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+with tab_market:
+    try:
+        market_tab.render_market_state(st, _k200_json)
+    except Exception as e:
+        st.error(f"시장 상태를 그리지 못했습니다: {str(e)[:150]}")
 
 # ---------------- 📊 순매수 상위 ----------------
 with tab_supply:
@@ -5059,7 +5148,7 @@ with tab_ai:
             st.download_button("⬇ 구조화 데이터 (.json)", json.dumps(_rep["json"], ensure_ascii=False, indent=1), file_name="ai_report.json",
                                mime="application/json", key="ai_dl_json")
         st.caption("이 주소와 리포트는 공개 저장소에 올라가므로 누구나 볼 수 있어요. 시세·수급·점수만 들어 있고 매매 일지, API 키, 비밀번호는 들어 있지 않습니다. "
-                   "스윙 체크 점수와 앱 종합점수는 임의 기준이라 검증되지 않았고, 투자 자문이 아닙니다. 관심 종목을 넣으려면 저장소의 data/watch_codes.txt에 "
+                   "스윙 체크 점수와 앱 종합점수는 임의 기준이라 검증되지 않았습니다. 관심 종목을 넣으려면 저장소의 data/watch_codes.txt에 "
                    "한 줄에 종목코드 하나씩 적어 두세요(예: 098460 고영).")
 
 # ---------------- 📊 AI 점수 비교 ----------------
@@ -5153,7 +5242,7 @@ with tab_cmp:
             st.dataframe(safe_styler(pd.DataFrame(_notes), {"총점": lambda v: f"{v:.0f}", "확신도": lambda v: f"{int(v)}"}),
                          use_container_width=True, hide_index=True)
             st.download_button("⬇ 비교표 (.csv)", _cmp.to_csv(index=False).encode("utf-8-sig"), file_name="ai_score_compare.csv", mime="text/csv", key="cmp_dl_csv")
-        st.caption("붙여넣은 내용은 이 브라우저 세션에만 있고 저장되지 않아요. 점수는 모두 검증되지 않은 참고용이고, 투자 자문이 아닙니다.")
+        st.caption("붙여넣은 내용은 이 브라우저 세션에만 있고 저장되지 않아요. 점수는 모두 검증되지 않은 참고용입니다.")
 
 st.divider()
 if st.button("지금 새로고침"):
