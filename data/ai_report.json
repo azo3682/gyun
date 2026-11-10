@@ -1,11 +1,11 @@
 {
  "meta": {
-  "generated_at": "2026-11-10 22:48",
-  "phase": "장 마감 후 — 오늘 가격 확정 (일별 수급은 증권사 제공 시점에 따라 아직 어제까지일 수 있음)",
+  "generated_at": "2026-11-11 00:18",
+  "phase": "장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일)",
   "notes": [],
   "counts": {
-   "universe": 14,
-   "ok": 14
+   "universe": 13,
+   "ok": 13
   }
  },
  "stocks": [
@@ -13,7 +13,8 @@
    "code": "003490",
    "name": "대한항공",
    "sources": [
-    "순매수 상위 1위"
+    "순매수 상위 1위",
+    "신호 추적(2026-11-10 전환신호)"
    ],
    "ranking": {
     "buy_rank": 1,
@@ -41,10 +42,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 31904.079453474253,
+    "bb_upper": 31904.07945347426,
     "bb_mid": 27867.5,
-    "bb_lower": 23830.920546525747,
-    "to_upper_pct": -2.1347256028397155,
+    "bb_lower": 23830.92054652574,
+    "to_upper_pct": -2.1347256028396933,
     "vs_mid_pct": 16.98214766304835
    },
    "structure": {
@@ -222,10 +223,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 18955.16984900874,
+    "bb_upper": 18955.169849008777,
     "bb_mid": 17019.0,
-    "bb_lower": 15082.83015099126,
-    "to_upper_pct": 16.503809766495014,
+    "bb_lower": 15082.830150991222,
+    "to_upper_pct": 16.503809766495237,
     "vs_mid_pct": -4.400963628885368
    },
    "structure": {
@@ -361,6 +362,7 @@
    "name": "삼성전자",
    "sources": [
     "순매수 상위 3위",
+    "신호 추적(2026-11-10 거래량·수급 동시)",
     "거래량 상위 5위"
    ],
    "ranking": {
@@ -389,10 +391,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 243468.28106204933,
+    "bb_upper": 243468.28106204967,
     "bb_mid": 215920.0,
-    "bb_lower": 188371.71893795067,
-    "to_upper_pct": 23.400041085681366,
+    "bb_lower": 188371.71893795033,
+    "to_upper_pct": 23.400041085681544,
     "vs_mid_pct": -8.623564283067807
    },
    "structure": {
@@ -616,10 +618,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 4167.917230450604,
+    "bb_upper": 4167.917230450603,
     "bb_mid": 3585.75,
-    "bb_lower": 3003.5827695493963,
-    "to_upper_pct": 35.54202375449118,
+    "bb_lower": 3003.5827695493967,
+    "to_upper_pct": 35.54202375449116,
     "vs_mid_pct": -14.243882033047484
    },
    "structure": {
@@ -794,7 +796,7 @@
     "vcp": true,
     "bb_upper": 71916.29378009397,
     "bb_mid": 57260.0,
-    "bb_lower": 42603.70621990603,
+    "bb_lower": 42603.706219906024,
     "to_upper_pct": 54.161401457864876,
     "vs_mid_pct": -18.529514495284673
    },
@@ -966,10 +968,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 191028.72686575307,
+    "bb_upper": 191028.72686575292,
     "bb_mid": 178340.0,
-    "bb_lower": 165651.27313424693,
-    "to_upper_pct": -0.6610884733473377,
+    "bb_lower": 165651.27313424708,
+    "to_upper_pct": -0.6610884733474154,
     "vs_mid_pct": 7.827744757205335
    },
    "structure": {
@@ -1080,20 +1082,6 @@
       "rcp_no": "20261106800553",
       "category": "희석 우려",
       "tone": "neg"
-     },
-     {
-      "date": "20261103",
-      "title": "[기재정정]장래사업ㆍ경영계획(공정공시)",
-      "rcp_no": "20261103800603",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261103",
-      "title": "[기재정정]주요사항보고서(유상증자결정)",
-      "rcp_no": "20261103000311",
-      "category": "희석 우려",
-      "tone": "neg"
      }
     ],
     "disclosure_summary": {
@@ -1135,6 +1123,7 @@
    "name": "진에어",
    "sources": [
     "순매수 상위 7위",
+    "신호 추적(2026-11-10 거래량·수급 동시)",
     "거래량 상위 6위"
    ],
    "ranking": {
@@ -1287,13 +1276,6 @@
       "rcp_no": "20261106800652",
       "category": "실적",
       "tone": "neutral"
-     },
-     {
-      "date": "20261103",
-      "title": "대표이사(대표집행임원)변경(안내공시)",
-      "rcp_no": "20261103800677",
-      "category": "기타",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
@@ -1335,8 +1317,8 @@
    "name": "제주항공",
    "sources": [
     "순매수 상위 8위",
-    "신호 추적(2026-11-09 전환신호)",
-    "신호 추적(2026-11-05 전환신호)"
+    "신호 추적(2026-11-10 전환신호)",
+    "신호 추적(2026-11-09 전환신호)"
    ],
    "ranking": {
     "buy_rank": 8,
@@ -1364,10 +1346,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 7004.9507906288045,
+    "bb_upper": 7004.950790628809,
     "bb_mid": 5775.0,
-    "bb_lower": 4545.0492093711955,
-    "to_upper_pct": -6.600656124949278,
+    "bb_lower": 4545.049209371191,
+    "to_upper_pct": -6.600656124949211,
     "vs_mid_pct": 29.87012987012987
    },
    "structure": {
@@ -1481,29 +1463,13 @@
       "rcp_no": "20261104000391",
       "category": "기타",
       "tone": "neutral"
-     },
-     {
-      "date": "20261103",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261103800657",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261103",
-      "title": "영업(잠정)실적(공정공시)",
-      "rcp_no": "20261103800430",
-      "category": "실적",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
+     "tags": [],
      "neg": [],
      "risk": false,
-     "text": "실적"
+     "text": "—"
     }
    },
    "scores": {
@@ -1566,10 +1532,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 7281.990112217715,
+    "bb_upper": 7281.990112217718,
     "bb_mid": 5962.75,
-    "bb_lower": 4643.509887782285,
-    "to_upper_pct": 45.0595639884007,
+    "bb_lower": 4643.509887782282,
+    "to_upper_pct": 45.05956398840076,
     "vs_mid_pct": -15.810657834053076
    },
    "structure": {
@@ -1754,10 +1720,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 1074.6588998051834,
+    "bb_upper": 1074.6588998051836,
     "bb_mid": 1011.85,
-    "bb_lower": 949.0411001948166,
-    "to_upper_pct": 0.6234924911220352,
+    "bb_lower": 949.0411001948164,
+    "to_upper_pct": 0.6234924911220574,
     "vs_mid_pct": 5.549241488362888
    },
    "structure": {
@@ -2043,13 +2009,6 @@
       "rcp_no": "20261104000318",
       "category": "희석 우려",
       "tone": "neg"
-     },
-     {
-      "date": "20261103",
-      "title": "전환사채(해외전환사채포함)발행후만기전사채취득",
-      "rcp_no": "20261103900508",
-      "category": "희석 우려",
-      "tone": "neg"
      }
     ],
     "disclosure_summary": {
@@ -2124,7 +2083,7 @@
     "vcp": false,
     "bb_upper": 40226.507327780986,
     "bb_mid": 35065.0,
-    "bb_lower": 29903.492672219014,
+    "bb_lower": 29903.49267221901,
     "to_upper_pct": 1.0716264517110163,
     "vs_mid_pct": 13.503493512049047
    },
@@ -2309,10 +2268,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 53859.68209873161,
+    "bb_upper": 53859.68209873155,
     "bb_mid": 48742.5,
-    "bb_lower": 43625.31790126839,
-    "to_upper_pct": 5.814699604580764,
+    "bb_lower": 43625.31790126845,
+    "to_upper_pct": 5.814699604580653,
     "vs_mid_pct": 4.426321998256144
    },
    "structure": {
@@ -2428,13 +2387,6 @@
       "rcp_no": "20261110800099",
       "category": "실적",
       "tone": "neutral"
-     },
-     {
-      "date": "20261103",
-      "title": "기업설명회(IR)개최(안내공시)",
-      "rcp_no": "20261103800232",
-      "category": "기타",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
@@ -2465,193 +2417,6 @@
       "볼린저": 0
      },
      "notes": []
-    }
-   },
-   "data_issues": []
-  },
-  {
-   "code": "293490",
-   "name": "카카오게임즈",
-   "sources": [
-    "신호 추적(2026-11-05 전환신호)"
-   ],
-   "ranking": {
-    "buy_rank": null,
-    "foreign_net": null,
-    "inst_net": null,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 11750.0,
-    "change_pct": -1.59,
-    "per": -9.91,
-    "pbr": 0.88,
-    "eps": -1186.0,
-    "bps": 13314.0,
-    "mktcap_eok": 12543.0,
-    "w52_high": 18440.0,
-    "w52_low": 6780.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 진행중",
-    "rsi": 63.2,
-    "aligned": true,
-    "volume_surge": false,
-    "momentum_20d": true,
-    "vcp": true,
-    "bb_upper": 13037.263461628017,
-    "bb_mid": 11223.5,
-    "bb_lower": 9409.736538371983,
-    "to_upper_pct": 10.955433715983132,
-    "vs_mid_pct": 4.691050028957089
-   },
-   "structure": {
-    "session_date": "2026-11-10",
-    "prev_close": 11940.0,
-    "prev_high": 12440.0,
-    "open": 12130.0,
-    "high": 12300.0,
-    "low": 11690.0,
-    "gap_pct": 1.5912897822445649,
-    "range_pos_pct": 9.836065573770492,
-    "vs_prev_high_pct": -5.546623794212213,
-    "vwap": 12067.87,
-    "vs_vwap_pct": -2.634019093676021,
-    "high20": 12930.0,
-    "low20": 9170.0,
-    "from_high20_pct": -9.126063418406805,
-    "from_low20_pct": 28.135223555070876
-   },
-   "volume": {
-    "today": 522779.0,
-    "prev_day": 367150.0,
-    "vs_prev_pct": 142.39,
-    "avg5": 788933.0,
-    "avg20": 741469.5,
-    "vs_avg20_x": 0.7050579963167737
-   },
-   "financial": {
-    "stac_yymm": "202606",
-    "roe": -9.86,
-    "debt_ratio": 114.93,
-    "sales_growth": -33.82,
-    "op_growth": 0.0,
-    "ni_growth": 0.0,
-    "eps": -868.0,
-    "bps": 12437.0,
-    "rsrv_rate": 13317.45
-   },
-   "flow": {
-    "daily_asof": "2026-11-10",
-    "streak": {
-     "외국인": 2,
-     "기관": -1,
-     "개인": -6
-    },
-    "sum5": {
-     "외국인": 265587,
-     "기관": 364464,
-     "개인": -633523
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 6000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": 33000,
-      "orgn": -8000,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": 65000,
-      "orgn": -19000,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 65000,
-      "orgn": -24000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 60000,
-      "orgn": -28000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [],
-   "context": {
-    "sector": "IT 서비스",
-    "momentum": {
-     "cell": "강세·안정",
-     "ret5": -2.0,
-     "ret20": 19.8,
-     "ret60": 34.7,
-     "from_high": -9.1,
-     "rsi": 63.2,
-     "above_ma60": true,
-     "aligned": true,
-     "ma60_rising": true
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261105",
-      "title": "기업설명회(IR)개최",
-      "rcp_no": "20261105900650",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261104",
-      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-      "rcp_no": "20261104900036",
-      "category": "실적",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
-     "neg": [],
-     "risk": false,
-     "text": "실적"
-    }
-   },
-   "scores": {
-    "app_composite": 25.3,
-    "app_notes": [
-     "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
-    ],
-    "swing_check": {
-     "total": 45,
-     "max": 100,
-     "parts": {
-      "수급": 0,
-      "신호": 0,
-      "추세": 20,
-      "가격부담": 20,
-      "재무": 5
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 0,
-      "볼린저": 0
-     },
-     "notes": [
-      "영업이익 증가율 0: 적자 관련 상태일 수 있어 점수 제외"
-     ]
     }
    },
    "data_issues": []
