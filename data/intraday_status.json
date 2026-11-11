@@ -1,83 +1,45 @@
 {
-  "checked_at": "2026-11-10T22:49:35+09:00",
-  "kept": [
+  "checked_at": "2026-11-11T16:02:37+09:00",
+  "kept": [],
+  "excluded": [
     {
       "stock_code": "089590",
       "stock_name": "제주항공",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 81.0
-      },
-      "transition": true,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 7500.0,
-      "day_pct": 9.81
-    }
-  ],
-  "excluded": [
-    {
-      "stock_code": "328130",
-      "stock_name": "루닛",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": false,
-        "RSI값": 81.4
+        "RSI값": 80.3
       },
       "transition": false,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 16780.0,
-      "day_pct": 3.77,
-      "reason": "순매수 상위 10에서 이탈"
+      "current_price": 7460.0,
+      "day_pct": 0.4,
+      "reason": "전환신호 소멸"
     },
-    {
-      "stock_code": "302440",
-      "stock_name": "SK바이오사이언스",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 66.7
-      },
-      "transition": false,
-      "passed": 2,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 39800.0,
-      "day_pct": -1.49,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "003490",
       "stock_name": "대한항공",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": true,
-        "RSI값": 72.0
+        "RSI값": 71.4
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 32600.0,
-      "day_pct": 12.03
+      "current_price": 31600.0,
+      "day_pct": -2.62,
+      "reason": "순매수 상위 10에서 이탈"
     }
-  ]
+  ],
+  "new_candidates": []
 }
