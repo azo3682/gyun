@@ -1,11 +1,11 @@
 {
  "meta": {
-  "generated_at": "2026-11-11 21:58",
+  "generated_at": "2026-11-11 23:47",
   "phase": "장 마감 후 — 오늘 가격 확정 (일별 수급은 증권사 제공 시점에 따라 아직 어제까지일 수 있음)",
   "notes": [],
   "counts": {
-   "universe": 14,
-   "ok": 14
+   "universe": 13,
+   "ok": 13
   }
  },
  "stocks": [
@@ -14,6 +14,7 @@
    "name": "삼성전자",
    "sources": [
     "순매수 상위 1위",
+    "신호 추적(2026-11-11 거래량·수급 동시)",
     "신호 추적(2026-11-10 거래량·수급 동시)",
     "거래량 상위 2위"
    ],
@@ -2007,8 +2008,7 @@
    "code": "328130",
    "name": "루닛",
    "sources": [
-    "신호 추적(2026-11-09 전환신호)",
-    "신호 추적(2026-11-06 전환신호)"
+    "신호 추적(2026-11-09 전환신호)"
    ],
    "ranking": {
     "buy_rank": null,
@@ -2342,185 +2342,6 @@
      "penalties": {
       "등락": 0,
       "RSI": 5,
-      "볼린저": 0
-     },
-     "notes": [
-      "재무 데이터가 비어 있어 재무 항목을 점수에서 제외 (80점 만점)"
-     ]
-    }
-   },
-   "data_issues": [
-    "재무비율 조회 실패"
-   ]
-  },
-  {
-   "code": "030200",
-   "name": "KT",
-   "sources": [
-    "신호 추적(2026-11-06 전환신호)"
-   ],
-   "ranking": {
-    "buy_rank": null,
-    "foreign_net": null,
-    "inst_net": null,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 50800.0,
-    "change_pct": -0.39,
-    "per": 7.4,
-    "pbr": 0.69,
-    "eps": 6869.0,
-    "bps": 73231.0,
-    "mktcap_eok": 128027.0,
-    "w52_high": 69400.0,
-    "w52_low": 44600.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "하락추세 속 단기 반등 시도",
-    "rsi": 61.6,
-    "aligned": false,
-    "volume_surge": false,
-    "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 53976.81592198499,
-    "bb_mid": 48792.5,
-    "bb_lower": 43608.18407801501,
-    "to_upper_pct": 6.253574649576765,
-    "vs_mid_pct": 4.114361838397285
-   },
-   "structure": {
-    "session_date": "2026-11-11",
-    "prev_close": 51000.0,
-    "prev_high": 53200.0,
-    "open": 50900.0,
-    "high": 51800.0,
-    "low": 50500.0,
-    "gap_pct": -0.19607843137254832,
-    "range_pos_pct": 23.076923076923077,
-    "vs_prev_high_pct": -4.511278195488721,
-    "vwap": 51032.28,
-    "vs_vwap_pct": -0.4551628890576698,
-    "high20": 53900.0,
-    "low20": 44600.0,
-    "from_high20_pct": -5.75139146567718,
-    "from_low20_pct": 13.901345291479817
-   },
-   "volume": {
-    "today": 278402.0,
-    "prev_day": 627766.0,
-    "vs_prev_pct": 44.35,
-    "avg5": 692270.4,
-    "avg20": 472789.65,
-    "vs_avg20_x": 0.5888496078541482
-   },
-   "financial": null,
-   "flow": {
-    "daily_asof": "2026-11-11",
-    "streak": {
-     "외국인": 2,
-     "기관": -2,
-     "개인": 2
-    },
-    "sum5": {
-     "외국인": 34246,
-     "기관": 531929,
-     "개인": -547548
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 2000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": -5000,
-      "orgn": 3000,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": -4000,
-      "orgn": 3000,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": 15000,
-      "orgn": 3000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": 13000,
-      "orgn": 4000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [
-    "20261027 불성실공시법인지정예고              "
-   ],
-   "context": {
-    "sector": "통신",
-    "momentum": {
-     "cell": "약세",
-     "ret5": 3.5,
-     "ret20": 1.8,
-     "ret60": -3.6,
-     "from_high": -12.4,
-     "rsi": 61.6,
-     "above_ma60": false,
-     "aligned": false,
-     "ma60_rising": false
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261110",
-      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-      "rcp_no": "20261110800104",
-      "category": "실적",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261110",
-      "title": "영업(잠정)실적(공정공시)",
-      "rcp_no": "20261110800099",
-      "category": "실적",
-      "tone": "neutral"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
-     "neg": [],
-     "risk": false,
-     "text": "실적"
-    }
-   },
-   "scores": {
-    "app_composite": null,
-    "app_notes": [],
-    "swing_check": {
-     "total": 20,
-     "max": 80,
-     "parts": {
-      "수급": 0,
-      "신호": 0,
-      "추세": 0,
-      "가격부담": 20,
-      "재무": null
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 0,
       "볼린저": 0
      },
      "notes": [
