@@ -1,45 +1,43 @@
 {
-  "checked_at": "2026-11-11T22:00:31+09:00",
+  "checked_at": "2026-11-12T16:43:37+09:00",
   "kept": [],
-  "excluded": [
+  "excluded": [],
+  "new_candidates": [
     {
-      "stock_code": "089590",
-      "stock_name": "제주항공",
+      "stock_code": "035900",
+      "stock_name": "JYP Ent.",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 80.2
+        "RSI값": 69.5
       },
-      "transition": false,
-      "passed": 3,
+      "transition": true,
+      "passed": 5,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 7450.0,
-      "day_pct": 0.27,
-      "reason": "전환신호 소멸"
+      "current_price": 45300.0,
+      "day_pct": 17.05
     },
     {
-      "stock_code": "003490",
-      "stock_name": "대한항공",
+      "stock_code": "036710",
+      "stock_name": "심텍홀딩스",
       "tech": {
         "정배열": false,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
         "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 71.1
+        "변동성수축(VCP)": false,
+        "RSI값": 76.5
       },
-      "transition": false,
+      "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 31550.0,
-      "day_pct": -2.77,
-      "reason": "순매수 상위 10에서 이탈"
+      "current_price": 5680.0,
+      "day_pct": 12.48
     }
-  ],
-  "new_candidates": []
+  ]
 }
