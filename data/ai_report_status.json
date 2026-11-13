@@ -1,15 +1,15 @@
 {
- "at": "2026-11-13 00:40",
+ "at": "2026-11-13 12:31",
  "ok": true,
- "message": "정상 — 13종목 (장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일))",
+ "message": "정상 — 14종목 (장중 — 가격은 실시간, 수급은 정해진 시각에만 갱신되는 잠정 값)",
  "fail_reasons": {
   "FIN_EXCEPTION": {
-   "count": 13,
+   "count": 14,
    "msg": "Expecting value: line 1 column 1 (char 0)"
   }
  },
  "stage": "done",
- "stocks_ok": 13,
- "stocks_total": 13,
- "seconds": 398
+ "stocks_ok": 14,
+ "stocks_total": 14,
+ "seconds": 386
 }
