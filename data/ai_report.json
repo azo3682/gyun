@@ -1,7 +1,7 @@
 {
  "meta": {
-  "generated_at": "2026-11-16 23:01",
-  "phase": "장 마감 후 — 오늘 가격 확정 (일별 수급은 증권사 제공 시점에 따라 아직 어제까지일 수 있음)",
+  "generated_at": "2026-11-17 01:36",
+  "phase": "장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일)",
   "notes": [],
   "counts": {
    "universe": 14,
@@ -41,10 +41,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 4447.178111343555,
+    "bb_upper": 4447.178111343558,
     "bb_mid": 4041.25,
-    "bb_lower": 3635.3218886564446,
-    "to_upper_pct": 18.118940540333472,
+    "bb_lower": 3635.321888656442,
+    "to_upper_pct": 18.11894054033354,
     "vs_mid_pct": -6.835756263532322
    },
    "structure": {
@@ -202,7 +202,8 @@
    "code": "279570",
    "name": "케이뱅크",
    "sources": [
-    "순매수 상위 2위"
+    "순매수 상위 2위",
+    "신호 추적(2026-11-16 전환신호)"
    ],
    "ranking": {
     "buy_rank": 2,
@@ -230,10 +231,10 @@
     "volume_surge": true,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 5346.867754341433,
+    "bb_upper": 5346.867754341448,
     "bb_mid": 5176.0,
-    "bb_lower": 5005.132245658567,
-    "to_upper_pct": -1.5309805830306944,
+    "bb_lower": 5005.132245658552,
+    "to_upper_pct": -1.530980583030428,
     "vs_mid_pct": 4.907264296754255
    },
    "structure": {
@@ -398,10 +399,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 17871.103388320214,
+    "bb_upper": 17871.10338832028,
     "bb_mid": 16650.5,
-    "bb_lower": 15429.896611679784,
-    "to_upper_pct": 7.592434607587073,
+    "bb_lower": 15429.89661167972,
+    "to_upper_pct": 7.592434607587473,
     "vs_mid_pct": -0.2432359388606975
    },
    "structure": {
@@ -589,10 +590,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 33272.933399702044,
+    "bb_upper": 33272.93339970213,
     "bb_mid": 30722.5,
-    "bb_lower": 28172.066600297956,
-    "to_upper_pct": 2.694238887969269,
+    "bb_lower": 28172.06660029787,
+    "to_upper_pct": 2.6942388879695356,
     "vs_mid_pct": 5.460167629587431
    },
    "structure": {
@@ -757,10 +758,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 33392.67971756548,
+    "bb_upper": 33392.67971756547,
     "bb_mid": 28527.5,
-    "bb_lower": 23662.320282434517,
-    "to_upper_pct": 5.339683651626115,
+    "bb_lower": 23662.320282434528,
+    "to_upper_pct": 5.339683651626093,
     "vs_mid_pct": 11.120848304267806
    },
    "structure": {
@@ -1116,7 +1117,7 @@
     "vcp": true,
     "bb_upper": 8468.276780556578,
     "bb_mid": 7191.5,
-    "bb_lower": 5914.723219443422,
+    "bb_lower": 5914.723219443421,
     "to_upper_pct": 27.919588830159793,
     "vs_mid_pct": -7.94688173538205
    },
@@ -1223,20 +1224,6 @@
       "date": "20261112",
       "title": "[기재정정]반기보고서 (2026.06)",
       "rcp_no": "20261112000360",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261109",
-      "title": "타법인주식및출자증권취득결정(종속회사의주요경영사항)",
-      "rcp_no": "20261109900377",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261109",
-      "title": "타법인주식및출자증권취득결정(종속회사의주요경영사항)",
-      "rcp_no": "20261109900374",
       "category": "기타",
       "tone": "neutral"
      }
@@ -1468,7 +1455,8 @@
    "code": "261780",
    "name": "아리바이오랩",
    "sources": [
-    "순매수 상위 9위"
+    "순매수 상위 9위",
+    "신호 추적(2026-11-16 전환신호)"
    ],
    "ranking": {
     "buy_rank": 9,
@@ -1603,22 +1591,13 @@
       "rcp_no": "20261111000435",
       "category": "기타",
       "tone": "neutral"
-     },
-     {
-      "date": "20261109",
-      "title": "[기재정정]최대주주변경을수반하는주식담보제공계약체결",
-      "rcp_no": "20261109900473",
-      "category": "최대주주 변경",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
-     "tags": [
-      "최대주주 변경"
-     ],
+     "tags": [],
      "neg": [],
      "risk": false,
-     "text": "최대주주 변경"
+     "text": "—"
     }
    },
    "scores": {
@@ -1680,10 +1659,10 @@
     "volume_surge": true,
     "momentum_20d": false,
     "vcp": false,
-    "bb_upper": 25483.835829572174,
+    "bb_upper": 25483.835829572236,
     "bb_mid": 24140.0,
-    "bb_lower": 22796.164170427826,
-    "to_upper_pct": 10.79928621553119,
+    "bb_lower": 22796.164170427764,
+    "to_upper_pct": 10.799286215531456,
     "vs_mid_pct": -4.722452361226182
    },
    "structure": {
@@ -1855,10 +1834,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 33846.85603872309,
+    "bb_upper": 33846.85603872311,
     "bb_mid": 26650.0,
-    "bb_lower": 19453.143961276906,
-    "to_upper_pct": 43.7233802068921,
+    "bb_lower": 19453.143961276888,
+    "to_upper_pct": 43.723380206892195,
     "vs_mid_pct": -11.63227016885553
    },
    "structure": {
@@ -1990,13 +1969,6 @@
       "rcp_no": "20261111000337",
       "category": "기타",
       "tone": "neutral"
-     },
-     {
-      "date": "20261109",
-      "title": "주식등의대량보유상황보고서(약식)",
-      "rcp_no": "20261109000037",
-      "category": "기타",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
@@ -2068,10 +2040,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": false,
-    "bb_upper": 5577.899777945379,
+    "bb_upper": 5577.8997779453775,
     "bb_mid": 3974.75,
-    "bb_lower": 2371.6002220546206,
-    "to_upper_pct": 2.7237528166736524,
+    "bb_lower": 2371.6002220546225,
+    "to_upper_pct": 2.7237528166736302,
     "vs_mid_pct": 36.61236555758223
    },
    "structure": {
@@ -2168,29 +2140,13 @@
       "rcp_no": "20261113000907",
       "category": "기타",
       "tone": "neutral"
-     },
-     {
-      "date": "20261109",
-      "title": "기업설명회(IR)개최",
-      "rcp_no": "20261109900641",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261109",
-      "title": "연결재무제표기준영업(잠정)실적(공정공시)",
-      "rcp_no": "20261109900589",
-      "category": "실적",
-      "tone": "neutral"
      }
     ],
     "disclosure_summary": {
-     "tags": [
-      "실적"
-     ],
+     "tags": [],
      "neg": [],
      "risk": false,
-     "text": "실적"
+     "text": "—"
     }
    },
    "scores": {
@@ -2252,10 +2208,10 @@
     "volume_surge": false,
     "momentum_20d": true,
     "vcp": true,
-    "bb_upper": 44230.61488280282,
+    "bb_upper": 44230.61488280283,
     "bb_mid": 39602.5,
-    "bb_lower": 34974.38511719718,
-    "to_upper_pct": 1.3301600980591521,
+    "bb_lower": 34974.38511719717,
+    "to_upper_pct": 1.3301600980591743,
     "vs_mid_pct": 10.220314374092542
    },
    "structure": {
@@ -2339,7 +2295,7 @@
      "ret5": 8.3,
      "ret20": 8.0,
      "ret60": 10.9,
-     "from_high": -16.9,
+     "from_high": -16.5,
      "rsi": 63.1,
      "above_ma60": true,
      "aligned": true,
@@ -2409,7 +2365,6 @@
    "name": "삼성전자",
    "sources": [
     "신호 추적(2026-11-12 거래량·수급 동시)",
-    "신호 추적(2026-11-11 거래량·수급 동시)",
     "거래량 상위 3위"
    ],
    "ranking": {
@@ -2438,10 +2393,10 @@
     "volume_surge": false,
     "momentum_20d": false,
     "vcp": true,
-    "bb_upper": 241160.09311115067,
+    "bb_upper": 241160.09311115026,
     "bb_mid": 212975.0,
-    "bb_lower": 184789.90688884933,
-    "to_upper_pct": 23.67184262110291,
+    "bb_lower": 184789.90688884974,
+    "to_upper_pct": 23.67184262110269,
     "vs_mid_pct": -8.439957741518956
    },
    "structure": {
