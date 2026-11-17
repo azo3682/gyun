@@ -1,28 +1,26 @@
 {
-  "checked_at": "2026-11-16T23:03:17+09:00",
+  "checked_at": "2026-11-17T17:30:28+09:00",
   "kept": [],
   "excluded": [
     {
-      "stock_code": "098460",
-      "stock_name": "고영",
+      "stock_code": "261780",
+      "stock_name": "아리바이오랩",
       "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 34.1
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 72.4
       },
       "transition": false,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 23550.0,
-      "day_pct": -5.42,
+      "current_price": 5080.0,
+      "day_pct": -12.56,
       "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
+    },
     {
       "stock_code": "279570",
       "stock_name": "케이뱅크",
@@ -32,32 +30,35 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 67.7
+        "RSI값": 65.2
       },
-      "transition": true,
+      "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5430.0,
-      "day_pct": 2.45
-    },
+      "current_price": 5470.0,
+      "day_pct": -0.18,
+      "reason": "전환신호 소멸"
+    }
+  ],
+  "new_candidates": [
     {
-      "stock_code": "261780",
-      "stock_name": "아리바이오랩",
+      "stock_code": "027710",
+      "stock_name": "팜스토리",
       "tech": {
-        "정배열": true,
+        "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": false,
-        "변동성수축(VCP)": true,
-        "RSI값": 81.5
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 45.8
       },
       "transition": true,
-      "passed": 4,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5680.0,
-      "day_pct": 24.29
+      "current_price": 1106.0,
+      "day_pct": 2.6
     }
   ]
 }
