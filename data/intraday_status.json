@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-17T17:30:28+09:00",
+  "checked_at": "2026-11-17T18:14:47+09:00",
   "kept": [],
   "excluded": [
     {
@@ -9,16 +9,16 @@
         "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 72.4
+        "RSI값": 60.8
       },
       "transition": false,
-      "passed": 3,
+      "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5080.0,
-      "day_pct": -12.56,
+      "current_price": 4720.0,
+      "day_pct": -18.76,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
@@ -30,14 +30,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 65.2
+        "RSI값": 65.9
       },
       "transition": false,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5470.0,
-      "day_pct": -0.18,
+      "current_price": 5480.0,
+      "day_pct": 0.0,
       "reason": "전환신호 소멸"
     }
   ],
@@ -51,14 +51,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 45.8
+        "RSI값": 42.9
       },
       "transition": true,
       "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1106.0,
-      "day_pct": 2.6
+      "current_price": 1098.0,
+      "day_pct": 1.86
     }
   ]
 }
