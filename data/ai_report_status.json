@@ -1,12 +1,19 @@
 {
- "at": "2026-11-18 23:36",
- "ok": false,
- "message": "증권사 API 연결 점검 실패 — 현재가 API 호출 실패(소요 1초): OPSQ0008×1(호출 후처리(MCI전송) 오류 입니다.). 직전 리포트를 유지합니다.",
+ "at": "2026-11-19 01:02",
+ "ok": true,
+ "message": "정상 — 12종목 (장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일))",
  "fail_reasons": {
+  "FIN_EXCEPTION": {
+   "count": 12,
+   "msg": "Expecting value: line 1 column 1 (char 0)"
+  },
   "OPSQ0008": {
-   "count": 1,
+   "count": 2,
    "msg": "호출 후처리(MCI전송) 오류 입니다."
   }
  },
- "stage": "preflight"
+ "stage": "done",
+ "stocks_ok": 12,
+ "stocks_total": 14,
+ "seconds": 139
 }
