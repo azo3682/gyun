@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-18T16:57:35+09:00",
+  "checked_at": "2026-11-18T17:30:34+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,14 +11,14 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 50.3
+        "RSI값": 49.7
       },
       "transition": false,
       "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1109.0,
-      "day_pct": 0.54,
+      "current_price": 1107.0,
+      "day_pct": 0.36,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
@@ -29,17 +29,17 @@
       "tech": {
         "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": false,
+        "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 52.7
+        "RSI값": 54.2
       },
       "transition": true,
-      "passed": 2,
+      "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 4135.0,
-      "day_pct": 1.1
+      "current_price": 4180.0,
+      "day_pct": 2.2
     },
     {
       "stock_code": "261780",
@@ -68,14 +68,14 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 64.5
+        "RSI값": 64.1
       },
       "transition": true,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5460.0,
-      "day_pct": 19.61
+      "current_price": 5410.0,
+      "day_pct": 18.51
     }
   ]
 }
