@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-18T23:33:12+09:00",
+  "checked_at": "2026-11-19T16:55:43+09:00",
   "kept": [],
   "excluded": [
     {
@@ -11,71 +11,53 @@
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 52.3
+        "RSI값": 50.0
       },
       "transition": false,
       "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 1115.0,
-      "day_pct": 1.09,
+      "current_price": 1103.0,
+      "day_pct": 0.27,
       "reason": "순매수 상위 10에서 이탈"
     }
   ],
   "new_candidates": [
     {
-      "stock_code": "025980",
-      "stock_name": "아난티",
+      "stock_code": "089590",
+      "stock_name": "제주항공",
       "tech": {
-        "정배열": false,
+        "정배열": true,
         "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": true,
+        "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 54.6
+        "RSI값": 79.0
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": null,
-      "day_pct": null
+      "current_price": 8360.0,
+      "day_pct": 11.47
     },
     {
-      "stock_code": "261780",
-      "stock_name": "아리바이오랩",
+      "stock_code": "006730",
+      "stock_name": "서부T&D",
       "tech": {
-        "정배열": true,
+        "정배열": false,
         "거래량급증": true,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 64.6
-      },
-      "transition": true,
-      "passed": 5,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 5290.0,
-      "day_pct": 29.98
-    },
-    {
-      "stock_code": "150900",
-      "stock_name": "파수AI",
-      "tech": {
-        "정배열": true,
-        "거래량급증": true,
-        "20일모멘텀": true,
+        "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 64.6
+        "RSI값": 32.7
       },
       "transition": true,
-      "passed": 4,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 5480.0,
-      "day_pct": 20.04
+      "current_price": 9980.0,
+      "day_pct": 7.08
     }
   ]
 }
