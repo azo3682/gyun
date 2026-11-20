@@ -1,63 +1,64 @@
 {
-  "checked_at": "2026-11-19T23:41:02+09:00",
+  "checked_at": "2026-11-20T16:42:33+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "027710",
-      "stock_name": "팜스토리",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 51.4
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 1107.0,
-      "day_pct": 0.64,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "089590",
       "stock_name": "제주항공",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
         "RSI과열아님": false,
         "변동성수축(VCP)": false,
-        "RSI값": 79.6
+        "RSI값": 77.4
       },
-      "transition": true,
-      "passed": 3,
+      "transition": false,
+      "passed": 2,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 8500.0,
-      "day_pct": 13.33
+      "current_price": 8370.0,
+      "day_pct": 0.12,
+      "reason": "순매수 상위 10에서 이탈"
     },
     {
       "stock_code": "006730",
       "stock_name": "서부T&D",
       "tech": {
         "정배열": false,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 33.0
+        "RSI값": 25.8
       },
-      "transition": true,
-      "passed": 2,
+      "transition": false,
+      "passed": 1,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 10000.0,
-      "day_pct": 7.3
+      "current_price": 9600.0,
+      "day_pct": -3.81,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "039420",
+      "stock_name": "케이엘넷",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 65.6
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 2600.0,
+      "day_pct": 10.64
     }
   ]
 }
