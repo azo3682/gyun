@@ -1,11 +1,14 @@
 {
  "meta": {
-  "generated_at": "2026-11-24 00:17",
+  "generated_at": "2026-11-24 01:31",
   "phase": "장 시작 전 — 전일 마감 기준 데이터 (공휴일이면 직전 거래일)",
-  "notes": [],
+  "notes": [
+   "실행 시간 상한(480초)에 도달해 1개 종목은 제외",
+   "조회 실패로 제외한 종목: 롯데손해보험"
+  ],
   "counts": {
    "universe": 14,
-   "ok": 14
+   "ok": 13
   }
  },
  "stocks": [
@@ -615,22 +618,7 @@
      "aligned": false,
      "ma60_rising": false
     },
-    "recent_disclosures": [
-     {
-      "date": "20261120",
-      "title": "투자설명서(일괄신고)",
-      "rcp_no": "20261120000565",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261120",
-      "title": "일괄신고추가서류(파생결합사채-주가연계파생결합사채)",
-      "rcp_no": "20261120000543",
-      "category": "기타",
-      "tone": "neutral"
-     }
-    ],
+    "recent_disclosures": [],
     "disclosure_summary": {
      "tags": [],
      "neg": [],
@@ -2125,204 +2113,6 @@
       "등락": 0,
       "RSI": 0,
       "볼린저": 5
-     },
-     "notes": [
-      "재무 데이터가 비어 있어 재무 항목을 점수에서 제외 (80점 만점)"
-     ]
-    }
-   },
-   "data_issues": [
-    "재무비율 조회 실패"
-   ]
-  },
-  {
-   "code": "000400",
-   "name": "롯데손해보험",
-   "sources": [
-    "신호 추적(2026-11-20 전환신호)"
-   ],
-   "ranking": {
-    "buy_rank": null,
-    "foreign_net": null,
-    "inst_net": null,
-    "volume_rank": null
-   },
-   "price": {
-    "current": 2515.0,
-    "change_pct": 0.0,
-    "per": 0.0,
-    "pbr": 0.0,
-    "eps": 0.0,
-    "bps": 0.0,
-    "mktcap_eok": 7805.0,
-    "w52_high": 3280.0,
-    "w52_low": 1576.0
-   },
-   "risk_flags": [],
-   "technical": {
-    "transition": false,
-    "trend": "상승추세 진행중",
-    "rsi": 63.3,
-    "aligned": true,
-    "volume_surge": true,
-    "momentum_20d": true,
-    "vcp": false,
-    "bb_upper": 2571.649990465315,
-    "bb_mid": 2461.25,
-    "bb_lower": 2350.850009534685,
-    "to_upper_pct": 2.252484710350511,
-    "vs_mid_pct": 2.1838496698831866
-   },
-   "structure": {
-    "session_date": "2026-11-23",
-    "prev_close": 2515.0,
-    "prev_high": 2560.0,
-    "open": 2515.0,
-    "high": 2540.0,
-    "low": 2465.0,
-    "gap_pct": 0.0,
-    "range_pos_pct": 66.66666666666666,
-    "vs_prev_high_pct": -1.7578125,
-    "vwap": 2513.76,
-    "vs_vwap_pct": 0.04932849595824518,
-    "high20": 2635.0,
-    "low20": 2275.0,
-    "from_high20_pct": -4.554079696394686,
-    "from_low20_pct": 10.549450549450556
-   },
-   "volume": {
-    "today": 1130154.0,
-    "prev_day": 1592256.0,
-    "vs_prev_pct": 70.98,
-    "avg5": 700473.4,
-    "avg20": 686835.3,
-    "vs_avg20_x": 1.6454512457353312
-   },
-   "financial": null,
-   "flow": {
-    "daily_asof": "2026-11-23",
-    "streak": {
-     "외국인": -1,
-     "기관": 3,
-     "개인": -3
-    },
-    "sum5": {
-     "외국인": -2361,
-     "기관": 1061251,
-     "개인": -1039442
-    },
-    "estimate": [
-     {
-      "time": "09:30",
-      "frgn": 6000,
-      "orgn": 0,
-      "slot": "1"
-     },
-     {
-      "time": "10:00",
-      "frgn": 29000,
-      "orgn": 37000,
-      "slot": "2"
-     },
-     {
-      "time": "11:20",
-      "frgn": -27000,
-      "orgn": 123000,
-      "slot": "3"
-     },
-     {
-      "time": "13:20",
-      "frgn": -183000,
-      "orgn": 302000,
-      "slot": "4"
-     },
-     {
-      "time": "14:30",
-      "frgn": -146000,
-      "orgn": 318000,
-      "slot": "5"
-     }
-    ],
-    "daily_ok": true,
-    "estimate_ok": true
-   },
-   "disclosures": [
-    "20261119 주요사항보고서(감자결정)",
-    "20261119 매매거래정지및정지해제(중요내용공시)              "
-   ],
-   "context": {
-    "sector": "보험",
-    "momentum": {
-     "cell": "강세·안정",
-     "ret5": 0.0,
-     "ret20": 5.0,
-     "ret60": 23.9,
-     "from_high": -11.3,
-     "rsi": 63.3,
-     "above_ma60": true,
-     "aligned": true,
-     "ma60_rising": true
-    },
-    "recent_disclosures": [
-     {
-      "date": "20261119",
-      "title": "주주총회소집결의",
-      "rcp_no": "20261119800572",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261119",
-      "title": "주주명부폐쇄기간또는기준일설정",
-      "rcp_no": "20261119800547",
-      "category": "기타",
-      "tone": "neutral"
-     },
-     {
-      "date": "20261119",
-      "title": "주요사항보고서(감자결정)",
-      "rcp_no": "20261119000310",
-      "category": "감자",
-      "tone": "neg"
-     },
-     {
-      "date": "20261119",
-      "title": "매매거래정지및정지해제(중요내용공시)",
-      "rcp_no": "20261119800507",
-      "category": "위험",
-      "tone": "neg"
-     }
-    ],
-    "disclosure_summary": {
-     "tags": [
-      "감자",
-      "위험"
-     ],
-     "neg": [
-      "감자",
-      "위험"
-     ],
-     "risk": true,
-     "text": "⚠️감자 · ⚠️위험"
-    }
-   },
-   "scores": {
-    "app_composite": null,
-    "app_notes": [],
-    "swing_check": {
-     "total": 40,
-     "max": 80,
-     "parts": {
-      "수급": 0,
-      "신호": 0,
-      "추세": 20,
-      "가격부담": 20,
-      "재무": null
-     },
-     "penalties": {
-      "등락": 0,
-      "RSI": 0,
-      "볼린저": 0
      },
      "notes": [
       "재무 데이터가 비어 있어 재무 항목을 점수에서 제외 (80점 만점)"
