@@ -1,64 +1,88 @@
 {
-  "checked_at": "2026-11-20T23:25:18+09:00",
+  "checked_at": "2026-11-23T17:11:39+09:00",
   "kept": [],
   "excluded": [
     {
-      "stock_code": "089590",
-      "stock_name": "제주항공",
+      "stock_code": "000400",
+      "stock_name": "롯데손해보험",
       "tech": {
         "정배열": true,
-        "거래량급증": false,
+        "거래량급증": true,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 77.6
+        "RSI값": 63.3
       },
       "transition": false,
-      "passed": 2,
+      "passed": 4,
       "total": 5,
-      "risky_disclosures": [],
-      "current_price": 8420.0,
-      "day_pct": 0.72,
+      "risky_disclosures": [
+        "20261119 주요사항보고서(감자결정)",
+        "20261119 매매거래정지및정지해제(중요내용공시)              "
+      ],
+      "current_price": 2510.0,
+      "day_pct": -0.2,
       "reason": "순매수 상위 10에서 이탈"
     },
     {
-      "stock_code": "006730",
-      "stock_name": "서부T&D",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 25.7
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 9590.0,
-      "day_pct": -3.91,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
-    {
-      "stock_code": "039420",
-      "stock_name": "케이엘넷",
+      "stock_code": "067630",
+      "stock_name": "HLB생명과학",
       "tech": {
         "정배열": false,
         "거래량급증": true,
         "20일모멘텀": false,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 58.7
+        "RSI값": 20.9
       },
-      "transition": true,
+      "transition": false,
       "passed": 2,
       "total": 5,
+      "risky_disclosures": [
+        "20261119 주권매매거래정지              (합병)"
+      ],
+      "current_price": 2205.0,
+      "day_pct": -16.79,
+      "reason": "순매수 상위 10에서 이탈"
+    },
+    {
+      "stock_code": "039420",
+      "stock_name": "케이엘넷",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 69.7
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
       "risky_disclosures": [],
-      "current_price": 2525.0,
-      "day_pct": 7.45
+      "current_price": 2615.0,
+      "day_pct": 0.58,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "036540",
+      "stock_name": "SFA반도체",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 59.4
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 9000.0,
+      "day_pct": 10.97
     }
   ]
 }
