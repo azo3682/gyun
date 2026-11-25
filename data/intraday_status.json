@@ -1,45 +1,45 @@
 {
-  "checked_at": "2026-11-25T01:27:59+09:00",
+  "checked_at": "2026-11-25T18:04:27+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "036540",
-      "stock_name": "SFA반도체",
-      "tech": {
-        "정배열": false,
-        "거래량급증": false,
-        "20일모멘텀": false,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": false,
-        "RSI값": 55.4
-      },
-      "transition": false,
-      "passed": 1,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 8640.0,
-      "day_pct": -3.46,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "036710",
       "stock_name": "심텍홀딩스",
       "tech": {
         "정배열": true,
-        "거래량급증": true,
+        "거래량급증": false,
         "20일모멘텀": true,
-        "RSI과열아님": false,
+        "RSI과열아님": true,
         "변동성수축(VCP)": true,
-        "RSI값": 74.3
+        "RSI값": 69.8
       },
-      "transition": true,
+      "transition": false,
       "passed": 4,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 6290.0,
-      "day_pct": 8.26
+      "current_price": 5740.0,
+      "day_pct": -12.37,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "030210",
+      "stock_name": "다올투자증권",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 58.9
+      },
+      "transition": true,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 3850.0,
+      "day_pct": 21.07
     }
   ]
 }
