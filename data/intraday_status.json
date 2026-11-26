@@ -1,28 +1,7 @@
 {
-  "checked_at": "2026-11-26T01:06:57+09:00",
+  "checked_at": "2026-11-26T17:51:31+09:00",
   "kept": [],
   "excluded": [
-    {
-      "stock_code": "036710",
-      "stock_name": "심텍홀딩스",
-      "tech": {
-        "정배열": true,
-        "거래량급증": false,
-        "20일모멘텀": true,
-        "RSI과열아님": true,
-        "변동성수축(VCP)": true,
-        "RSI값": 68.1
-      },
-      "transition": false,
-      "passed": 4,
-      "total": 5,
-      "risky_disclosures": [],
-      "current_price": 5600.0,
-      "day_pct": -14.5,
-      "reason": "순매수 상위 10에서 이탈"
-    }
-  ],
-  "new_candidates": [
     {
       "stock_code": "030210",
       "stock_name": "다올투자증권",
@@ -32,14 +11,53 @@
         "20일모멘텀": true,
         "RSI과열아님": true,
         "변동성수축(VCP)": false,
-        "RSI값": 56.6
+        "RSI값": 61.3
+      },
+      "transition": false,
+      "passed": 3,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 3835.0,
+      "day_pct": -4.24,
+      "reason": "순매수 상위 10에서 이탈"
+    }
+  ],
+  "new_candidates": [
+    {
+      "stock_code": "052900",
+      "stock_name": "KX하이텍",
+      "tech": {
+        "정배열": false,
+        "거래량급증": true,
+        "20일모멘텀": false,
+        "RSI과열아님": true,
+        "변동성수축(VCP)": false,
+        "RSI값": 63.4
+      },
+      "transition": true,
+      "passed": 2,
+      "total": 5,
+      "risky_disclosures": [],
+      "current_price": 960.0,
+      "day_pct": 7.62
+    },
+    {
+      "stock_code": "394800",
+      "stock_name": "쓰리빌리언",
+      "tech": {
+        "정배열": true,
+        "거래량급증": true,
+        "20일모멘텀": true,
+        "RSI과열아님": false,
+        "변동성수축(VCP)": false,
+        "RSI값": 73.6
       },
       "transition": true,
       "passed": 3,
       "total": 5,
       "risky_disclosures": [],
-      "current_price": 3770.0,
-      "day_pct": 18.55
+      "current_price": 7200.0,
+      "day_pct": 16.32
     }
   ]
 }
